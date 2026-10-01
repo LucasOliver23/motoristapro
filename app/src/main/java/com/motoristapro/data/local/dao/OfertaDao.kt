@@ -97,6 +97,10 @@ interface OfertaDao {
             COALESCE(SUM(minutos), 0)           AS minutos
         FROM ofertas
         WHERE recebida_em >= :inicio AND recebida_em < :fim AND metros > 0
+          -- R$ 50/km e teto de sanidade: acima disso e leitura errada da tela
+          -- (ja aconteceu de pegar o total de ganhos do dia da 99), e uma linha
+          -- dessas sozinha puxa a media da faixa inteira para cima.
+          AND valor_centavos * 1000 / metros <= 5000
         GROUP BY faixa
         HAVING COUNT(*) >= :minimoOfertas
         ORDER BY faixa
@@ -119,6 +123,10 @@ interface OfertaDao {
             COALESCE(SUM(minutos), 0)           AS minutos
         FROM ofertas
         WHERE recebida_em >= :inicio AND recebida_em < :fim AND metros > 0
+          -- R$ 50/km e teto de sanidade: acima disso e leitura errada da tela
+          -- (ja aconteceu de pegar o total de ganhos do dia da 99), e uma linha
+          -- dessas sozinha puxa a media da faixa inteira para cima.
+          AND valor_centavos * 1000 / metros <= 5000
           AND (
               :diaSemana < 0
               OR CAST(strftime('%w', recebida_em / 1000, 'unixepoch', 'localtime') AS INTEGER) = :diaSemana

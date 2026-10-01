@@ -45,8 +45,32 @@ enum class ModoLista(val rotulo: String) { CORRIDAS("Corridas"), OFERTAS("Oferta
 
 data class OfertasUiState(
     val ofertas: List<OfertaRecebida> = emptyList(),
-    val resumo: ResumoOfertas = ResumoOfertas.VAZIO
-)
+    val resumo: ResumoOfertas = ResumoOfertas.VAZIO,
+    /** Custo/km do motorista, para o histórico mostrar o lucro de cada oferta. */
+    val custoKmCentavos: Long = 0
+) {
+    /** Só o que não é leitura absurda entra nas médias do topo. */
+    private val validas: List<OfertaRecebida> get() = ofertas.filterNot { it.leituraSuspeita }
+
+    val totalAnalisadoCentavos: Long get() = validas.sumOf { it.valorCentavos }
+
+    val mediaPorCorridaCentavos: Long
+        get() = if (validas.isNotEmpty()) totalAnalisadoCentavos / validas.size else 0
+
+    val mediaPorHoraCentavos: Long
+        get() {
+            val minutos = validas.sumOf { it.minutos }
+            return if (minutos > 0) totalAnalisadoCentavos * 60 / minutos else 0
+        }
+
+    val mediaPorKmCentavos: Long
+        get() {
+            val metros = validas.sumOf { it.metros }
+            return if (metros > 0) totalAnalisadoCentavos * 1000 / metros else 0
+        }
+
+    val qtdSuspeitas: Int get() = ofertas.count { it.leituraSuspeita }
+}
 
 data class CorridasUiState(
     val filtro: FiltroPeriodo = FiltroPeriodo.HOJE,
@@ -81,8 +105,12 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
     val ofertasState: StateFlow<OfertasUiState> = filtro
         .flatMapLatest { f ->
             val (ini, fim) = f.intervalo()
-            combine(repo.ofertasDoPeriodo(ini, fim), repo.resumoOfertas(ini, fim)) { lista, resumo ->
-                OfertasUiState(lista, resumo)
+            combine(
+                repo.ofertasDoPeriodo(ini, fim),
+                repo.resumoOfertas(ini, fim),
+                repo.configuracao()
+            ) { lista, resumo, cfg ->
+                OfertasUiState(lista, resumo, cfg.custoKmCentavos)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OfertasUiState())

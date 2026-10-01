@@ -1,12 +1,15 @@
 package com.motoristapro.ui.corridas
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,8 +32,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,10 +50,12 @@ import com.motoristapro.ui.componentes.Metrica
 import com.motoristapro.ui.componentes.TelaAba
 import com.motoristapro.ui.componentes.Vazio
 import com.motoristapro.ui.theme.AmareloAlerta
+import com.motoristapro.ui.theme.corDaPlataforma
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.VermelhoPrejuizo
 import com.motoristapro.ui.theme.TextoSecundario
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -56,7 +63,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
 private val PT = Locale("pt", "BR")
-private val FORMATO_HORA = DateTimeFormatter.ofPattern("dd/MM HH:mm", PT)
+private val FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm", PT)
+
+/** "qui, 1 out" — o cabeçalho de cada dia da lista. */
+private val FORMATO_DIA = DateTimeFormatter.ofPattern("EEE, d MMM", PT)
+
+private fun diaDa(ms: Long): LocalDate =
+    Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate()
 
 /** Cor da etiqueta por plataforma (usa a cor cadastrada; Uber preta ganha contorno claro). */
 private fun corPlataforma(hex: String?): Color = try {
@@ -122,7 +135,21 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
                 if (ofertas.ofertas.isEmpty()) {
                     item { Vazio("Nenhuma oferta lida neste período.\nAs ofertas aparecem aqui assim que o leitor mostra a janela.") }
                 }
-                items(ofertas.ofertas, key = { "o" + it.id }) { OfertaItem(it) }
+                // Agrupado por dia, com o total do dia no cabecalho: e assim que
+                // o motorista procura ("quanto rolou na quinta?").
+                val porDia = ofertas.ofertas.groupBy { diaDa(it.recebidaEm) }
+                porDia.forEach { (dia, doDia) ->
+                    item(key = "d$dia") {
+                        CabecalhoDoDia(
+                            dia = dia,
+                            totalCentavos = doDia.filterNot { it.leituraSuspeita }.sumOf { it.valorCentavos },
+                            quantas = doDia.size
+                        )
+                    }
+                    items(doDia, key = { "o" + it.id }) {
+                        OfertaItem(it, custoKmCentavos = ofertas.custoKmCentavos)
+                    }
+                }
                 return@LazyColumn
             }
             item {
@@ -219,31 +246,77 @@ private fun CorridaItem(item: CorridaComPlataforma, cor: Color, onClick: () -> U
 private fun ResumoOfertasCard(e: OfertasUiState) {
     val r = e.resumo
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Metrica(
-            "Recebidas", "${r.total}", Modifier.weight(1f),
-            detalhe = "${r.boas} boas • ${r.medias} médias • ${r.ruins} ruins"
-        )
-        Metrica(
-            "Registradas", "${r.registradas}", Modifier.weight(1f),
-            detalhe = if (r.total > 0) "${r.registradas * 100 / r.total}% das ofertas" else null
-        )
+        // Linha de cima: quantas o leitor analisou e quanto somavam.
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        ) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("${r.total}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("Ofertas analisadas", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        e.totalAnalisadoCentavos.emReais(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text("Total analisado", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                }
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Metrica("Média por corrida", e.mediaPorCorridaCentavos.emReais(), Modifier.weight(1f))
+            Metrica("Média por hora", e.mediaPorHoraCentavos.emReais(), Modifier.weight(1f))
+            Metrica("Média por km", e.mediaPorKmCentavos.emReais(), Modifier.weight(1f), cor = Lima)
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Metrica(
+                "Aceitas", "${r.registradas}", Modifier.weight(1f),
+                detalhe = if (r.total > 0) "${r.registradas * 100 / r.total}% das ofertas" else null
+            )
+            Metrica(
+                "Semáforo", "${r.boas} boas", Modifier.weight(1f),
+                detalhe = "${r.medias} atenção • ${r.ruins} ruins"
+            )
+        }
+
+        if (e.qtdSuspeitas > 0) {
+            Text(
+                "⚠ ${e.qtdSuspeitas} leitura(s) acima de R$ 50/km ficaram de fora das médias — " +
+                    "o leitor pegou o número errado da tela do aplicativo.",
+                style = MaterialTheme.typography.bodySmall, color = AmareloAlerta
+            )
+        }
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Metrica(
-            "R$/km registradas", if (r.metrosRegistradas > 0) r.reaisKmRegistradas.emReais() else "—",
-            Modifier.weight(1f), cor = Lima
-        )
-        Metrica(
-            "R$/km das outras", if (r.metrosNaoRegistradas > 0) r.reaisKmNaoRegistradas.emReais() else "—",
-            Modifier.weight(1f), detalhe = "recusadas/não registradas"
-        )
-    }
+}
+
+/** Cabeçalho de um dia da lista: "QUI, 1 OUT" e o total do dia. */
+@Composable
+private fun CabecalhoDoDia(dia: LocalDate, totalCentavos: Long, quantas: Int) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                dia.format(FORMATO_DIA).uppercase(PT),
+                style = MaterialTheme.typography.labelMedium,
+                color = TextoSecundario,
+                fontWeight = FontWeight.Bold
+            )
+            Text("$quantas oferta(s)", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+        }
+        Text(totalCentavos.emReais(), fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-private fun OfertaItem(o: OfertaRecebida) {
+private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long) {
     val hora = Instant.ofEpochMilli(o.recebidaEm).atZone(ZoneId.systemDefault()).format(FORMATO_HORA)
     val cor = when (o.classificacao) {
         "BOA" -> Lima
@@ -252,31 +325,137 @@ private fun OfertaItem(o: OfertaRecebida) {
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(6.dp), color = cor, modifier = Modifier.padding(end = 10.dp)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+            // ---- linha de cima: app, valor, hora e a cor do semaforo
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(38.dp).clip(RoundedCornerShape(10.dp))
+                        .background(corDaPlataforma(o.plataforma)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        o.plataforma.take(2).uppercase(PT),
+                        color = Color(0xFF0A0D0B),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            o.valorCentavos.emReais(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            " · $hora",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextoSecundario
+                        )
+                    }
+                    val partes = mutableListOf(String.format(PT, "%.1f km", o.km))
+                    if (o.minutos > 0) partes += "${o.minutos} min"
+                    if (o.paradas > 1) partes += "${o.paradas} entregas"
+                    Text(
+                        partes.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextoSecundario
+                    )
+                }
+                Surface(shape = RoundedCornerShape(10.dp), color = cor.copy(alpha = 0.18f)) {
+                    Text(
+                        when (o.classificacao) { "BOA" -> "Boa"; "MEDIA" -> "Atenção"; else -> "Ruim" },
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = cor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            if (o.leituraSuspeita) {
                 Text(
-                    when (o.classificacao) { "BOA" -> "BOA"; "MEDIA" -> "MÉDIA"; else -> "RUIM" },
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF0A0D0B),
-                    fontWeight = FontWeight.Bold
+                    "⚠ Leitura suspeita: ${o.reaisPorKmCentavos.emReais()}/km. " +
+                        "O leitor provavelmente pegou outro número da tela — esta oferta não entra nas médias.",
+                    style = MaterialTheme.typography.bodySmall, color = AmareloAlerta
                 )
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("${o.plataforma} • $hora", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-                val partes = mutableListOf(String.format(PT, "%.1f km", o.km))
-                if (o.minutos > 0) partes += "${o.minutos} min"
-                partes += "${o.reaisPorKmCentavos.emReais()}/km"
-                if (o.paradas > 1) partes += "${o.paradas} entregas"
-                Text(partes.joinToString(" • "), style = MaterialTheme.typography.bodySmall)
+
+            // ---- os tres numeros que decidem a corrida
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Mini("por km", o.reaisPorKmCentavos.emReais(), Modifier.weight(1f))
+                if (o.minutos > 0) {
+                    Mini("por hora", o.reaisPorHoraCentavos.emReais(), Modifier.weight(1f))
+                }
+                o.nota?.let { Mini("nota", String.format(PT, "★ %.2f", it), Modifier.weight(1f)) }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(o.valorCentavos.emReais(), fontWeight = FontWeight.Bold)
-                if (o.registrada) Text("registrada ✓", style = MaterialTheme.typography.labelSmall, color = Lima)
+
+            // ---- lucro: so faz sentido com o custo por km cadastrado
+            if (custoKmCentavos > 0 && !o.leituraSuspeita) {
+                val lucro = o.lucroCentavos(custoKmCentavos)
+                val corLucro = if (lucro >= 0) Lima else VermelhoPrejuizo
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        .background(corLucro.copy(alpha = 0.12f))
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Lucro",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = corLucro,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "${lucro.emReais()} (${o.lucroPercentual(custoKmCentavos)}%)",
+                        fontWeight = FontWeight.Bold,
+                        color = corLucro
+                    )
+                }
+            }
+
+            // ---- de onde pra onde, quando a tela mostrou
+            if (!o.origem.isNullOrBlank()) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    LinhaEndereco("●", o.origem!!, Lima)
+                    o.destino?.takeIf { it.isNotBlank() }?.let { LinhaEndereco("▾", it, TextoSecundario) }
+                }
+            }
+
+            if (o.registrada) {
+                Text("registrada ✓", style = MaterialTheme.typography.labelSmall, color = Lima)
             }
         }
+    }
+}
+
+/** Quadradinho de um número do cartão: rótulo pequeno em cima, valor embaixo. */
+@Composable
+private fun Mini(rotulo: String, valor: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .padding(vertical = 8.dp, horizontal = 10.dp)
+    ) {
+        Text(valor, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        Text(rotulo, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+    }
+}
+
+@Composable
+private fun LinhaEndereco(marca: String, texto: String, cor: Color) {
+    Row(verticalAlignment = Alignment.Top) {
+        Text(marca, color = cor, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(end = 8.dp))
+        Text(
+            texto,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextoSecundario,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

@@ -28,7 +28,7 @@ import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Versão atual do esquema do banco (constante de topo: pode ser usada na anotação). */
-const val VERSAO_BANCO = 9
+const val VERSAO_BANCO = 10
 
 /**
  * Banco local do MotoristaPro.
@@ -89,7 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun construir(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NOME_BANCO)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .addCallback(SEED)
                 // NÃO use fallbackToDestructiveMigration(): apagaria o histórico do motorista.
                 .build()
@@ -161,6 +161,19 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN nome_motorista TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN telefone TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN cidade TEXT")
+            }
+        }
+
+        /**
+         * v9 -> v10: o historico passou a mostrar o cartao completo da oferta, e
+         * para isso guarda o que o leitor ja lia e jogava fora: a nota e os dois
+         * enderecos.
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE ofertas ADD COLUMN nota REAL")
+                db.execSQL("ALTER TABLE ofertas ADD COLUMN origem TEXT")
+                db.execSQL("ALTER TABLE ofertas ADD COLUMN destino TEXT")
             }
         }
 

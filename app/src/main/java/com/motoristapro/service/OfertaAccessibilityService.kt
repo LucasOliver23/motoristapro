@@ -257,7 +257,12 @@ class OfertaAccessibilityService : AccessibilityService() {
             metros = Math.round(oferta.km * 1000),
             minutos = oferta.minutos,
             paradas = oferta.paradas,
-            classificacao = classe.name
+            classificacao = classe.name,
+            nota = oferta.nota,
+            origem = oferta.enderecos.firstOrNull(),
+            // Só quando a tela mostrou DOIS endereços: com um só, o destino
+            // ficaria igual à origem e o histórico mentiria.
+            destino = oferta.enderecos.takeIf { it.size > 1 }?.lastOrNull()
         )
         ultimaOfertaId = null
         escopo.launch {
