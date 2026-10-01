@@ -28,7 +28,7 @@ import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Versão atual do esquema do banco (constante de topo: pode ser usada na anotação). */
-const val VERSAO_BANCO = 7
+const val VERSAO_BANCO = 8
 
 /**
  * Banco local do MotoristaPro.
@@ -89,7 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun construir(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NOME_BANCO)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .addCallback(SEED)
                 // NÃO use fallbackToDestructiveMigration(): apagaria o histórico do motorista.
                 .build()
@@ -161,6 +161,21 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN nome_motorista TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN telefone TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN cidade TEXT")
+            }
+        }
+
+        /**
+         * v7 -> v8: o assistente passou a perguntar O QUE o motorista roda e a
+         * aceitar o IPVA em reais por ano (antes só em %, e o % era cortado em
+         * 100% sem avisar).
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE perfil_custo ADD COLUMN tipo_trabalho TEXT NOT NULL DEFAULT 'PASSAGEIROS'"
+                )
+                db.execSQL("ALTER TABLE perfil_custo ADD COLUMN ipva_em_reais INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE perfil_custo ADD COLUMN ipva_anual_centavos INTEGER NOT NULL DEFAULT 0")
             }
         }
 

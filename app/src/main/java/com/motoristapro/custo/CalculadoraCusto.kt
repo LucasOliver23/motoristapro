@@ -11,6 +11,13 @@ enum class FormaAquisicao(val rotulo: String) {
 
 enum class TipoVeiculo(val rotulo: String) { CARRO("Carro"), MOTO("Moto") }
 
+/** O que o motorista roda. Muda o que o app espera de km/dia e de ganho por corrida. */
+enum class TipoTrabalho(val rotulo: String) {
+    PASSAGEIROS("Passageiros"),
+    ENTREGAS("Entregas"),
+    AMBOS("Ambos")
+}
+
 enum class TipoCombustivel(val rotulo: String, val unidade: String) {
     GASOLINA("Gasolina", "km/L"),
     ETANOL("Etanol", "km/L"),
@@ -30,6 +37,7 @@ enum class TipoCombustivel(val rotulo: String, val unidade: String) {
 data class DadosCusto(
     val forma: FormaAquisicao = FormaAquisicao.QUITADO,
     val tipoVeiculo: TipoVeiculo = TipoVeiculo.MOTO,
+    val tipoTrabalho: TipoTrabalho = TipoTrabalho.PASSAGEIROS,
 
     // ---- fixos ----
     val valorVeiculoCentavos: Long = 0,
@@ -37,6 +45,9 @@ data class DadosCusto(
     val aluguelMensalCentavos: Long = 0,     // alugado
     val seguroMensalCentavos: Long = 0,
     val ipvaPercentX100: Long = 0,           // ao ano, sobre o valor do veículo
+    /** true = o motorista digitou o IPVA em reais por ano, não em %. */
+    val ipvaEmReais: Boolean = false,
+    val ipvaAnualCentavos: Long = 0,         // usado quando ipvaEmReais
     val desvalorizacaoAnualX100: Long = 0,   // ao ano, sobre o valor do veículo
     val outrosMensaisCentavos: Long = 0,
 
@@ -65,6 +76,16 @@ data class DadosCusto(
     val diasPorMes: Double get() = diasPorSemana * SEMANAS_POR_MES
 
     val kmPorMes: Double get() = kmPorDia * diasPorMes
+
+    /**
+     * IPVA do ano em centavos, venha ele como % do valor do veículo ou digitado
+     * em reais. Uma fonte só para a tela e para o cálculo não divergirem.
+     */
+    val ipvaAnualEmCentavos: Double
+        get() = if (ipvaEmReais) ipvaAnualCentavos.toDouble()
+        else valorVeiculoCentavos * (ipvaPercentX100 / 10_000.0)
+
+    val ipvaMensalEmCentavos: Double get() = ipvaAnualEmCentavos / 12.0
 
     private companion object {
         const val SEMANAS_POR_MES = 4.33
@@ -150,11 +171,13 @@ object CalculadoraCusto {
         }
 
         // Veículo alugado não desvaloriza no seu bolso, e o IPVA é de quem aluga.
-        if (d.forma != FormaAquisicao.ALUGADO && d.valorVeiculoCentavos > 0) {
-            val depreciacao = d.valorVeiculoCentavos * (d.desvalorizacaoAnualX100 / 10_000.0) / 12.0
-            if (depreciacao > 0) itens += "Depreciação" to depreciacao
-
-            val ipva = d.valorVeiculoCentavos * (d.ipvaPercentX100 / 10_000.0) / 12.0
+        if (d.forma != FormaAquisicao.ALUGADO) {
+            if (d.valorVeiculoCentavos > 0) {
+                val depreciacao = d.valorVeiculoCentavos * (d.desvalorizacaoAnualX100 / 10_000.0) / 12.0
+                if (depreciacao > 0) itens += "Depreciação" to depreciacao
+            }
+            // Em reais o IPVA vale mesmo sem a FIPE preenchida; em % ele depende dela.
+            val ipva = d.ipvaMensalEmCentavos
             if (ipva > 0) itens += "IPVA" to ipva
         }
 
@@ -247,6 +270,15 @@ object CalculadoraCusto {
         }
         if (d.horasPorDia !in 1..18) {
             lista += Aviso("Horas por dia", "Horas por dia fora do comum (normal: 1 a 18).")
+        }
+        // IPVA em % passou a ser livre (antes era cortado em silêncio no 100%),
+        // então aqui é onde o motorista é avisado de que digitou reais no campo de %.
+        if (!d.ipvaEmReais && d.ipvaPercentX100 > 1_000) {
+            lista += Aviso(
+                "IPVA",
+                "IPVA de ${d.ipvaPercentX100 / 100}% ao ano é fora do comum (normal: 2% a 4%). " +
+                    "Se você quis dizer reais, troque o campo para R$."
+            )
         }
         return lista
     }

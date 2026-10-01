@@ -180,4 +180,46 @@ class CalculadoraCustoTest {
         val r = CalculadoraCusto.calcular(referencia.copy(valorVeiculoCentavos = 150_000))  // R$ 1.500
         assertTrue(r.avisos.any { it.campo == "Valor do veículo" })
     }
+
+    // ---------------------------------------------------------------- IPVA
+
+    @Test
+    fun ipvaEmReais_divideOCarnePorDoze() {
+        val r = CalculadoraCusto.calcular(
+            referencia.copy(ipvaEmReais = true, ipvaAnualCentavos = 70_000)   // R$ 700 no ano
+        )
+        assertEquals(5_833, r.itens.first { it.nome == "IPVA" }.mensalCentavos)   // R$ 58,33
+    }
+
+    @Test
+    fun ipvaEmReais_ignoraOPercentual() {
+        val r = CalculadoraCusto.calcular(
+            referencia.copy(ipvaEmReais = true, ipvaAnualCentavos = 70_000, ipvaPercentX100 = 400)
+        )
+        assertEquals(5_833, r.itens.first { it.nome == "IPVA" }.mensalCentavos)
+    }
+
+    @Test
+    fun ipvaEmReais_valeMesmoSemAFipe() {
+        // Antes o IPVA só entrava se o valor do veículo estivesse preenchido.
+        val r = CalculadoraCusto.calcular(
+            referencia.copy(valorVeiculoCentavos = 0, ipvaEmReais = true, ipvaAnualCentavos = 70_000)
+        )
+        assertEquals(5_833, r.itens.first { it.nome == "IPVA" }.mensalCentavos)
+        assertTrue(r.itens.none { it.nome == "Depreciação" })
+    }
+
+    @Test
+    fun ipvaPercentual_naoEMaisCortadoEm100() {
+        // O campo antigo cortava em 100% sem avisar: 700% virava 100% e o motorista
+        // via R$ 1.250/mês achando que tinha digitado reais.
+        val r = CalculadoraCusto.calcular(referencia.copy(ipvaPercentX100 = 70_000))  // 700%
+        assertEquals(875_000, r.itens.first { it.nome == "IPVA" }.mensalCentavos)     // R$ 8.750
+        assertTrue(r.avisos.any { it.campo == "IPVA" })
+    }
+
+    @Test
+    fun ipvaNormal_naoGeraAviso() {
+        assertTrue(CalculadoraCusto.calcular(referencia).avisos.none { it.campo == "IPVA" })
+    }
 }

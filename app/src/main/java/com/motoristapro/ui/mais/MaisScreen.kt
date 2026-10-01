@@ -350,7 +350,12 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
         val cfg = config ?: return@let
         Dialog(
             onDismissRequest = { sub = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                // Sem isto a janela da Dialog nao recebe o inset do teclado e o
+                // botao do rodape fica escondido atras dele.
+                decorFitsSystemWindows = false
+            )
         ) {
             SubTelaHost(titulo = aberta.titulo, onFechar = { sub = null }) {
                 when (aberta) {
@@ -547,7 +552,12 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     if (assistenteAberto) {
         Dialog(
             onDismissRequest = { assistenteAberto = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                // Sem isto a janela da Dialog nao recebe o inset do teclado e o
+                // botao do rodape fica escondido atras dele.
+                decorFitsSystemWindows = false
+            )
         ) {
             AssistenteCustoScreen(onFechar = { assistenteAberto = false })
         }

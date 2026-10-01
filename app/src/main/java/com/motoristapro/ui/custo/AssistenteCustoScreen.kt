@@ -40,6 +40,7 @@ import com.motoristapro.custo.FormaAquisicao
 import com.motoristapro.custo.ItemCusto
 import com.motoristapro.custo.ResultadoCusto
 import com.motoristapro.custo.TipoCombustivel
+import com.motoristapro.custo.TipoTrabalho
 import com.motoristapro.custo.TipoVeiculo
 import com.motoristapro.data.repository.emReais
 import com.motoristapro.ui.componentes.CampoFormulario
@@ -76,6 +77,8 @@ fun AssistenteCustoScreen(
     val r = e.resultado
 
     Column(
+        // safeDrawingPadding ja inclui o teclado; para ele chegar ate aqui, a
+        // Dialog que abre esta tela precisa de decorFitsSystemWindows = false.
         Modifier.fillMaxSize().background(Fundo).safeDrawingPadding()
     ) {
         // -------------------------------------------------------------- topo
@@ -196,12 +199,23 @@ fun AssistenteCustoScreen(
 @Composable
 private fun PassoFixos(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
     CardSecao(titulo = "Como é o seu veículo") {
+        Text("Transporte", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
         EscolhaEmLinha(
             opcoes = TipoVeiculo.entries.map { it.rotulo },
             selecionado = d.tipoVeiculo.rotulo,
             onEscolher = { r -> editar { it.copy(tipoVeiculo = TipoVeiculo.entries.first { t -> t.rotulo == r }) } }
         )
         Spacer(Modifier.height(4.dp))
+        Text("O que você faz", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+        EscolhaEmLinha(
+            opcoes = TipoTrabalho.entries.map { it.rotulo },
+            selecionado = d.tipoTrabalho.rotulo,
+            onEscolher = { r ->
+                editar { it.copy(tipoTrabalho = TipoTrabalho.entries.first { t -> t.rotulo == r }) }
+            }
+        )
+        Spacer(Modifier.height(4.dp))
+        Text("Como conseguiu", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
         EscolhaEmLinha(
             opcoes = FormaAquisicao.entries.map { it.rotulo },
             selecionado = d.forma.rotulo,
@@ -241,11 +255,27 @@ private fun PassoFixos(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
                 (d.valorVeiculoCentavos * (d.desvalorizacaoAnualX100 / 10_000.0) / 12.0).toLong()
             )
 
-            CampoPercentual("IPVA por ano", d.ipvaPercentX100) { v -> editar { it.copy(ipvaPercentX100 = v) } }
-            LinhaCalculada(
-                "IPVA por mês",
-                (d.valorVeiculoCentavos * (d.ipvaPercentX100 / 10_000.0) / 12.0).toLong()
+            // Dois jeitos de informar o IPVA porque quase todo motorista sabe o
+            // valor em reais do carnê, e quase nenhum sabe a aliquota do estado.
+            Text("IPVA — informar por", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+            EscolhaEmLinha(
+                opcoes = listOf(POR_PORCENTO, POR_REAIS),
+                selecionado = if (d.ipvaEmReais) POR_REAIS else POR_PORCENTO,
+                onEscolher = { r -> editar { it.copy(ipvaEmReais = r == POR_REAIS) } }
             )
+            if (d.ipvaEmReais) {
+                CampoDinheiro(
+                    "IPVA por ano", d.ipvaAnualCentavos,
+                    ajuda = "O valor do carnê do ano inteiro, sem desconto à vista."
+                ) { v -> editar { it.copy(ipvaAnualCentavos = v) } }
+            } else {
+                CampoPercentual(
+                    "IPVA por ano", d.ipvaPercentX100,
+                    ajuda = "Alíquota do seu estado sobre o valor do veículo. Moto costuma ser 2%, carro 4%."
+                ) { v -> editar { it.copy(ipvaPercentX100 = v) } }
+                LinhaCalculada("IPVA por ano", d.ipvaAnualEmCentavos.toLong())
+            }
+            LinhaCalculada("IPVA por mês", d.ipvaMensalEmCentavos.toLong())
         }
     }
 
@@ -495,14 +525,18 @@ private fun CampoDinheiro(
         mutableStateOf(if (centavos > 0) centavos.campoReais() else "")
     }
     CampoFormulario(
-        rotulo = "$rotulo (R$)",
+        rotulo = rotulo,
         valor = texto,
         onValor = { novo ->
             texto = novo
             onValor(novo.paraCentavosOuZero() ?: 0L)
         },
         erro = texto.isNotBlank() && texto.paraCentavosOuZero() == null,
-        ajuda = ajuda
+        ajuda = ajuda,
+        prefixo = "R$",
+        // Ao sair do campo, "15000" vira "15.000,00" — o motorista confere de relance
+        // se não faltou nem sobrou um zero.
+        aoPerderFoco = { t -> t.paraCentavosOuZero()?.campoReais() ?: t }
     )
 }
 
@@ -532,7 +566,9 @@ private fun CampoPercentual(rotulo: String, x100: Long, ajuda: String? = null, o
         valor = texto,
         onValor = { novo ->
             texto = novo
-            onValor(((novo.replace(',', '.').toDoubleOrNull() ?: 0.0) * 100).toLong().coerceIn(0, 10_000))
+            // Sem teto: cortar em 100% escondia o erro de quem digita reais aqui.
+            // Valor estranho vira AVISO na hora de calcular, nao um numero trocado.
+            onValor(((novo.replace(',', '.').toDoubleOrNull() ?: 0.0) * 100).toLong().coerceAtLeast(0))
         },
         ajuda = ajuda
     )
@@ -621,4 +657,7 @@ private fun Opcao(rotulo: String, ativo: Boolean, modifier: Modifier = Modifier,
 }
 
 /** 1234 centavos -> "12,34", do jeito que o motorista digita. */
-private fun Long.campoReais(): String = String.format(PT, "%.2f", this / 100.0)
+private fun Long.campoReais(): String = String.format(PT, "%,.2f", this / 100.0)
+
+private const val POR_PORCENTO = "%"
+private const val POR_REAIS = "R$"

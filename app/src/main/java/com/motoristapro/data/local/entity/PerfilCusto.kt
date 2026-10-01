@@ -28,6 +28,10 @@ data class PerfilCusto(
     @ColumnInfo(name = "tipo_veiculo", defaultValue = "MOTO")
     val tipoVeiculo: String = "MOTO",
 
+    /** PASSAGEIROS, ENTREGAS ou AMBOS (nome do enum TipoTrabalho). */
+    @ColumnInfo(name = "tipo_trabalho", defaultValue = "PASSAGEIROS")
+    val tipoTrabalho: String = "PASSAGEIROS",
+
     // ---------------------------------------------------------- custos fixos
     @ColumnInfo(name = "valor_veiculo_centavos", defaultValue = "0")
     val valorVeiculoCentavos: Long = 0,
@@ -43,6 +47,13 @@ data class PerfilCusto(
 
     @ColumnInfo(name = "ipva_percent_x100", defaultValue = "400")
     val ipvaPercentX100: Long = 400,
+
+    /** 1 = o IPVA foi digitado em reais por ano; 0 = em % do valor do veículo. */
+    @ColumnInfo(name = "ipva_em_reais", defaultValue = "0")
+    val ipvaEmReais: Boolean = false,
+
+    @ColumnInfo(name = "ipva_anual_centavos", defaultValue = "0")
+    val ipvaAnualCentavos: Long = 0,
 
     @ColumnInfo(name = "desvalorizacao_anual_x100", defaultValue = "1000")
     val desvalorizacaoAnualX100: Long = 1000,

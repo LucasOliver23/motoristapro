@@ -30,6 +30,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -212,13 +217,22 @@ fun CampoFormulario(
     modifier: Modifier = Modifier,
     numerico: Boolean = true,
     erro: Boolean = false,
-    ajuda: String? = null
+    ajuda: String? = null,
+    /** Texto fixo colado antes do valor, tipo "R$". */
+    prefixo: String? = null,
+    /**
+     * Chamado quando o campo perde o foco, para devolver o texto arrumado
+     * ("15000" -> "15.000,00"). Enquanto o motorista digita nada é mexido:
+     * reformatar a cada tecla faz o cursor pular.
+     */
+    aoPerderFoco: ((String) -> String)? = null
 ) {
     val suporte: (@Composable () -> Unit)? = if (ajuda != null) {
         { Text(ajuda) }
     } else {
         null
     }
+    var tinhaFoco by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = valor,
         onValueChange = onValor,
@@ -226,8 +240,14 @@ fun CampoFormulario(
         isError = erro,
         singleLine = true,
         supportingText = suporte,
+        prefix = prefixo?.let { { Text(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = if (numerico) KeyboardType.Decimal else KeyboardType.Text),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth().onFocusChanged { foco ->
+            if (tinhaFoco && !foco.isFocused && aoPerderFoco != null && valor.isNotBlank()) {
+                onValor(aoPerderFoco(valor))
+            }
+            tinhaFoco = foco.isFocused
+        }
     )
 }
 

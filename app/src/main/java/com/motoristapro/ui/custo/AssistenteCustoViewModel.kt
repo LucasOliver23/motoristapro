@@ -11,6 +11,7 @@ import com.motoristapro.custo.DadosCusto
 import com.motoristapro.custo.FormaAquisicao
 import com.motoristapro.custo.ResultadoCusto
 import com.motoristapro.custo.TipoCombustivel
+import com.motoristapro.custo.TipoTrabalho
 import com.motoristapro.custo.TipoVeiculo
 import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.repository.FinanceiroRepository
@@ -165,11 +166,15 @@ class AssistenteCustoViewModel(private val repo: FinanceiroRepository) : ViewMod
 fun PerfilCusto.paraDados() = DadosCusto(
     forma = runCatching { FormaAquisicao.valueOf(forma) }.getOrDefault(FormaAquisicao.QUITADO),
     tipoVeiculo = runCatching { TipoVeiculo.valueOf(tipoVeiculo) }.getOrDefault(TipoVeiculo.MOTO),
+    tipoTrabalho = runCatching { TipoTrabalho.valueOf(tipoTrabalho) }
+        .getOrDefault(TipoTrabalho.PASSAGEIROS),
     valorVeiculoCentavos = valorVeiculoCentavos,
     parcelaMensalCentavos = parcelaMensalCentavos,
     aluguelMensalCentavos = aluguelMensalCentavos,
     seguroMensalCentavos = seguroMensalCentavos,
     ipvaPercentX100 = ipvaPercentX100,
+    ipvaEmReais = ipvaEmReais,
+    ipvaAnualCentavos = ipvaAnualCentavos,
     desvalorizacaoAnualX100 = desvalorizacaoAnualX100,
     outrosMensaisCentavos = outrosMensaisCentavos,
     revisaoCentavos = revisaoCentavos,
@@ -193,11 +198,14 @@ fun PerfilCusto.paraDados() = DadosCusto(
 fun DadosCusto.paraEntidade() = PerfilCusto(
     forma = forma.name,
     tipoVeiculo = tipoVeiculo.name,
+    tipoTrabalho = tipoTrabalho.name,
     valorVeiculoCentavos = valorVeiculoCentavos,
     parcelaMensalCentavos = parcelaMensalCentavos,
     aluguelMensalCentavos = aluguelMensalCentavos,
     seguroMensalCentavos = seguroMensalCentavos,
     ipvaPercentX100 = ipvaPercentX100,
+    ipvaEmReais = ipvaEmReais,
+    ipvaAnualCentavos = ipvaAnualCentavos,
     desvalorizacaoAnualX100 = desvalorizacaoAnualX100,
     outrosMensaisCentavos = outrosMensaisCentavos,
     revisaoCentavos = revisaoCentavos,
