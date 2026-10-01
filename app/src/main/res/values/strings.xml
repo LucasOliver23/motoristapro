@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MotoristaPro</string>
+    <string name="acessibilidade_nome">MotoristaPro – Leitor de ofertas</string>
+    <string name="acessibilidade_descricao">Lê o valor, a distância e o tempo das ofertas de corrida exibidas nos apps Uber Driver, 99 Motorista e iFood para Entregadores para calcular R$/km e R$/hora e mostrar o resultado numa janela no topo da tela. Nenhum dado é enviado para fora do aparelho.</string>
+</resources>

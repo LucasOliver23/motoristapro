@@ -1,0 +1,21 @@
+# ---- Nunca enviar para o GitHub ----
+# Chaves do Firebase e chave de assinatura: vão como "segredos" no GitHub,
+# não como arquivos no repositório.
+app/google-services.json
+*.jks
+*.keystore
+ferramentas/KEYSTORE_BASE64.txt
+local.properties
+
+# ---- Lixo de build ----
+build/
+app/build/
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ---- Android Studio / IntelliJ ----
+.idea/
+*.iml
+.DS_Store

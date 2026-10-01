@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ÚNICO arquivo que você precisa editar para ligar a atualização automática.
+
+  Troque SEU-USUARIO pelo seu nome de usuário do GitHub e, se mudou o nome do
+  repositório, troque motoristapro também. O formato é sempre usuario/repositorio.
+
+  Exemplo: se o seu repositório é https://github.com/oliveirasf/motoristapro
+  então aqui fica:  <string name="repo_github">oliveirasf/motoristapro</string>
+
+  Deixando em branco ou com SEU-USUARIO, o app ignora o GitHub e usa o Firestore.
+-->
+<resources>
+    <string name="repo_github" translatable="false">LucasOliver23/motoristapro</string>
+</resources>

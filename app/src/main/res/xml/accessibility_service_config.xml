@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuração do OfertaAccessibilityService.
+
+  packageNames: o sistema só entrega eventos destes apps (economia de bateria + privacidade).
+    com.ubercab.driver -> Uber Driver
+    com.app99.driver   -> 99 Motorista
+    br.com.ifood.driver.app -> iFood para Entregadores
+  Mantenha em sincronia com OfertaAccessibilityService.PACOTES_ALVO.
+  Para confirmar o pacote no aparelho: adb shell dumpsys window | grep mCurrentFocus
+
+  accessibilityFlags:
+    flagRetrieveInteractiveWindows -> lê todas as janelas (o card de oferta é uma janela própria)
+    flagIncludeNotImportantViews   -> inclui views marcadas como "não importantes" (textos do card)
+    flagReportViewIds              -> expõe os resource-ids (útil para depurar o layout)
+
+  canTakeScreenshot: permite ler a IMAGEM da tela (OCR) quando o app esconde o texto (ex.: 99). Android 11+.
+
+  settingsActivity: botão "Configurações" do serviço na tela de Acessibilidade abre o app.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/acessibilidade_descricao"
+    android:packageNames="com.ubercab.driver,com.app99.driver,br.com.ifood.driver.app"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagRetrieveInteractiveWindows|flagIncludeNotImportantViews|flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:notificationTimeout="100"
+    android:settingsActivity="com.motoristapro.ui.MainActivity"
+    android:canTakeScreenshot="true"
+    android:isAccessibilityTool="false" />

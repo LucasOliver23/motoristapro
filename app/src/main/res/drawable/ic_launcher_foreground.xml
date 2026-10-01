@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Volante estilizado. Desenho vetorial: fica nítido em qualquer tamanho de tela. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Aro (anel): círculo externo menos o interno -->
+    <path
+        android:fillColor="#A3E635"
+        android:fillType="evenOdd"
+        android:pathData="M54,54 m-28,0 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0
+                          M54,54 m-21,0 a21,21 0 1,0 42,0 a21,21 0 1,0 -42,0" />
+
+    <!-- Cubo central -->
+    <path
+        android:fillColor="#A3E635"
+        android:pathData="M54,54 m-8.5,0 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0" />
+
+    <!-- Três raios: esquerda, direita e baixo -->
+    <path
+        android:fillColor="#A3E635"
+        android:pathData="M33,50.5 h13 v7 h-13 z" />
+    <path
+        android:fillColor="#A3E635"
+        android:pathData="M62,50.5 h13 v7 h-13 z" />
+    <path
+        android:fillColor="#A3E635"
+        android:pathData="M50.5,62 h7 v13 h-7 z" />
+</vector>
