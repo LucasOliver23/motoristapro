@@ -11,8 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -77,9 +78,9 @@ fun AssistenteCustoScreen(
     val r = e.resultado
 
     Column(
-        // safeDrawingPadding ja inclui o teclado; para ele chegar ate aqui, a
-        // Dialog que abre esta tela precisa de decorFitsSystemWindows = false.
-        Modifier.fillMaxSize().background(Fundo).safeDrawingPadding()
+        // Esta tela e desenhada dentro da janela do app (nao numa Dialog), entao
+        // os recuos vem direitos: barra de status em cima, teclado embaixo.
+        Modifier.fillMaxSize().background(Fundo).statusBarsPadding().imePadding()
     ) {
         // -------------------------------------------------------------- topo
         Row(

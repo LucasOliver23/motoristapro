@@ -2,6 +2,7 @@ package com.motoristapro.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -70,7 +71,10 @@ fun AppRaiz() {
             }
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        // consumeWindowInsets: avisa os filhos que o espaco da barra de abas ja
+        // foi descontado. Sem isso, uma tela cheia com imePadding() somava a
+        // altura da barra ao recuo do teclado e deixava um buraco embaixo.
+        Box(Modifier.fillMaxSize().consumeWindowInsets(padding).padding(padding)) {
             when (aba) {
                 Aba.INICIO -> DashboardRoute(irPara = { abaIndice = it.ordinal })
                 Aba.CORRIDAS -> CorridasRoute()

@@ -2,8 +2,10 @@ package com.motoristapro.ui.mais
 
 import android.Manifest
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -81,8 +85,6 @@ import com.motoristapro.ui.theme.VermelhoPrejuizo
 import com.motoristapro.service.EstiloCartao
 import com.motoristapro.ui.theme.PreferenciaTema
 import java.util.Locale
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.motoristapro.ui.componentes.CardPreparacao
 import com.motoristapro.ui.componentes.Liberacao
 import com.motoristapro.ui.componentes.bateriaLiberada
@@ -97,7 +99,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
@@ -348,15 +349,11 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     sub?.let { aberta ->
         // 'cfg' so existe dentro do TelaAba; aqui fora temos a versao anulavel.
         val cfg = config ?: return@let
-        Dialog(
-            onDismissRequest = { sub = null },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                // Sem isto a janela da Dialog nao recebe o inset do teclado e o
-                // botao do rodape fica escondido atras dele.
-                decorFitsSystemWindows = false
-            )
-        ) {
+        // Camada por cima da aba, e NAO uma Dialog: a janela da Dialog se estende
+        // para fora da tela quando pede o inset do teclado, e era por isso que o
+        // botao do rodape caia abaixo da borda do celular.
+        BackHandler { sub = null }
+        CamadaTelaCheia {
             SubTelaHost(titulo = aberta.titulo, onFechar = { sub = null }) {
                 when (aberta) {
                     SubTela.PERFIL ->
@@ -550,15 +547,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     }
 
     if (assistenteAberto) {
-        Dialog(
-            onDismissRequest = { assistenteAberto = false },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                // Sem isto a janela da Dialog nao recebe o inset do teclado e o
-                // botao do rodape fica escondido atras dele.
-                decorFitsSystemWindows = false
-            )
-        ) {
+        BackHandler { assistenteAberto = false }
+        CamadaTelaCheia {
             AssistenteCustoScreen(onFechar = { assistenteAberto = false })
         }
     }
@@ -1172,6 +1162,28 @@ enum class SubTela(val titulo: String) {
     APARENCIA("Aparência do app")
 }
 
+/**
+ * Uma tela inteira desenhada por cima da aba.
+ *
+ * Antes isto era uma Dialog, e a janela dela media mais que a tela do celular:
+ * o rodape (o botao "Continuar") ficava fora da borda de baixo. Aqui dentro da
+ * propria janela do app, os recuos de status bar e teclado chegam certos.
+ *
+ * O clickable sem efeito visual existe só para a camada engolir os toques —
+ * sem ele o motorista acertaria os botoes da tela que ficou atras.
+ */
+@Composable
+private fun CamadaTelaCheia(conteudo: @Composable () -> Unit) {
+    val semRipple = remember { MutableInteractionSource() }
+    Box(
+        Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .clickable(interactionSource = semRipple, indication = null) { }
+    ) {
+        conteudo()
+    }
+}
+
 /** Moldura das sub-telas: barra com título e voltar, conteúdo rolável embaixo. */
 @Composable
 private fun SubTelaHost(
@@ -1180,7 +1192,12 @@ private fun SubTelaHost(
     conteudo: @Composable ColumnScope.() -> Unit
 ) {
     Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
+        // statusBarsPadding (e nao safeDrawingPadding): a barra de abas do app ja
+        // fica embaixo desta camada, entao o recuo de baixo quem da e o teclado.
+        Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .imePadding()
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
