@@ -1,37 +1,107 @@
 package com.motoristapro.ui.theme
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.content.res.Configuration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 
-// Paleta: grafite azulado em três camadas + lima como cor do lucro.
-//
-// O problema da versão antiga era que fundo e cartão eram dois pretos quase
-// iguais — os cartões sumiam. Aqui cada nível é visivelmente diferente, e
-// cada cor tem um significado fixo: lima = lucro, âmbar = atenção,
-// vermelho = prejuízo, turquesa = informação. Nada de cor decorativa.
-val Lima = Color(0xFF9EE64B)
-val LimaEscuro = Color(0xFF6FA82F)
-val VerdeLucro = Lima
-val VermelhoPrejuizo = Color(0xFFF2777C)
-val AmareloAlerta = Color(0xFFF6B93B)
-val AzulInfo = Color(0xFF7AA7F0)
-val Turquesa = Color(0xFF2DD4BF)
-val Roxo = Color(0xFFC89BF0)
+/**
+ * Paleta: grafite azulado em três camadas (escuro) ou papel em três camadas (claro),
+ * mais as cores de significado fixo — lucro, atenção, prejuízo, informação.
+ *
+ * O motorista escolhe o modo em Mais > Aparência. Para o resto do app NADA muda:
+ * os nomes das cores (Lima, TextoSecundario, Fundo...) continuam os mesmos, só
+ * passaram a ser lidos de [paletaAtual]. Como é um `mutableStateOf`, qualquer tela
+ * que use uma dessas cores se redesenha sozinha quando o modo troca.
+ */
+private class Paleta(
+    val lucro: Color,
+    val lucroEscuro: Color,
+    val prejuizo: Color,
+    val alerta: Color,
+    val info: Color,
+    val turquesa: Color,
+    val roxo: Color,
+    val fundo: Color,
+    val superficie: Color,
+    val superficieAlta: Color,
+    val superficieMaisAlta: Color,
+    val textoPrincipal: Color,
+    val textoSecundario: Color,
+    val contorno: Color,
+    val uber: Color
+)
 
-val Fundo = Color(0xFF0B0F14)
-val Superficie = Color(0xFF141A21)
-val SuperficieAlta = Color(0xFF1C242D)
-val SuperficieMaisAlta = Color(0xFF253040)
-val TextoPrincipal = Color(0xFFECF2F6)
-val TextoSecundario = Color(0xFF8A97A6)
-val Contorno = Color(0xFF1E2630)
+private val ESCURA = Paleta(
+    lucro = Color(0xFF9EE64B),
+    lucroEscuro = Color(0xFF6FA82F),
+    prejuizo = Color(0xFFF2777C),
+    alerta = Color(0xFFF6B93B),
+    info = Color(0xFF7AA7F0),
+    turquesa = Color(0xFF2DD4BF),
+    roxo = Color(0xFFC89BF0),
+    fundo = Color(0xFF0B0F14),
+    superficie = Color(0xFF141A21),
+    superficieAlta = Color(0xFF1C242D),
+    superficieMaisAlta = Color(0xFF253040),
+    textoPrincipal = Color(0xFFECF2F6),
+    textoSecundario = Color(0xFF8A97A6),
+    contorno = Color(0xFF1E2630),
+    uber = Color(0xFFECF2F6)
+)
+
+// No claro as cores de significado precisam ESCURECER: lima sobre branco não se lê.
+// O tom muda, o significado não — verde continua lucro, vermelho continua prejuízo.
+private val CLARA = Paleta(
+    lucro = Color(0xFF3C8C14),
+    lucroEscuro = Color(0xFF2B6A0C),
+    prejuizo = Color(0xFFC62828),
+    alerta = Color(0xFF9A6400),
+    info = Color(0xFF2456B8),
+    turquesa = Color(0xFF0F8276),
+    roxo = Color(0xFF6A32B0),
+    fundo = Color(0xFFF3F6F9),
+    superficie = Color(0xFFFFFFFF),
+    superficieAlta = Color(0xFFFFFFFF),
+    superficieMaisAlta = Color(0xFFE6ECF2),
+    textoPrincipal = Color(0xFF101720),
+    textoSecundario = Color(0xFF5B6978),
+    contorno = Color(0xFFDCE3EA),
+    uber = Color(0xFF22303B)
+)
+
+private val paletaAtual = mutableStateOf(ESCURA)
+private val escuroAtual = mutableStateOf(true)
+
+/** true quando o app está desenhando no modo escuro (já resolvendo "do sistema"). */
+val temaEscuro: Boolean get() = escuroAtual.value
+
+val Lima: Color get() = paletaAtual.value.lucro
+val LimaEscuro: Color get() = paletaAtual.value.lucroEscuro
+val VerdeLucro: Color get() = paletaAtual.value.lucro
+val VermelhoPrejuizo: Color get() = paletaAtual.value.prejuizo
+val AmareloAlerta: Color get() = paletaAtual.value.alerta
+val AzulInfo: Color get() = paletaAtual.value.info
+val Turquesa: Color get() = paletaAtual.value.turquesa
+val Roxo: Color get() = paletaAtual.value.roxo
+
+val Fundo: Color get() = paletaAtual.value.fundo
+val Superficie: Color get() = paletaAtual.value.superficie
+val SuperficieAlta: Color get() = paletaAtual.value.superficieAlta
+val SuperficieMaisAlta: Color get() = paletaAtual.value.superficieMaisAlta
+val TextoPrincipal: Color get() = paletaAtual.value.textoPrincipal
+val TextoSecundario: Color get() = paletaAtual.value.textoSecundario
+val Contorno: Color get() = paletaAtual.value.contorno
 
 /** Uma cor por aplicativo, para gráficos e listas (as cores da marca de cada um). */
-val CorUber = Color(0xFFECF2F6)
+val CorUber: Color get() = paletaAtual.value.uber
 val Cor99 = Color(0xFFF2C230)
 val CorIfood = Color(0xFFE8442F)
 val CorInDrive = Color(0xFF4CC26A)
@@ -45,32 +115,115 @@ fun corDaPlataforma(nome: String?): Color = when (nome?.lowercase()?.trim()) {
     else -> TextoSecundario
 }
 
-private val Esquema = darkColorScheme(
-    primary = Lima,
-    onPrimary = Color(0xFF0B0F14),
+// ------------------------------------------------------------------ preferência
+
+enum class ModoTema(val rotulo: String, val descricao: String) {
+    ESCURO("Escuro", "Painel de carro: fundo preto, números acesos. Melhor à noite."),
+    CLARO("Claro", "Fundo branco. Melhor com o sol batendo na tela."),
+    SISTEMA("Do sistema", "Acompanha o modo noturno do Android.")
+}
+
+/**
+ * O modo escolhido, guardado em SharedPreferences.
+ *
+ * Resolve "do sistema" na hora de aplicar (e não durante a composição) para não
+ * escrever estado enquanto a tela desenha — isso faria o Compose reclamar.
+ */
+object PreferenciaTema {
+
+    private val estado = mutableStateOf(ModoTema.ESCURO)
+
+    /** O que o motorista escolheu (pode ser SISTEMA). */
+    val modo: ModoTema get() = estado.value
+
+    private fun prefs(c: Context): SharedPreferences =
+        c.applicationContext.getSharedPreferences("aparencia", Context.MODE_PRIVATE)
+
+    /** Chamado uma vez no onCreate, antes de desenhar. */
+    fun carregar(c: Context) {
+        val salvo = prefs(c).getString(KEY, null)
+        aplicar(c, runCatching { ModoTema.valueOf(salvo ?: "") }.getOrDefault(ModoTema.ESCURO))
+    }
+
+    fun definir(c: Context, m: ModoTema) {
+        prefs(c).edit().putString(KEY, m.name).apply()
+        aplicar(c, m)
+    }
+
+    private fun aplicar(c: Context, m: ModoTema) {
+        estado.value = m
+        val escuro = when (m) {
+            ModoTema.ESCURO -> true
+            ModoTema.CLARO -> false
+            ModoTema.SISTEMA -> sistemaEstaEscuro(c)
+        }
+        escuroAtual.value = escuro
+        paletaAtual.value = if (escuro) ESCURA else CLARA
+    }
+
+    private fun sistemaEstaEscuro(c: Context): Boolean =
+        (c.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+
+    private const val KEY = "modo"
+}
+
+// ------------------------------------------------------------------ esquemas
+
+private val EsquemaEscuro = darkColorScheme(
+    primary = ESCURA.lucro,
+    onPrimary = ESCURA.fundo,
     primaryContainer = Color(0xFF16241A),
-    onPrimaryContainer = Lima,
-    secondary = Turquesa,
-    onSecondary = Color(0xFF0B0F14),
+    onPrimaryContainer = ESCURA.lucro,
+    secondary = ESCURA.turquesa,
+    onSecondary = ESCURA.fundo,
     secondaryContainer = Color(0xFF11201C),
     onSecondaryContainer = Color(0xFFB6E8DF),
-    tertiary = AmareloAlerta,
-    onTertiary = Color(0xFF0B0F14),
-    background = Fundo,
-    onBackground = TextoPrincipal,
-    surface = Fundo,
-    onSurface = TextoPrincipal,
-    surfaceVariant = SuperficieAlta,
-    onSurfaceVariant = TextoSecundario,
-    surfaceContainerLowest = Fundo,
-    surfaceContainerLow = Superficie,
-    surfaceContainer = Superficie,
-    surfaceContainerHigh = SuperficieAlta,
-    surfaceContainerHighest = SuperficieMaisAlta,
-    outline = Contorno,
-    outlineVariant = Contorno,
-    error = VermelhoPrejuizo,
-    onError = Color(0xFF0B0F14)
+    tertiary = ESCURA.alerta,
+    onTertiary = ESCURA.fundo,
+    background = ESCURA.fundo,
+    onBackground = ESCURA.textoPrincipal,
+    surface = ESCURA.fundo,
+    onSurface = ESCURA.textoPrincipal,
+    surfaceVariant = ESCURA.superficieAlta,
+    onSurfaceVariant = ESCURA.textoSecundario,
+    surfaceContainerLowest = ESCURA.fundo,
+    surfaceContainerLow = ESCURA.superficie,
+    surfaceContainer = ESCURA.superficie,
+    surfaceContainerHigh = ESCURA.superficieAlta,
+    surfaceContainerHighest = ESCURA.superficieMaisAlta,
+    outline = ESCURA.contorno,
+    outlineVariant = ESCURA.contorno,
+    error = ESCURA.prejuizo,
+    onError = ESCURA.fundo
+)
+
+private val EsquemaClaro = lightColorScheme(
+    primary = CLARA.lucro,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFDFF3D0),
+    onPrimaryContainer = CLARA.lucroEscuro,
+    secondary = CLARA.turquesa,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFD3EFEB),
+    onSecondaryContainer = Color(0xFF0A5A52),
+    tertiary = CLARA.alerta,
+    onTertiary = Color.White,
+    background = CLARA.fundo,
+    onBackground = CLARA.textoPrincipal,
+    surface = CLARA.fundo,
+    onSurface = CLARA.textoPrincipal,
+    surfaceVariant = CLARA.superficieMaisAlta,
+    onSurfaceVariant = CLARA.textoSecundario,
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = CLARA.superficie,
+    surfaceContainer = CLARA.superficie,
+    surfaceContainerHigh = CLARA.superficieAlta,
+    surfaceContainerHighest = CLARA.superficieMaisAlta,
+    outline = CLARA.contorno,
+    outlineVariant = CLARA.contorno,
+    error = CLARA.prejuizo,
+    onError = Color.White
 )
 
 /**
@@ -95,8 +248,8 @@ private val Tipografia = Typography().run {
     )
 }
 
-/** Tema único escuro (estilo painel automotivo), independente do tema do sistema. */
 @Composable
 fun MotoristaTema(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Esquema, typography = Tipografia, content = content)
+    val esquema = if (escuroAtual.value) EsquemaEscuro else EsquemaClaro
+    MaterialTheme(colorScheme = esquema, typography = Tipografia, content = content)
 }

@@ -44,7 +44,12 @@ fun FaixaTresCores(
     fim: Float,
     minimo: Float,
     maximo: Float,
-    passos: Int = 0,
+    /**
+     * De quanto em quanto o valor anda (0.05 = cinco centavos). Arredondado no
+     * callback em vez de usar `steps` do RangeSlider: o `steps` desenha bolinhas
+     * na trilha e deixa a tela com cara de rascunho.
+     */
+    degrau: Float = 0f,
     formatar: (Float) -> String,
     onMudar: (Float, Float) -> Unit,
     ajuda: String? = null
@@ -60,9 +65,10 @@ fun FaixaTresCores(
 
         RangeSlider(
             value = inicio..fim,
-            onValueChange = { faixa -> onMudar(faixa.start, faixa.endInclusive) },
+            onValueChange = { faixa ->
+                onMudar(arredondar(faixa.start, degrau), arredondar(faixa.endInclusive, degrau))
+            },
             valueRange = minimo..maximo,
-            steps = passos,
             colors = SliderDefaults.colors(
                 thumbColor = Lima,
                 activeTrackColor = AmareloAlerta,
@@ -80,6 +86,10 @@ fun FaixaTresCores(
         }
     }
 }
+
+/** Encaixa o valor no degrau mais perto (degrau 0 = livre). */
+private fun arredondar(v: Float, degrau: Float): Float =
+    if (degrau <= 0f) v else Math.round(v / degrau) * degrau
 
 @Composable
 private fun Etiqueta(texto: String, cor: androidx.compose.ui.graphics.Color) {

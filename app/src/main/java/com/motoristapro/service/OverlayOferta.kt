@@ -38,6 +38,9 @@ import kotlin.math.abs
 class OverlayOferta(private val context: Context) {
 
     private val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+    /** O que o motorista escolheu em Mais > Estilo do cartao (relido a cada oferta). */
+    private val estilo = EstiloCartao(context)
     private val handler = Handler(Looper.getMainLooper())
     private val esconderRunnable = Runnable { esconder() }
     private val ptBr = Locale("pt", "BR")
@@ -52,6 +55,9 @@ class OverlayOferta(private val context: Context) {
 
     /** Oferta exibida no momento (alvo dos botões). */
     private var ofertaAtual: Oferta? = null
+
+    /** O motorista já arrastou o cartão com o dedo? Se sim, a posição dele manda. */
+    private var arrastado = false
 
     /** Botão "Registrar corrida": o serviço grava no banco. */
     var aoRegistrar: ((Oferta) -> Unit)? = null
@@ -86,35 +92,33 @@ class OverlayOferta(private val context: Context) {
         o: Oferta,
         classe: Classificacao,
         custoKmCentavos: Long,
-        duracaoMs: Long = 15_000,
+        duracaoMs: Long? = null,
         totalNaTela: Int = 1,
         alertaRisco: String? = null
     ) {
         val v = raiz ?: criarView().also { raiz = it }
+        val cfg = estilo.ler()
 
-        (v.background as? GradientDrawable)?.setColor(classe.corFundo)
+        aplicarEstilo(v, cfg, classe)
+
         val sufixo = if (totalNaTela > 1) "   (melhor de $totalNaTela)" else ""
-        val nota = o.nota?.let { "  •  ★ ${String.format(ptBr, "%.2f", it)}" } ?: ""
-        tvTitulo.text = "${classe.rotulo}  •  ${moeda(o.valor)}$nota$sufixo"
-        // Linha grande: o que decide a corrida. O lucro líquido entra aqui, não no rodapé —
-        // é o número que o motorista realmente leva para casa.
-        val principal = mutableListOf("${moeda(o.reaisPorKm)}/km")
-        if (o.minutos > 0) principal += "${moeda(o.reaisPorHora)}/h"
-        if (custoKmCentavos > 0) {
-            val lucro = o.lucroEstimado(custoKmCentavos)
-            val pct = o.lucroPercentual(custoKmCentavos).toInt()
-            principal += "${moeda(lucro)} (${pct}%)"
-        }
-        tvPrincipal.text = principal.joinToString("   ")
+        val valorNaFaixa = if (cfg.mostrarApp) "  •  ${moeda(o.valor)}" else ""
+        tvTitulo.text = "${classe.rotulo}$valorNaFaixa$sufixo"
+        tvTitulo.visibility = if (cfg.avisoEmDestaque) View.VISIBLE else View.GONE
 
-        val partes = mutableListOf(String.format(ptBr, "%.1f km", o.km))
-        if (o.minutos > 0) {
-            partes += "${o.minutos} min"
-            partes += "${moeda(o.reaisPorMinuto)}/min"
+        // Os tres primeiros campos escolhidos vão na linha grande (o que decide a
+        // corrida de relance); o resto desce para o rodapé, na mesma ordem.
+        val escolhidos = cfg.valores(o, custoKmCentavos)
+        tvPrincipal.text = escolhidos.take(3).joinToString("   ")
+
+        val partes = escolhidos.drop(3).toMutableList()
+        if (o.paradas > 1 && cfg.campos.none { it == CampoCartao.PARADAS }) {
+            partes += "⏸ ${o.paradas} paradas • ${moeda(o.valor / o.paradas)} cada"
         }
-        if (o.paradas > 1) partes += "⏸ ${o.paradas} paradas • ${moeda(o.valor / o.paradas)} cada"
+        // Devolução nunca é opcional: é risco de trabalhar de graça.
         if (o.devolucao) partes += "⚠ pode ter devolução"
         tvDetalhe.text = partes.joinToString("  •  ")
+        tvDetalhe.visibility = if (partes.isEmpty()) View.GONE else View.VISIBLE
 
         // Faixa de risco: só aparece quando o endereço bate com a lista do motorista.
         if (alertaRisco.isNullOrBlank()) {
@@ -138,7 +142,60 @@ class OverlayOferta(private val context: Context) {
         }
 
         handler.removeCallbacks(esconderRunnable)
-        handler.postDelayed(esconderRunnable, duracaoMs)
+        handler.postDelayed(esconderRunnable, duracaoMs ?: cfg.duracaoMs)
+    }
+
+    /**
+     * Pinta e posiciona o cartão conforme a [ConfigCartao].
+     *
+     * Feito a cada oferta (e não na criação da view) porque o motorista pode ter
+     * mudado o estilo entre uma corrida e outra, sem reiniciar o serviço.
+     */
+    private fun aplicarEstilo(v: View, cfg: ConfigCartao, classe: Classificacao) {
+        val fundo = when (cfg.tema) {
+            TemaCartao.COLORIDO -> classe.corFundo
+            TemaCartao.ESCURO -> 0xF20E1216.toInt()
+            TemaCartao.CLARO -> 0xF5F2F4F7.toInt()
+        }
+        (v.background as? GradientDrawable)?.setColor(fundo)
+
+        val corTexto = if (cfg.tema == TemaCartao.CLARO) 0xFF101720.toInt() else 0xFFFFFFFF.toInt()
+        // No tema escuro/claro a faixa perde o fundo colorido, então a COR DELA passa
+        // a ser o semáforo — senão o motorista perde a decisão de relance.
+        val corFaixa = if (cfg.tema == TemaCartao.COLORIDO) corTexto else classe.corFundo or 0xFF000000.toInt()
+        tvTitulo.setTextColor(corFaixa)
+        tvPrincipal.setTextColor(corTexto)
+        tvDetalhe.setTextColor(corTexto)
+        btRegistrar.setTextColor(corTexto)
+        btLocal.setTextColor(corTexto)
+
+        val e = cfg.tamanho.escala
+        tvTitulo.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f * e)
+        tvPrincipal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f * e)
+        tvDetalhe.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
+        tvRisco.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
+        btRegistrar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
+        btLocal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
+
+        v.alpha = cfg.opacidade / 100f
+
+        // Posição: só se o motorista não tiver arrastado o cartão com o dedo.
+        if (!arrastado) {
+            when (cfg.posicao) {
+                PosicaoCartao.TOPO -> {
+                    params.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                    params.y = dp(40)
+                }
+                PosicaoCartao.CENTRO -> {
+                    params.gravity = Gravity.CENTER
+                    params.y = 0
+                }
+                PosicaoCartao.BAIXO -> {
+                    params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                    params.y = dp(90)
+                }
+            }
+        }
     }
 
     /** Feedback visual depois que a corrida foi gravada. */
@@ -179,6 +236,7 @@ class OverlayOferta(private val context: Context) {
     /** View montada em código: não depende de layouts XML nem de tema. */
     @SuppressLint("ClickableViewAccessibility")
     private fun criarView(): LinearLayout {
+        // Tamanhos iniciais; aplicarEstilo() reajusta conforme a escolha do motorista.
         tvTitulo = texto(15f, negrito = true)
         tvPrincipal = texto(24f, negrito = true)
         tvDetalhe = texto(14f, negrito = false)
@@ -230,7 +288,10 @@ class OverlayOferta(private val context: Context) {
                     }
                     MotionEvent.ACTION_MOVE -> {
                         val dy = (ev.rawY - toqueY).toInt()
-                        if (abs(dy) > dp(6)) moveu = true
+                        if (abs(dy) > dp(6)) {
+                            moveu = true
+                            arrastado = true
+                        }
                         params.y = (yInicial + dy).coerceAtLeast(0)
                         if (view.isAttachedToWindow) {
                             runCatching { wm.updateViewLayout(view, params) }

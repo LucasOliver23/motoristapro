@@ -78,6 +78,8 @@ import com.motoristapro.ui.paraCentavosOuZero
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.TextoSecundario
 import com.motoristapro.ui.theme.VermelhoPrejuizo
+import com.motoristapro.service.EstiloCartao
+import com.motoristapro.ui.theme.PreferenciaTema
 import java.util.Locale
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -157,6 +159,12 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
 
+    // Estado do cartao da oferta, so para o quadradinho da grade mostrar o resumo.
+    // Relido quando a sub-tela fecha: e la que ele muda.
+    val estiloCartao = remember { EstiloCartao(context) }
+    var estilo by remember { mutableStateOf(estiloCartao.ler()) }
+    LaunchedEffect(sub) { if (sub == null) estilo = estiloCartao.ler() }
+
     var notificacoesOk by remember { mutableStateOf(Notificacoes.podeNotificar(context)) }
     var bateriaOk by remember { mutableStateOf(context.bateriaLiberada()) }
     LifecycleResumeEffect(Unit) {
@@ -213,79 +221,81 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
 
             PerfilLinha(cfg = cfg, email = usuario?.email ?: usuario?.nome) { sub = SubTela.PERFIL }
 
-            GrupoLista("NA RUA") {
-                LinhaAcao(
-                    titulo = "Leitor de ofertas",
-                    detalhe = if (leitorOk) "Lendo Uber · 99 · iFood" else "Desconectado — toque para religar",
-                    detalheColorido = if (leitorOk) Lima else VermelhoPrejuizo,
-                    onClick = { sub = SubTela.LEITOR }
-                )
-                LinhaInterruptor(
-                    titulo = "Aviso por voz",
-                    detalhe = "Fala a decisão e o R$/km da oferta",
-                    marcado = voz,
-                    onMudar = vm::definirVoz
-                )
-                LinhaInterruptor(
-                    titulo = "Bolha flutuante",
-                    detalhe = "Lucro do dia por cima da Uber e da 99",
-                    marcado = bolha,
-                    onMudar = vm::definirBolha
-                )
-                LinhaInterruptor(
-                    titulo = "Resumo diário às 22h",
-                    detalhe = "Notificação com faturamento, despesas e lucro",
-                    marcado = resumo,
-                    onMudar = vm::definirResumo,
-                    ultima = true
-                )
-            }
-
-            GrupoLista("CONFIGURAR") {
-                LinhaAcao(
-                    titulo = "Meu veículo e custos",
-                    detalhe = listOfNotNull(
-                        cfg.veiculoNome?.takeIf { it.isNotBlank() },
-                        "meta ${cfg.metaLucroMensalCentavos.emReais()}/mês".takeIf { cfg.metaLucroMensalCentavos > 0 }
-                    ).joinToString(" · ").ifBlank { "Toque para calcular seu custo real" },
-                    valor = if (cfg.custoKmCentavos > 0) cfg.custoKmCentavos.campo() else null,
-                    onClick = { sub = SubTela.VEICULO }
-                )
-                LinhaAcao(
-                    titulo = "Suas faixas",
-                    detalhe = "Quando a corrida é boa, atenção ou ruim",
-                    semaforo = true,
-                    onClick = { sub = SubTela.FAIXAS }
-                )
-                LinhaAcao(
-                    titulo = "Endereços de risco",
-                    detalhe = if (palavrasRisco.isEmpty()) "Nenhuma palavra cadastrada"
-                    else "${palavrasRisco.size} palavra(s) cadastrada(s)",
-                    onClick = { sub = SubTela.RISCO },
-                    ultima = true
-                )
-            }
-
-            GrupoLista("APLICATIVO") {
-                if (vm.loginDisponivel) {
-                    LinhaAcao(
+            GradeFerramentas(
+                listOf(
+                    Ferramenta(
+                        titulo = "Meu veículo e custos",
+                        estado = if (cfg.custoKmCentavos > 0) "${cfg.custoKmCentavos.campo()}/km de custo"
+                        else "toque para calcular",
+                        aceso = cfg.custoKmCentavos > 0,
+                        onClick = { sub = SubTela.VEICULO }
+                    ),
+                    Ferramenta(
+                        titulo = "Suas faixas",
+                        estado = "boa acima de ${"%.2f".format(PT, faixas.kmBoa)}/km",
+                        semaforo = true,
+                        onClick = { sub = SubTela.FAIXAS }
+                    ),
+                    Ferramenta(
+                        titulo = "Estilo do cartão",
+                        estado = "${estilo.campos.size} números · ${estilo.tema.rotulo.lowercase(PT)}",
+                        onClick = { sub = SubTela.ESTILO }
+                    ),
+                    Ferramenta(
+                        titulo = "Aparência do app",
+                        estado = PreferenciaTema.modo.rotulo.lowercase(PT),
+                        onClick = { sub = SubTela.APARENCIA }
+                    ),
+                    Ferramenta(
+                        titulo = "Aviso por voz",
+                        estado = "fala a decisão e o R$/km",
+                        ligado = voz,
+                        onClick = { vm.definirVoz(!voz) }
+                    ),
+                    Ferramenta(
+                        titulo = "Bolha flutuante",
+                        estado = "lucro do dia sempre à vista",
+                        ligado = bolha,
+                        onClick = { vm.definirBolha(!bolha) }
+                    ),
+                    Ferramenta(
+                        titulo = "Endereços de risco",
+                        estado = if (palavrasRisco.isEmpty()) "nenhuma palavra"
+                        else "${palavrasRisco.size} palavra(s)",
+                        aceso = palavrasRisco.isNotEmpty() && riscoLigado,
+                        onClick = { sub = SubTela.RISCO }
+                    ),
+                    Ferramenta(
+                        titulo = "Resumo do dia às 22h",
+                        estado = "faturamento, despesas e lucro",
+                        ligado = resumo,
+                        onClick = { vm.definirResumo(!resumo) }
+                    ),
+                    Ferramenta(
+                        titulo = "Leitor de ofertas",
+                        estado = if (leitorOk) "lendo Uber · 99 · iFood" else "desconectado — religue",
+                        aceso = leitorOk,
+                        alerta = !leitorOk,
+                        onClick = { sub = SubTela.LEITOR }
+                    ),
+                    Ferramenta(
                         titulo = "Conta e nuvem",
-                        detalhe = usuario?.email ?: "Entrar para salvar na nuvem",
-                        onClick = { sub = SubTela.NUVEM }
+                        estado = if (!vm.loginDisponivel) "indisponível"
+                        else usuario?.email ?: "entrar para salvar",
+                        onClick = { if (vm.loginDisponivel) sub = SubTela.NUVEM }
+                    ),
+                    Ferramenta(
+                        titulo = "Backup e planilhas",
+                        estado = "arquivo de backup e CSV",
+                        onClick = { sub = SubTela.BACKUP }
+                    ),
+                    Ferramenta(
+                        titulo = "Versão do app",
+                        estado = "${vm.versaoInstalada} (build ${vm.codigoInstalado})",
+                        onClick = { sub = SubTela.VERSAO }
                     )
-                }
-                LinhaAcao(
-                    titulo = "Backup e exportação",
-                    detalhe = "Arquivo de backup e planilhas CSV",
-                    onClick = { sub = SubTela.BACKUP }
                 )
-                LinhaAcao(
-                    titulo = "Versão do app",
-                    detalhe = "${vm.versaoInstalada} (build ${vm.codigoInstalado})",
-                    onClick = { sub = SubTela.VERSAO },
-                    ultima = true
-                )
-            }
+            )
 
             Spacer(Modifier.height(8.dp))
         }
@@ -519,6 +529,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             ) { Text("Ofertas") }
                         }
                     }
+                    SubTela.ESTILO -> EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
+                    SubTela.APARENCIA -> AparenciaScreen()
                     SubTela.VERSAO ->
                     AtualizacaoCard(
                         estado = atualizacao,
@@ -837,7 +849,7 @@ private fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean) {
     }
 }
 
-private val AmareloAlertaDiag = com.motoristapro.ui.theme.AmareloAlerta
+private val AmareloAlertaDiag: Color get() = com.motoristapro.ui.theme.AmareloAlerta
 
 private val FORMATO_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
 
@@ -1028,7 +1040,7 @@ private fun CardSuasFaixas(
             titulo = "Ganho por km",
             unidade = "R$/km",
             inicio = faixas.kmRuim, fim = faixas.kmBoa,
-            minimo = 0.5f, maximo = 6f, passos = 54,
+            minimo = 0.5f, maximo = 6f, degrau = 0.05f,
             formatar = { String.format(PT, "R$ %.2f", it) },
             onMudar = onFaixaKm
         )
@@ -1037,7 +1049,7 @@ private fun CardSuasFaixas(
             titulo = "Ganho por hora",
             unidade = "R$/hora",
             inicio = faixas.horaRuim, fim = faixas.horaBoa,
-            minimo = 10f, maximo = 120f, passos = 21,
+            minimo = 10f, maximo = 120f, degrau = 1f,
             formatar = { String.format(PT, "R$ %.0f", it) },
             onMudar = onFaixaHora
         )
@@ -1052,7 +1064,7 @@ private fun CardSuasFaixas(
                 titulo = "Nota do passageiro",
                 unidade = "estrelas",
                 inicio = faixas.notaRuim, fim = faixas.notaBoa,
-                minimo = 3f, maximo = 5f, passos = 39,
+                minimo = 3f, maximo = 5f, degrau = 0.05f,
                 formatar = { String.format(PT, "★ %.2f", it) },
                 onMudar = onFaixaNota
             )
@@ -1145,7 +1157,9 @@ enum class SubTela(val titulo: String) {
     LEITOR("Leitor de ofertas"),
     NUVEM("Conta e nuvem"),
     BACKUP("Backup e exportação"),
-    VERSAO("Versão do app")
+    VERSAO("Versão do app"),
+    ESTILO("Estilo do cartão"),
+    APARENCIA("Aparência do app")
 }
 
 /** Moldura das sub-telas: barra com título e voltar, conteúdo rolável embaixo. */
@@ -1182,93 +1196,6 @@ private fun SubTelaHost(
     }
 }
 
-/** Um grupo da lista: rótulo pequeno em cima e as linhas num cartão só. */
-@Composable
-private fun GrupoLista(rotulo: String, conteudo: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(
-            rotulo,
-            style = MaterialTheme.typography.labelSmall,
-            color = TextoSecundario,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-        )
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(content = conteudo)
-        }
-    }
-}
-
-/** Linha que abre outra tela. O valor da direita deixa o estado visível sem entrar. */
-@Composable
-private fun LinhaAcao(
-    titulo: String,
-    detalhe: String,
-    onClick: () -> Unit,
-    valor: String? = null,
-    detalheColorido: Color? = null,
-    semaforo: Boolean = false,
-    ultima: Boolean = false
-) {
-    Row(
-        Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 15.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(titulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Text(
-                detalhe,
-                style = MaterialTheme.typography.bodySmall,
-                color = detalheColorido ?: TextoSecundario
-            )
-        }
-        if (semaforo) {
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.padding(end = 8.dp)) {
-                listOf(VermelhoPrejuizo, AmareloAlerta, Lima).forEach { cor ->
-                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(cor))
-                }
-            }
-        }
-        if (valor != null) {
-            Text(
-                valor,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Lima,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(end = 8.dp)
-            )
-        }
-        Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
-    }
-    if (!ultima) HorizontalDivider(color = Contorno, modifier = Modifier.padding(start = 15.dp))
-}
-
-/** Linha com interruptor: o que se liga e desliga na rua, sem abrir nada. */
-@Composable
-private fun LinhaInterruptor(
-    titulo: String,
-    detalhe: String,
-    marcado: Boolean,
-    onMudar: (Boolean) -> Unit,
-    ultima: Boolean = false
-) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(titulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Text(detalhe, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-        }
-        Switch(checked = marcado, onCheckedChange = onMudar)
-    }
-    if (!ultima) HorizontalDivider(color = Contorno, modifier = Modifier.padding(start = 15.dp))
-}
-
 /** Cabeçalho do "Mais": avatar, nome e um resumo de uma linha. */
 @Composable
 private fun PerfilLinha(cfg: Configuracao, email: String?, onClick: () -> Unit) {
@@ -1303,6 +1230,105 @@ private fun PerfilLinha(cfg: Configuracao, email: String?, onClick: () -> Unit) 
                 )
             }
             Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
+        }
+    }
+}
+
+// ------------------------------------------------------------------ FERRAMENTAS
+
+/**
+ * Um quadradinho da grade FERRAMENTAS.
+ *
+ * Duas naturezas no mesmo formato: quem tem [ligado] é interruptor (o toque liga
+ * e desliga ali mesmo, sem abrir tela); quem não tem abre a sua tela. O rodapé
+ * sempre diz como a função está AGORA — é o que faz a grade valer mais que um menu.
+ */
+class Ferramenta(
+    val titulo: String,
+    val estado: String,
+    val onClick: () -> Unit,
+    /** Interruptor: true/false. null = abre uma tela. */
+    val ligado: Boolean? = null,
+    /** Pinta o estado de verde (configurado / funcionando). */
+    val aceso: Boolean = false,
+    /** Pinta o estado de vermelho (precisa de atenção). */
+    val alerta: Boolean = false,
+    /** Mostra as três bolinhas do semáforo no canto. */
+    val semaforo: Boolean = false
+)
+
+/** Grade de dois por linha. Column simples (e não LazyVerticalGrid): está dentro de um scroll. */
+@Composable
+private fun GradeFerramentas(itens: List<Ferramenta>) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            "FERRAMENTAS",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextoSecundario,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        itens.chunked(2).forEach { linha ->
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                linha.forEach { f -> Quadro(f, Modifier.weight(1f)) }
+                // Linha ímpar: o buraco mantém o último quadro do tamanho dos outros.
+                if (linha.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun Quadro(f: Ferramenta, modifier: Modifier) {
+    val ligadoAgora = f.ligado == true
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (ligadoAgora) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        modifier = modifier.height(104.dp)
+    ) {
+        Column(
+            Modifier.fillMaxSize().clickable { f.onClick() }.padding(12.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                Text(
+                    f.titulo,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                when {
+                    f.ligado != null -> Box(
+                        Modifier.size(10.dp).clip(CircleShape)
+                            .background(if (ligadoAgora) Lima else Contorno)
+                    )
+                    f.semaforo -> Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        listOf(VermelhoPrejuizo, AmareloAlerta, Lima).forEach { cor ->
+                            Box(Modifier.size(6.dp).clip(CircleShape).background(cor))
+                        }
+                    }
+                    else -> Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            Text(
+                if (f.ligado != null) (if (ligadoAgora) "Ligado" else "Desligado") else f.estado,
+                style = MaterialTheme.typography.labelSmall,
+                color = when {
+                    f.alerta -> VermelhoPrejuizo
+                    f.aceso || ligadoAgora -> Lima
+                    else -> TextoSecundario
+                },
+                fontWeight = if (f.ligado != null) FontWeight.Bold else FontWeight.Normal
+            )
+            if (f.ligado != null) {
+                Text(f.estado, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+            }
         }
     }
 }

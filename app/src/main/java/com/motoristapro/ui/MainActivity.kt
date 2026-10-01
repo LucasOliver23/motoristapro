@@ -45,6 +45,8 @@ import com.motoristapro.MotoristaApp
 import com.motoristapro.auth.LoginScreen
 import com.motoristapro.service.leitorOfertasAtivo
 import com.motoristapro.ui.theme.MotoristaTema
+import com.motoristapro.ui.theme.PreferenciaTema
+import com.motoristapro.ui.theme.temaEscuro
 import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -60,13 +62,22 @@ import androidx.compose.runtime.setValue
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Tema sempre escuro: ícones claros na status bar e na barra de navegação.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-        )
+        // Le o modo (escuro/claro/sistema) ANTES de desenhar: assim o primeiro
+        // frame ja sai na cor certa, sem piscar.
+        PreferenciaTema.carregar(this)
         super.onCreate(savedInstanceState)
         setContent {
+            // Os icones da status bar acompanham o tema: claros no escuro, escuros no claro.
+            val escuro = temaEscuro
+            LaunchedEffect(escuro) {
+                val transparente = android.graphics.Color.TRANSPARENT
+                enableEdgeToEdge(
+                    statusBarStyle = if (escuro) SystemBarStyle.dark(transparente)
+                    else SystemBarStyle.light(transparente, transparente),
+                    navigationBarStyle = if (escuro) SystemBarStyle.dark(transparente)
+                    else SystemBarStyle.light(transparente, transparente)
+                )
+            }
             MotoristaTema {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     AppComLogin()
