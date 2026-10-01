@@ -23,7 +23,9 @@ data class Oferta(
     /** Entregas/paradas da rota (iFood: "Entrega 1", "Entrega 2"...). 0 = não informado. */
     val paradas: Int = 0,
     /** iFood: "Possibilidade de devolução: Sim" (pode ter que voltar ao restaurante). */
-    val devolucao: Boolean = false
+    val devolucao: Boolean = false,
+    /** Nota do passageiro lida na tela (1,0 a 5,0). null = a tela não mostrou. */
+    val nota: Double? = null
 ) {
     /** R$ por km. 0.0 se km == 0. */
     val reaisPorKm: Double get() = dividirSeguro(valor, km)
@@ -36,6 +38,10 @@ data class Oferta(
 
     /** Lucro estimado = valor − km × custo/km (custo vindo da Configuração, em centavos). */
     fun lucroEstimado(custoKmCentavos: Long): Double = valor - km * (custoKmCentavos / 100.0)
+
+    /** Lucro estimado como % do valor da oferta. 0 quando o valor é zero. */
+    fun lucroPercentual(custoKmCentavos: Long): Double =
+        dividirSeguro(lucroEstimado(custoKmCentavos) * 100.0, valor)
 
     /** Assinatura para não reprocessar/reexibir a mesma oferta a cada evento. */
     val assinatura: String get() = "%.2f|%.2f|%d".format(valor, km, minutos)
@@ -101,6 +107,33 @@ object OfertaParser {
     // iFood: "Possibilidade de devolução" seguido de "Sim" (mesma linha ou na seguinte)
     private val RE_DEVOLUCAO = Regex("""devolu[cç][aã]o\s*:?\s*\n?\s*Sim\b""", RegexOption.IGNORE_CASE)
 
+    // A linha precisa falar de nota: estrela ou a palavra "nota".
+    private val RE_TEM_NOTA = Regex("""[★⭐✪✩]|\bnota\b""", RegexOption.IGNORE_CASE)
+
+    // "★ 4,80", "4,80 ⭐", "Nota 4,8" — tudo na MESMA linha ([ \t] e não \s,
+    // senão o "R$ 24,50" da linha de cima vira nota 4,50.
+    private val RE_NOTA = Regex(
+        """[★⭐✪✩][ \t]*(\d(?:[.,]\d{1,2})?)|(\d(?:[.,]\d{1,2})?)[ \t]*[★⭐✪✩]|nota[ \t]*:?[ \t]*(\d(?:[.,]\d{1,2})?)""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * Nota do passageiro, ou null. Linha a linha, e sempre tirando os "R$ ..." antes:
+     * valor e nota moram perto na tela e têm a mesma cara (4,80).
+     * Fora de 1,0–5,0 é descartado.
+     */
+    fun extrairNota(textos: List<String>): Double? {
+        for (linha in textos) {
+            if (!RE_TEM_NOTA.containsMatchIn(linha)) continue
+            val semDinheiro = RE_VALOR.replace(linha, " ")
+            val m = RE_NOTA.find(semDinheiro) ?: continue
+            val bruto = m.groupValues.drop(1).firstOrNull { it.isNotBlank() } ?: continue
+            val n = paraDouble(bruto) ?: continue
+            if (n in 1.0..5.0) return n
+        }
+        return null
+    }
+
     // Telas de ENTREGA (99 Entrega Food, iFood, Uber Flash): muitas não mostram minutos,
     // só o valor e a distância total. Nessas o tempo deixa de ser obrigatório.
     private val RE_ENTREGA = Regex(
@@ -130,7 +163,8 @@ object OfertaParser {
             extrairOuNull(textos, tudo, exigirTempo)?.copy(
                 enderecos = extrairEnderecos(textos),
                 paradas = contarParadas(tudo),
-                devolucao = RE_DEVOLUCAO.containsMatchIn(tudo)
+                devolucao = RE_DEVOLUCAO.containsMatchIn(tudo),
+                nota = extrairNota(textos)
             )
         } catch (e: Exception) {
             // Sem android.util.Log aqui: mantém o parser testável em JUnit puro.

@@ -14,6 +14,8 @@ import com.motoristapro.data.backup.BackupManager
 import com.motoristapro.data.local.entity.CustoFixo
 import com.motoristapro.data.local.entity.Configuracao
 import com.motoristapro.service.Diagnostico
+import com.motoristapro.service.AvisoVoz
+import com.motoristapro.service.EnderecosDeRisco
 import com.motoristapro.service.LimitesOferta
 import com.motoristapro.nuvem.EstadoNuvem
 import com.motoristapro.service.OfertaAccessibilityService
@@ -40,6 +42,12 @@ data class FormConfig(
     val tarifaMinima: Long,
     val minReaisKm: Float,
     val minReaisHora: Float,
+    /** Lucro líquido mínimo por corrida, em reais. 0 = não usar. */
+    val minLucroReais: Float,
+    /** Lucro líquido mínimo como % do valor. 0 = não usar. */
+    val minLucroPercent: Float,
+    /** Nota mínima do passageiro (1,0 a 5,0). 0 = não usar. */
+    val minNota: Float,
     val diasTrabalhoMes: Int
 )
 
@@ -48,6 +56,8 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     private val repo = app.repository
     private val prefs = app.preferencias
     val limites = LimitesOferta(app)
+    private val voz = AvisoVoz(app)
+    private val risco = EnderecosDeRisco(app)
 
     /** null enquanto carrega (o formulário só é montado com a configuração real). */
     val config: StateFlow<Configuracao?> = repo.configuracao()
@@ -136,6 +146,21 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     private val _resumo = MutableStateFlow(prefs.resumoDiarioAtivo)
     val resumoAtivo: StateFlow<Boolean> = _resumo.asStateFlow()
 
+    private val _voz = MutableStateFlow(voz.ativo)
+    val vozAtiva: StateFlow<Boolean> = _voz.asStateFlow()
+
+    private val _vozResumida = MutableStateFlow(voz.resumido)
+    val vozResumida: StateFlow<Boolean> = _vozResumida.asStateFlow()
+
+    private val _riscoAtivo = MutableStateFlow(risco.ativo)
+    val riscoAtivo: StateFlow<Boolean> = _riscoAtivo.asStateFlow()
+
+    private val _riscoMercados = MutableStateFlow(risco.alertarMercados)
+    val riscoMercados: StateFlow<Boolean> = _riscoMercados.asStateFlow()
+
+    private val _riscoPalavras = MutableStateFlow(risco.palavras)
+    val riscoPalavras: StateFlow<List<String>> = _riscoPalavras.asStateFlow()
+
     private val _mensagens = Channel<String>(Channel.BUFFERED)
     val mensagens: Flow<String> = _mensagens.receiveAsFlow()
 
@@ -158,6 +183,9 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
                 )
                 limites.minReaisPorKm = f.minReaisKm
                 limites.minReaisPorHora = f.minReaisHora
+                limites.minLucroReais = f.minLucroReais
+                limites.minLucroPercent = f.minLucroPercent
+                limites.minNota = f.minNota
             }
                 .onSuccess { _mensagens.send("Configurações salvas") }
                 .onFailure { _mensagens.send("Erro ao salvar: ${it.message}") }
@@ -258,6 +286,41 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     fun definirResumo(ativo: Boolean) {
         prefs.resumoDiarioAtivo = ativo
         _resumo.value = ativo
+    }
+
+    // ------------------------------------------------------------------ voz
+
+    fun definirVoz(ativa: Boolean) {
+        voz.ativo = ativa          // o próprio AvisoVoz cria/libera o motor de fala
+        _voz.value = ativa
+        OfertaAccessibilityService.instancia?.aplicarPreferencias()
+    }
+
+    fun definirVozResumida(resumida: Boolean) {
+        voz.resumido = resumida
+        _vozResumida.value = resumida
+    }
+
+    // ------------------------------------------------------------- endereços de risco
+
+    fun definirRisco(ativo: Boolean) {
+        risco.ativo = ativo
+        _riscoAtivo.value = ativo
+    }
+
+    fun definirRiscoMercados(ativo: Boolean) {
+        risco.alertarMercados = ativo
+        _riscoMercados.value = ativo
+    }
+
+    fun adicionarPalavraRisco(palavra: String) {
+        risco.adicionar(palavra)
+        _riscoPalavras.value = risco.palavras
+    }
+
+    fun removerPalavraRisco(palavra: String) {
+        risco.remover(palavra)
+        _riscoPalavras.value = risco.palavras
     }
 
     fun testarLeitor() {

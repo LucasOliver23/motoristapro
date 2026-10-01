@@ -46,6 +46,7 @@ class OverlayOferta(private val context: Context) {
     private lateinit var tvTitulo: TextView
     private lateinit var tvPrincipal: TextView
     private lateinit var tvDetalhe: TextView
+    private lateinit var tvRisco: TextView
     private lateinit var btRegistrar: TextView
     private lateinit var btLocal: TextView
 
@@ -86,25 +87,42 @@ class OverlayOferta(private val context: Context) {
         classe: Classificacao,
         custoKmCentavos: Long,
         duracaoMs: Long = 15_000,
-        totalNaTela: Int = 1
+        totalNaTela: Int = 1,
+        alertaRisco: String? = null
     ) {
         val v = raiz ?: criarView().also { raiz = it }
 
         (v.background as? GradientDrawable)?.setColor(classe.corFundo)
         val sufixo = if (totalNaTela > 1) "   (melhor de $totalNaTela)" else ""
-        tvTitulo.text = "${classe.rotulo}  •  ${moeda(o.valor)}$sufixo"
-        tvPrincipal.text = if (o.minutos > 0) "${moeda(o.reaisPorKm)}/km    ${moeda(o.reaisPorHora)}/h"
-        else "${moeda(o.reaisPorKm)}/km"
+        val nota = o.nota?.let { "  •  ★ ${String.format(ptBr, "%.2f", it)}" } ?: ""
+        tvTitulo.text = "${classe.rotulo}  •  ${moeda(o.valor)}$nota$sufixo"
+        // Linha grande: o que decide a corrida. O lucro líquido entra aqui, não no rodapé —
+        // é o número que o motorista realmente leva para casa.
+        val principal = mutableListOf("${moeda(o.reaisPorKm)}/km")
+        if (o.minutos > 0) principal += "${moeda(o.reaisPorHora)}/h"
+        if (custoKmCentavos > 0) {
+            val lucro = o.lucroEstimado(custoKmCentavos)
+            val pct = o.lucroPercentual(custoKmCentavos).toInt()
+            principal += "${moeda(lucro)} (${pct}%)"
+        }
+        tvPrincipal.text = principal.joinToString("   ")
 
         val partes = mutableListOf(String.format(ptBr, "%.1f km", o.km))
         if (o.minutos > 0) {
             partes += "${o.minutos} min"
             partes += "${moeda(o.reaisPorMinuto)}/min"
         }
-        if (o.paradas > 1) partes += "${o.paradas} entregas • ${moeda(o.valor / o.paradas)} cada"
-        if (custoKmCentavos > 0) partes += "lucro ≈ ${moeda(o.lucroEstimado(custoKmCentavos))}"
+        if (o.paradas > 1) partes += "⏸ ${o.paradas} paradas • ${moeda(o.valor / o.paradas)} cada"
         if (o.devolucao) partes += "⚠ pode ter devolução"
         tvDetalhe.text = partes.joinToString("  •  ")
+
+        // Faixa de risco: só aparece quando o endereço bate com a lista do motorista.
+        if (alertaRisco.isNullOrBlank()) {
+            tvRisco.visibility = View.GONE
+        } else {
+            tvRisco.text = "⚠  ÁREA DE RISCO: $alertaRisco"
+            tvRisco.visibility = View.VISIBLE
+        }
 
         ofertaAtual = o
         btRegistrar.text = "✓ Registrar corrida"
@@ -164,6 +182,14 @@ class OverlayOferta(private val context: Context) {
         tvTitulo = texto(15f, negrito = true)
         tvPrincipal = texto(24f, negrito = true)
         tvDetalhe = texto(14f, negrito = false)
+        tvRisco = texto(14f, negrito = true).apply {
+            setPadding(dp(10), dp(4), dp(10), dp(4))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(10).toFloat()
+                setColor(0xCC000000.toInt())
+            }
+            visibility = View.GONE
+        }
         btRegistrar = botao("✓ Registrar corrida") { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
         btLocal = botao("📍 Ver embarque") {
             ofertaAtual?.enderecos?.firstOrNull()?.let { aoVerLocal?.invoke(it) }
@@ -187,6 +213,7 @@ class OverlayOferta(private val context: Context) {
             addView(tvTitulo)
             addView(tvPrincipal)
             addView(tvDetalhe)
+            addView(tvRisco)
             addView(linhaBotoes)
 
             // Arrastar na vertical reposiciona; toque simples fecha.

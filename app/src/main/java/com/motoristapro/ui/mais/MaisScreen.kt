@@ -103,6 +103,11 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     var confirmarSair by remember { mutableStateOf(false) }
     LaunchedEffect(usuario?.uid) { if (usuario != null) vm.consultarNuvem() }
     val ocr by vm.ocrAtivo.collectAsStateWithLifecycle()
+    val voz by vm.vozAtiva.collectAsStateWithLifecycle()
+    val vozResumida by vm.vozResumida.collectAsStateWithLifecycle()
+    val riscoLigado by vm.riscoAtivo.collectAsStateWithLifecycle()
+    val riscoMercados by vm.riscoMercados.collectAsStateWithLifecycle()
+    val palavrasRisco by vm.riscoPalavras.collectAsStateWithLifecycle()
     var novoCusto by remember { mutableStateOf(false) }
     var excluirCusto by remember { mutableStateOf<CustoFixo?>(null) }
     var confirmarRestauracao by remember { mutableStateOf(false) }
@@ -194,7 +199,15 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
 
             // Formulário recriado só quando a config é carregada pela primeira vez.
             key(cfg.id) {
-                FormularioConfig(cfg, vm.limites.minReaisPorKm, vm.limites.minReaisPorHora, onSalvar = vm::salvar)
+                FormularioConfig(
+                    cfg = cfg,
+                    minKmInicial = vm.limites.minReaisPorKm,
+                    minHoraInicial = vm.limites.minReaisPorHora,
+                    minLucroInicial = vm.limites.minLucroReais,
+                    minLucroPctInicial = vm.limites.minLucroPercent,
+                    minNotaInicial = vm.limites.minNota,
+                    onSalvar = vm::salvar
+                )
             }
 
             CardSecao(titulo = "Custos fixos mensais") {
@@ -290,6 +303,37 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     ocr, vm::definirOcr
                 )
             }
+
+            CardSecao(titulo = "Aviso por voz") {
+                LinhaSwitch(
+                    "Falar a oferta em voz alta",
+                    "Diz \"Aceitar\", \"Analisar\" ou \"Recusar\" com o R$/km — para decidir sem " +
+                        "tirar a mão do guidão. Usa a voz do próprio Android, sem internet.",
+                    voz, vm::definirVoz
+                )
+                if (voz) {
+                    LinhaSwitch(
+                        "Modo curto",
+                        "Só a decisão e o R$/km. Sem nota, paradas nem R$/hora.",
+                        vozResumida, vm::definirVozResumida
+                    )
+                    Text(
+                        "Se não ouvir nada, instale a voz em português: Configurações do Android > " +
+                            "Idiomas > Conversão de texto em voz.",
+                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                    )
+                }
+            }
+
+            CardSecaoEnderecosRisco(
+                ativo = riscoLigado,
+                mercados = riscoMercados,
+                palavras = palavrasRisco,
+                onAtivo = vm::definirRisco,
+                onMercados = vm::definirRiscoMercados,
+                onAdicionar = vm::adicionarPalavraRisco,
+                onRemover = vm::removerPalavraRisco
+            )
 
             DiagnosticoCard(diagnostico, leitorOk)
 
@@ -428,6 +472,9 @@ private fun FormularioConfig(
     cfg: Configuracao,
     minKmInicial: Float,
     minHoraInicial: Float,
+    minLucroInicial: Float,
+    minLucroPctInicial: Float,
+    minNotaInicial: Float,
     onSalvar: (FormConfig) -> Unit
 ) {
     var veiculo by rememberSaveable { mutableStateOf(cfg.veiculoNome ?: "") }
@@ -442,6 +489,9 @@ private fun FormularioConfig(
     var tarifa by rememberSaveable { mutableStateOf(cfg.tarifaMinimaCentavos.campo()) }
     var minKm by rememberSaveable { mutableStateOf(String.format(PT, "%.2f", minKmInicial)) }
     var minHora by rememberSaveable { mutableStateOf(String.format(PT, "%.2f", minHoraInicial)) }
+    var minLucro by rememberSaveable { mutableStateOf(String.format(PT, "%.2f", minLucroInicial)) }
+    var minLucroPct by rememberSaveable { mutableStateOf(minLucroPctInicial.toInt().toString()) }
+    var minNota by rememberSaveable { mutableStateOf(String.format(PT, "%.1f", minNotaInicial)) }
     var dias by rememberSaveable { mutableStateOf(cfg.diasTrabalhoMes.toString()) }
 
     // "12,5" km/L -> 1250 (mesma conversão x1000/10)
@@ -454,13 +504,18 @@ private fun FormularioConfig(
     val tarifaC = tarifa.paraCentavosOuZero()
     val minKmC = minKm.paraCentavosOuZero()
     val minHoraC = minHora.paraCentavosOuZero()
+    val minLucroC = minLucro.paraCentavosOuZero()
+    val minNotaC = minNota.paraCentavosOuZero()?.takeIf { it == 0L || it in 100..500 }
+    val minLucroPctC = minLucroPct.trim().ifBlank { "0" }.toIntOrNull()?.takeIf { it in 0..99 }
     val diasC = dias.trim().toIntOrNull()?.takeIf { it in 1..31 }
 
     val combustivelKm = if (consumoX100 != null && consumoX100 > 0 && precoC != null && precoC > 0)
         precoC * 100.0 / consumoX100 else null
 
-    val valido = listOf(consumoX100, precoC, custoC, metaDiaC, metaSemanaC, metaMesC, tarifaC, minKmC, minHoraC)
-        .all { it != null } && diasC != null
+    val valido = listOf(
+        consumoX100, precoC, custoC, metaDiaC, metaSemanaC, metaMesC,
+        tarifaC, minKmC, minHoraC, minLucroC, minNotaC
+    ).all { it != null } && diasC != null && minLucroPctC != null
 
     CardSecao(titulo = "Veículo") {
         CampoFormulario("Modelo (ex.: Onix 1.0 2020)", veiculo, { veiculo = it }, numerico = false)
@@ -504,6 +559,22 @@ private fun FormularioConfig(
             CampoFormulario("Mínimo R$/km", minKm, { minKm = it }, Modifier.weight(1f), erro = minKmC == null)
             CampoFormulario("Mínimo R$/hora", minHora, { minHora = it }, Modifier.weight(1f), erro = minHoraC == null)
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CampoFormulario("Lucro mínimo (R$)", minLucro, { minLucro = it }, Modifier.weight(1f), erro = minLucroC == null)
+            CampoFormulario(
+                "Lucro mínimo (%)", minLucroPct, { minLucroPct = it.filter(Char::isDigit) },
+                Modifier.weight(1f), erro = minLucroPctC == null
+            )
+        }
+        CampoFormulario(
+            "Nota mínima do passageiro", minNota, { minNota = it }, erro = minNotaC == null,
+            ajuda = "De 1,0 a 5,0. 0 = desligado. Vale só quando o app de corrida mostra a nota."
+        )
+        Text(
+            "Qualquer mínimo acima derruba a oferta para vermelho na hora. Lucro e % " +
+                "dependem do custo por km preenchido no Veículo.",
+            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+        )
     }
 
     Button(
@@ -521,6 +592,9 @@ private fun FormularioConfig(
                         tarifaMinima = tarifaC ?: 0L,
                         minReaisKm = (minKmC ?: 0L) / 100f,
                         minReaisHora = (minHoraC ?: 0L) / 100f,
+                        minLucroReais = (minLucroC ?: 0L) / 100f,
+                        minLucroPercent = (minLucroPctC ?: 0).toFloat(),
+                        minNota = (minNotaC ?: 0L) / 100f,
                         diasTrabalhoMes = diasC ?: 26
                     )
                 )
@@ -530,6 +604,74 @@ private fun FormularioConfig(
         modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
     ) { Text("Salvar configurações", fontWeight = FontWeight.Bold) }
+}
+
+/**
+ * Lista de palavras que marcam uma corrida como arriscada. O motorista conhece a cidade
+ * dele melhor que qualquer base de dados — então quem cadastra é ele.
+ */
+@Composable
+private fun CardSecaoEnderecosRisco(
+    ativo: Boolean,
+    mercados: Boolean,
+    palavras: List<String>,
+    onAtivo: (Boolean) -> Unit,
+    onMercados: (Boolean) -> Unit,
+    onAdicionar: (String) -> Unit,
+    onRemover: (String) -> Unit
+) {
+    var nova by rememberSaveable { mutableStateOf("") }
+
+    CardSecao(titulo = "Endereços de risco") {
+        LinhaSwitch(
+            "Alertar antes de aceitar",
+            "Se o embarque ou o destino tiver uma das suas palavras, o cartão acende o aviso vermelho.",
+            ativo, onAtivo
+        )
+        LinhaSwitch(
+            "Avisar em mercado e atacadão",
+            "Embarque em supermercado costuma dar espera longa e cancelamento. Reconhece as redes conhecidas.",
+            mercados, onMercados
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CampoFormulario(
+                "Bairro, rua ou região", nova, { nova = it },
+                Modifier.weight(1f), numerico = false
+            )
+            OutlinedButton(
+                onClick = {
+                    onAdicionar(nova)
+                    nova = ""
+                },
+                enabled = nova.isNotBlank()
+            ) { Text("Add") }
+        }
+
+        if (palavras.isEmpty()) {
+            Text(
+                "Nenhuma palavra cadastrada. Exemplos: um bairro que você evita à noite, " +
+                    "uma rua sem saída, o nome de uma comunidade.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        } else {
+            palavras.forEach { p ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("⚠  $p", style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { onRemover(p) }) {
+                        Text("Remover", color = VermelhoPrejuizo)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

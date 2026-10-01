@@ -5,6 +5,7 @@ app/google-services.json
 *.jks
 *.keystore
 ferramentas/KEYSTORE_BASE64.txt
+ferramentas/sha1.txt
 local.properties
 
 # ---- Lixo de build ----

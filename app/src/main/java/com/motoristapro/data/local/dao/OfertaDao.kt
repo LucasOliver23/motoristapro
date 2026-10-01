@@ -28,6 +28,24 @@ data class ResumoOfertas(
     }
 }
 
+/**
+ * Uma faixa de 2 horas do dia (0 = 00h–02h, 1 = 02h–04h ... 11 = 22h–00h),
+ * com tudo que o leitor viu nela. Serve para responder "a que horas vale a pena rodar".
+ */
+data class FaixaHoraria(
+    @ColumnInfo(name = "faixa") val faixa: Int,
+    @ColumnInfo(name = "ofertas") val ofertas: Int,
+    @ColumnInfo(name = "valor_centavos") val valorCentavos: Long,
+    @ColumnInfo(name = "metros") val metros: Long,
+    @ColumnInfo(name = "minutos") val minutos: Int
+) {
+    /** R$/km médio das ofertas dessa faixa, em centavos. */
+    val reaisPorKmCentavos: Long get() = if (metros > 0) valorCentavos * 1000 / metros else 0
+
+    /** "08h–10h" */
+    val rotulo: String get() = "%02dh–%02dh".format(faixa * 2, (faixa * 2 + 2) % 24)
+}
+
 @Dao
 interface OfertaDao {
 
@@ -60,6 +78,31 @@ interface OfertaDao {
         """
     )
     fun observarResumo(inicio: Long, fim: Long): Flow<ResumoOfertas>
+
+    /**
+     * Ofertas agrupadas em faixas de 2 horas do dia.
+     *
+     * strftime com 'localtime' converte o epoch para o fuso do aparelho — sem isso,
+     * uma oferta das 21h no Brasil cairia na faixa das 00h (UTC).
+     * Faixas com poucas ofertas são descartadas em [minimoOfertas]: 1 corrida boa
+     * às 3h da manhã não faz daquele horário o melhor da semana.
+     */
+    @Query(
+        """
+        SELECT
+            CAST(strftime('%H', recebida_em / 1000, 'unixepoch', 'localtime') AS INTEGER) / 2 AS faixa,
+            COUNT(*)                            AS ofertas,
+            COALESCE(SUM(valor_centavos), 0)    AS valor_centavos,
+            COALESCE(SUM(metros), 0)            AS metros,
+            COALESCE(SUM(minutos), 0)           AS minutos
+        FROM ofertas
+        WHERE recebida_em >= :inicio AND recebida_em < :fim AND metros > 0
+        GROUP BY faixa
+        HAVING COUNT(*) >= :minimoOfertas
+        ORDER BY faixa
+        """
+    )
+    fun observarFaixasHorarias(inicio: Long, fim: Long, minimoOfertas: Int = 3): Flow<List<FaixaHoraria>>
 
     /** Limpeza: ofertas antigas não são guardadas para sempre. */
     @Query("DELETE FROM ofertas WHERE recebida_em < :limite")

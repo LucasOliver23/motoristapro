@@ -1,6 +1,7 @@
 package com.motoristapro.data.repository
 
 import com.motoristapro.data.local.AppDatabase
+import com.motoristapro.data.local.dao.FaixaHoraria
 import com.motoristapro.data.local.dao.ResumoOfertas
 import com.motoristapro.data.local.dao.ResumoPeriodo
 import com.motoristapro.data.local.dao.TotaisJornada
@@ -257,6 +258,10 @@ class FinanceiroRepository(private val db: AppDatabase) {
         ofertaDao.observarPorPeriodo(inicio, fim)
 
     fun resumoOfertas(inicio: Long, fim: Long): Flow<ResumoOfertas> = ofertaDao.observarResumo(inicio, fim)
+
+    /** Faixas de 2 h do dia com o R$/km médio das ofertas — os "melhores horários". */
+    fun faixasHorarias(inicio: Long, fim: Long, minimoOfertas: Int = 3): Flow<List<FaixaHoraria>> =
+        ofertaDao.observarFaixasHorarias(inicio, fim, minimoOfertas)
 
     /** Mantém só os últimos [dias] dias de ofertas. */
     suspend fun limparOfertasAntigas(dias: Int = 180): Int =

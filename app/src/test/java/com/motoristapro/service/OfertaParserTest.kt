@@ -1,6 +1,8 @@
 package com.motoristapro.service
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -196,5 +198,75 @@ class OfertaParserTest {
         val ofertas = OfertaParser.extrairVarias(textos)
         assertEquals(1, ofertas.size)
         assertEquals(OfertaParser.extrair(textos), ofertas[0])
+    }
+
+    // ============================================================ nota do passageiro
+
+    @Test
+    fun nota_lidaDaEstrela() {
+        val textos = listOf("R$ 24,50", "★ 4,85", "6 min (1,2 km)", "19 min (7,6 km)")
+        val o = OfertaParser.extrair(textos)!!
+        assertEquals(4.85, o.nota!!, 0.001)
+        assertEquals(24.50, o.valor, 0.001)
+    }
+
+    @Test
+    fun nota_naoConfundeComOValorDaLinhaDeCima() {
+        // "R$ 4,80" logo acima da estrela já virou nota 4,80 numa versão anterior.
+        val textos = listOf("R$ 4,80", "★ 4,92", "12 min (3,0 km)")
+        assertEquals(4.92, OfertaParser.extrair(textos)!!.nota!!, 0.001)
+    }
+
+    @Test
+    fun nota_ausenteQuandoATelaNaoMostra() {
+        val textos = listOf("R$18,30", "(11 min 5,2 km) Rua A", "(37 min 22,9 km) Rua B")
+        assertNull(OfertaParser.extrair(textos)!!.nota)
+    }
+
+    @Test
+    fun nota_foraDaFaixaEhDescartada() {
+        assertNull(OfertaParser.extrairNota(listOf("★ 8,20")))
+        assertNull(OfertaParser.extrairNota(listOf("★ 0,50")))
+        assertEquals(5.0, OfertaParser.extrairNota(listOf("★ 5"))!!, 0.001)
+    }
+
+    // ============================================================ entrega sem minutos
+
+    @Test
+    fun entregaSemMinutos_eReconhecidaQuandoNaoExigeTempo() {
+        val textos = listOf(
+            "Verifique o tipo de pedido", "Entrega Food (2)", "R$17,35",
+            "Distância total 9,3 km", "Aceitar (2)"
+        )
+        assertTrue(OfertaParser.pareceEntrega(textos))
+        val o = OfertaParser.extrair(textos, exigirTempo = false)!!
+        assertEquals(17.35, o.valor, 0.001)
+        assertEquals(9.3, o.km, 0.001)
+        assertEquals(0, o.minutos)
+        assertEquals(0.0, o.reaisPorHora, 0.001)       // divisão por zero protegida
+        assertEquals(1.866, o.reaisPorKm, 0.01)
+    }
+
+    @Test
+    fun corridaDePassageiro_continuaExigindoTempo() {
+        val textos = listOf("R$ 12,00", "5,0 km")        // sem minutos e sem cara de entrega
+        assertFalse(OfertaParser.pareceEntrega(textos))
+        assertNull(OfertaParser.extrair(textos, exigirTempo = true))
+    }
+
+    // ============================================================ lucro
+
+    @Test
+    fun lucroEPercentual() {
+        val o = Oferta(valor = 20.0, km = 10.0, minutos = 25)
+        assertEquals(14.0, o.lucroEstimado(60), 0.001)          // 20 − 10 × 0,60
+        assertEquals(70.0, o.lucroPercentual(60), 0.001)
+        assertEquals(20.0, o.lucroEstimado(0), 0.001)           // sem custo cadastrado
+    }
+
+    @Test
+    fun lucroPercentual_naoEstouraComValorZero() {
+        val o = Oferta(valor = 0.0, km = 5.0, minutos = 10)
+        assertEquals(0.0, o.lucroPercentual(60), 0.001)
     }
 }

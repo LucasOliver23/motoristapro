@@ -157,6 +157,48 @@ fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosView
                 } else {
                     Text("Registre corridas para descobrir seus melhores horários.", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
                 }
+
+                // O que o MERCADO ofereceu, faixa a faixa. Conta toda oferta lida — aceita
+                // ou não —, então enche de dados muito antes do histórico de corridas.
+                if (e.faixas.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "O que apareceu na tela, por faixa de 2 h",
+                        style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold
+                    )
+                    val teto = e.faixas.maxOf { it.reaisPorKmCentavos }.coerceAtLeast(1)
+                    e.melhoresFaixas.forEach { f ->
+                        BarraHorizontal(
+                            rotulo = f.rotulo,
+                            valorTexto = "${f.reaisPorKmCentavos.emReais()}/km",
+                            fracao = f.reaisPorKmCentavos.toFloat() / teto,
+                            detalhe = "${f.ofertas} ofertas",
+                            cor = Lima
+                        )
+                    }
+                    if (e.pioresFaixas.isNotEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Horários a evitar",
+                            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                        )
+                        e.pioresFaixas.forEach { f ->
+                            BarraHorizontal(
+                                rotulo = f.rotulo,
+                                valorTexto = "${f.reaisPorKmCentavos.emReais()}/km",
+                                fracao = f.reaisPorKmCentavos.toFloat() / teto,
+                                detalhe = "${f.ofertas} ofertas",
+                                cor = VermelhoPrejuizo
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        "Com o leitor de ofertas ligado, aqui aparecem as faixas de horário " +
+                            "que mais pagam por km — contando até as corridas que você recusou.",
+                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                    )
+                }
             }
 
             // ---------------- custos

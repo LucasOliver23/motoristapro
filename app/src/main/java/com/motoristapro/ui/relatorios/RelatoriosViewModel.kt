@@ -13,6 +13,7 @@ import com.motoristapro.data.local.model.CustoKmPorCategoria
 import com.motoristapro.data.local.model.GanhoPorHora
 import com.motoristapro.data.local.model.LucroDiario
 import com.motoristapro.data.local.model.ResumoPlataforma
+import com.motoristapro.data.local.dao.FaixaHoraria
 import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.data.repository.Periodo
 import com.motoristapro.data.repository.custoFixoDiario
@@ -50,6 +51,8 @@ data class RelatoriosUiState(
     val custoPorCategoria: List<CustoKmPorCategoria> = emptyList(),
     val consumo: ConsumoCombustivel? = null,
     val ofertas: ResumoOfertas = ResumoOfertas.VAZIO,
+    /** Faixas de 2 h do dia com R$/km médio das ofertas (as com movimento suficiente). */
+    val faixas: List<FaixaHoraria> = emptyList(),
     /** Dias do período com pelo menos uma corrida. */
     val diasTrabalhados: Int = 0,
     val custoFixoMensal: Long = 0,
@@ -59,6 +62,16 @@ data class RelatoriosUiState(
     val custoFixoPeriodo: Long get() = custoFixoDiario(custoFixoMensal, diasTrabalhoMes) * diasTrabalhados
 
     val lucroRealCentavos: Long get() = resumo.lucroLiquidoCentavos - custoFixoPeriodo
+
+    /** As 3 faixas de horário que mais pagam por km. */
+    val melhoresFaixas: List<FaixaHoraria>
+        get() = faixas.sortedByDescending { it.reaisPorKmCentavos }.take(3)
+
+    /** As 3 piores — tão úteis quanto as melhores: são as horas de ficar em casa. */
+    val pioresFaixas: List<FaixaHoraria>
+        get() = faixas.sortedBy { it.reaisPorKmCentavos }
+            .take(3)
+            .filterNot { pior -> melhoresFaixas.any { it.faixa == pior.faixa } }
 
     /** Hora do dia com maior R$/h em corrida (mínimo 2 corridas para evitar ruído). */
     val melhorHora: GanhoPorHora?
@@ -104,6 +117,7 @@ class RelatoriosViewModel(private val repo: FinanceiroRepository) : ViewModel() 
                 .combine(extras) { estado, (of, fixo, dias) ->
                     estado.copy(ofertas = of, custoFixoMensal = fixo, diasTrabalhoMes = dias)
                 }
+                .combine(repo.faixasHorarias(ini, fim)) { estado, fx -> estado.copy(faixas = fx) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RelatoriosUiState())
 

@@ -67,6 +67,12 @@ class OfertaAccessibilityService : AccessibilityService() {
 
     private val varrerRunnable = Runnable { varrerTelaComSeguranca() }
 
+    /** Lista de endereços de risco do motorista. */
+    private var risco: EnderecosDeRisco? = null
+
+    /** Aviso falado da oferta (desligado por padrão). */
+    private var voz: AvisoVoz? = null
+
     /** Leitura por imagem (criada só quando algum app não expõe texto). */
     private var leitorOcr: LeitorOcr? = null
     private var ultimoOcrEm = 0L
@@ -82,6 +88,8 @@ class OfertaAccessibilityService : AccessibilityService() {
         _conectado.value = true
 
         limites = LimitesOferta(this)
+        risco = EnderecosDeRisco(this)
+        voz = AvisoVoz(this).apply { preparar() }
         val app = application as MotoristaApp
         val repo = app.repository
 
@@ -145,6 +153,9 @@ class OfertaAccessibilityService : AccessibilityService() {
         bolha = null
         leitorOcr?.fechar()
         leitorOcr = null
+        voz?.liberar()
+        voz = null
+        risco = null
         escopo.cancel()
         instancia = null
         _conectado.value = false
@@ -214,14 +225,20 @@ class OfertaAccessibilityService : AccessibilityService() {
         if (oferta.assinatura == ultimaAssinatura && ov.visivel) return
         ultimaAssinatura = oferta.assinatura
 
-        val classe = lim.classificar(oferta, tarifaMinimaCentavos)
+        val classe = lim.classificar(oferta, tarifaMinimaCentavos, custoKmCentavos)
+        val alertaRisco = risco?.alerta(oferta.enderecos)
         Log.d(
             TAG,
             "Oferta: $oferta  R$/km=%.2f  R$/h=%.2f  -> %s".format(
                 oferta.reaisPorKm, oferta.reaisPorHora, classe.rotulo
             )
         )
-        ov.mostrar(oferta, classe, custoKmCentavos, totalNaTela = totalNaTela)
+        ov.mostrar(
+            oferta, classe, custoKmCentavos,
+            totalNaTela = totalNaTela,
+            alertaRisco = alertaRisco
+        )
+        voz?.falar(oferta, classe, alertaRisco)
         salvarNoHistorico(oferta, classe)
     }
 
@@ -418,6 +435,8 @@ class OfertaAccessibilityService : AccessibilityService() {
     fun aplicarPreferencias() {
         val prefs = (application as MotoristaApp).preferencias
         if (prefs.bolhaAtiva) bolha?.mostrar() else bolha?.esconder()
+        // A voz guarda o próprio estado; aqui só garantimos o motor criado/liberado.
+        voz?.let { if (it.ativo) it.preparar() else it.liberar() }
     }
 
     // ================================================================== teste manual
@@ -426,8 +445,15 @@ class OfertaAccessibilityService : AccessibilityService() {
     fun mostrarTeste() {
         val ov = overlay ?: return
         val lim = limites ?: return
-        val o = Oferta(valor = 18.40, km = 11.0, minutos = 26, enderecos = listOf("Av. Paulista, 1578 - São Paulo"))
-        ov.mostrar(o, lim.classificar(o, tarifaMinimaCentavos), custoKmCentavos, duracaoMs = 6_000)
+        val o = Oferta(
+            valor = 18.40, km = 11.0, minutos = 26,
+            enderecos = listOf("Av. Paulista, 1578 - São Paulo"),
+            nota = 4.82
+        )
+        val classe = lim.classificar(o, tarifaMinimaCentavos, custoKmCentavos)
+        val alerta = risco?.alerta(o.enderecos)
+        ov.mostrar(o, classe, custoKmCentavos, duracaoMs = 6_000, alertaRisco = alerta)
+        voz?.falar(o, classe, alerta)
     }
 
     companion object {
