@@ -69,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import com.motoristapro.ui.theme.Turquesa
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.motoristapro.ui.centavosEmReais
 
 private val FORMATO_DIA = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
 
@@ -374,7 +375,11 @@ private fun EficienciaDoDia(e: DashboardUiState, agora: Long) {
     val pt = Locale("pt", "BR")
     val porHora = e.ganhoPorHoraTrabalhadaCentavos(agora)
     val porKm = if (e.resumo.metrosRodados > 0) e.resumo.ganhoPorKmCentavos else 0L
-    val custoKm = e.custoKmRealCentavos ?: e.config.custoKmCentavos
+    // Tipos diferentes de proposito: o custo real do mes vem como Double
+    // (media calculada) e o configurado como Long (centavos). Formato cada um
+    // com o seu conversor em vez de tentar juntar os dois num '?:'.
+    val custoKmTexto = e.custoKmRealCentavos?.centavosEmReais()
+        ?: e.config.custoKmCentavos.takeIf { it > 0 }?.emReais()
 
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         MetricaBarra(
@@ -400,9 +405,9 @@ private fun EficienciaDoDia(e: DashboardUiState, agora: Long) {
         )
     }
 
-    if (custoKm > 0) {
+    if (custoKmTexto != null) {
         Text(
-            "Seu custo é ${custoKm.emReais()}/km — tudo acima disso é lucro.",
+            "Seu custo é $custoKmTexto/km — tudo acima disso é lucro.",
             style = MaterialTheme.typography.bodySmall,
             color = TextoSecundario,
             modifier = Modifier.padding(start = 4.dp)

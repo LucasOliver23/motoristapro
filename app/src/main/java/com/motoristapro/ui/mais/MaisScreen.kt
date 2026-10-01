@@ -336,6 +336,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     // Cada linha da lista abre o seu proprio conteudo em tela cheia. Os cartoes
     // sao os mesmos de antes - so pararam de disputar espaco numa pagina so.
     sub?.let { aberta ->
+        // 'cfg' so existe dentro do TelaAba; aqui fora temos a versao anulavel.
+        val cfg = config ?: return@let
         Dialog(
             onDismissRequest = { sub = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
