@@ -36,12 +36,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,12 +51,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.motoristapro.data.local.entity.CategoriaDespesa
 import com.motoristapro.data.repository.emReais
 import com.motoristapro.ui.Aba
-import com.motoristapro.ui.centavosEmReais
 import com.motoristapro.ui.componentes.CardSecao
 import com.motoristapro.ui.componentes.CorridaDialog
 import com.motoristapro.ui.componentes.DespesaDialog
-import com.motoristapro.ui.componentes.LinhaValor
-import com.motoristapro.ui.componentes.Metrica
 import com.motoristapro.ui.componentes.TelaAba
 import com.motoristapro.ui.formatarCronometro
 import com.motoristapro.ui.formatarDuracao
@@ -69,6 +64,11 @@ import com.motoristapro.ui.theme.VermelhoPrejuizo
 import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import com.motoristapro.ui.theme.Turquesa
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 private val FORMATO_DIA = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
 
@@ -141,38 +141,7 @@ fun DashboardRoute(
 
                 LucroCard(estado, onVerFinancas = { irPara(Aba.FINANCAS) })
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Metrica(
-                        "Faturamento", estado.resumo.faturamentoCentavos.emReais(), Modifier.weight(1f),
-                        detalhe = "${estado.resumo.qtdCorridas} corridas"
-                    )
-                    Metrica(
-                        "Despesas", estado.resumo.despesasCentavos.emReais(), Modifier.weight(1f),
-                        detalhe = "lançadas hoje", cor = VermelhoPrejuizo
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val porHora = estado.ganhoPorHoraTrabalhadaCentavos(agora)
-                    Metrica(
-                        "R$ / hora", if (porHora > 0) porHora.emReais() else "—", Modifier.weight(1f),
-                        detalhe = if (porHora > 0) "por hora trabalhada"
-                        else if (estado.resumo.ganhoPorHoraCentavos > 0) "${estado.resumo.ganhoPorHoraCentavos.emReais()} em corrida"
-                        else "inicie o turno"
-                    )
-                    Metrica(
-                        "R$ / km", if (estado.resumo.metrosRodados > 0) estado.resumo.ganhoPorKmCentavos.emReais() else "—",
-                        Modifier.weight(1f),
-                        detalhe = String.format(Locale("pt", "BR"), "%.1f km em corridas", estado.resumo.kmRodados)
-                    )
-                }
-
-                CardSecao(titulo = "Custo por km") {
-                    LinhaValor("Real do mês", estado.custoKmRealCentavos?.centavosEmReais() ?: "—", negrito = true)
-                    LinhaValor("Configurado", estado.config.custoKmCentavos.emReais())
-                    estado.config.custoCombustivelKmCentavos?.let {
-                        LinhaValor("Só combustível", it.centavosEmReais())
-                    }
-                }
+                EficienciaDoDia(estado, agora)
 
                 CardSecao(titulo = "Registrar") {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -336,6 +305,29 @@ private fun LucroCard(e: DashboardUiState, onVerFinancas: () -> Unit) {
                 color = if (e.lucroRealCentavos >= 0) TextoSecundario else VermelhoPrejuizo
             )
         }
+
+        // Faturamento e despesas vivem AQUI dentro: são as duas parcelas do
+        // número grande acima. Como cartões soltos, competiam com ele.
+        Row(
+            Modifier.fillMaxWidth().padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ParcelaDoLucro(
+                "Faturamento",
+                e.resumo.faturamentoCentavos.emReais(),
+                "${e.resumo.qtdCorridas} corridas",
+                MaterialTheme.colorScheme.onSurface,
+                Modifier.weight(1f)
+            )
+            ParcelaDoLucro(
+                "Despesas",
+                e.resumo.despesasCentavos.emReais(),
+                "lançadas hoje",
+                VermelhoPrejuizo,
+                Modifier.weight(1f)
+            )
+        }
+
         TextButton(onClick = onVerFinancas) { Text("Ver finanças e metas", color = Lima) }
     }
 }
@@ -346,5 +338,100 @@ private fun AtalhoBotao(rotulo: String, modifier: Modifier = Modifier, onClick: 
         Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.size(4.dp))
         Text(rotulo, maxLines = 1)
+    }
+}
+
+
+/** Bloco pequeno dentro do card de lucro: uma parcela do número grande. */
+@Composable
+private fun ParcelaDoLucro(
+    rotulo: String,
+    valor: String,
+    detalhe: String,
+    cor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(horizontal = 13.dp, vertical = 11.dp)
+    ) {
+        Text(rotulo, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+        Text(valor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = cor)
+        Text(detalhe, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+    }
+}
+
+/**
+ * Os três números de eficiência do dia, lado a lado, com uma barrinha colorida.
+ *
+ * A barra não é enfeite: ela compara o número de hoje com a sua faixa "boa",
+ * então dá para ler de relance se o turno está rendendo, sem fazer conta.
+ */
+@Composable
+private fun EficienciaDoDia(e: DashboardUiState, agora: Long) {
+    val pt = Locale("pt", "BR")
+    val porHora = e.ganhoPorHoraTrabalhadaCentavos(agora)
+    val porKm = if (e.resumo.metrosRodados > 0) e.resumo.ganhoPorKmCentavos else 0L
+    val custoKm = e.custoKmRealCentavos ?: e.config.custoKmCentavos
+
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        MetricaBarra(
+            rotulo = "R$ / km",
+            valor = if (porKm > 0) porKm.emReais() else "—",
+            fracao = if (porKm > 0) (porKm / 300f).coerceIn(0f, 1f) else 0f,
+            cor = Lima,
+            modifier = Modifier.weight(1f)
+        )
+        MetricaBarra(
+            rotulo = "R$ / hora",
+            valor = if (porHora > 0) porHora.emReais() else "—",
+            fracao = if (porHora > 0) (porHora / 6000f).coerceIn(0f, 1f) else 0f,
+            cor = AmareloAlerta,
+            modifier = Modifier.weight(1f)
+        )
+        MetricaBarra(
+            rotulo = "Rodado",
+            valor = String.format(pt, "%.0f km", e.resumo.kmRodados),
+            fracao = (e.resumo.kmRodados / 250f).toFloat().coerceIn(0f, 1f),
+            cor = Turquesa,
+            modifier = Modifier.weight(1f)
+        )
+    }
+
+    if (custoKm > 0) {
+        Text(
+            "Seu custo é ${custoKm.emReais()}/km — tudo acima disso é lucro.",
+            style = MaterialTheme.typography.bodySmall,
+            color = TextoSecundario,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun MetricaBarra(
+    rotulo: String,
+    valor: String,
+    fracao: Float,
+    cor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(13.dp)
+    ) {
+        Text(rotulo, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+        Text(valor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Box(
+            Modifier.fillMaxWidth().padding(top = 8.dp).height(3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+        ) {
+            Box(Modifier.fillMaxWidth(fracao).height(3.dp).clip(RoundedCornerShape(2.dp)).background(cor))
+        }
     }
 }

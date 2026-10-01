@@ -36,12 +36,10 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -94,6 +92,17 @@ import com.motoristapro.ui.custo.AssistenteCustoScreen
 import com.motoristapro.ui.theme.AmareloAlerta
 import com.motoristapro.ui.theme.Contorno
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 private val PT = Locale("pt", "BR")
 
@@ -123,6 +132,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val palavrasRisco by vm.riscoPalavras.collectAsStateWithLifecycle()
     val faixas by vm.faixas.collectAsStateWithLifecycle()
     var assistenteAberto by remember { mutableStateOf(false) }
+    var sub by remember { mutableStateOf<SubTela?>(null) }
     var novoCusto by remember { mutableStateOf(false) }
     var excluirCusto by remember { mutableStateOf<CustoFixo?>(null) }
     var confirmarRestauracao by remember { mutableStateOf(false) }
@@ -148,8 +158,12 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val context = LocalContext.current
 
     var notificacoesOk by remember { mutableStateOf(Notificacoes.podeNotificar(context)) }
+    var bateriaOk by remember { mutableStateOf(context.bateriaLiberada()) }
     LifecycleResumeEffect(Unit) {
+        // Relido toda vez que a tela volta ao primeiro plano: é assim que o card
+        // de preparação percebe o que o motorista acabou de liberar nas Configurações.
         notificacoesOk = Notificacoes.podeNotificar(context)
+        bateriaOk = context.bateriaLiberada()
         onPauseOrDispose { }
     }
     val pedirNotificacao = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
@@ -179,7 +193,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     Liberacao(
                         titulo = "Bateria sem restrições",
                         porque = "É o que impede o Android de desligar o leitor no meio do turno.",
-                        concedida = context.bateriaLiberada(),
+                        concedida = bateriaOk,
                         abrir = { context.pedirBateriaLivre() }
                     ),
                     Liberacao(
@@ -197,224 +211,82 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                 )
             )
 
-            PerfilCard(
-                cfg = cfg,
-                emailConta = usuario?.email ?: usuario?.nome,
-                onSalvar = vm::salvarPerfil
-            )
+            PerfilLinha(cfg = cfg, email = usuario?.email ?: usuario?.nome) { sub = SubTela.PERFIL }
 
-            if (vm.loginDisponivel && usuario != null) {
-                CardSecao(titulo = "Nuvem") {
-                    LinhaValor(
-                        "Último backup",
-                        if (nuvem.atualizadoNaNuvemEm > 0) dataHora(nuvem.atualizadoNaNuvemEm) else "ainda não enviado"
-                    )
-                    if (nuvem.corridasNaNuvem >= 0) LinhaValor("Corridas na nuvem", "${nuvem.corridasNaNuvem}")
-                    Text(
-                        "Os dados sobem automaticamente ao entrar. Use \"Baixar da nuvem\" ao trocar de celular.",
-                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = vm::enviarParaNuvem,
-                            enabled = !nuvem.ocupado,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
-                        ) { Text(if (nuvem.ocupado) "Aguarde..." else "Enviar agora") }
-                        OutlinedButton(
-                            onClick = { confirmarBaixarNuvem = true },
-                            enabled = !nuvem.ocupado,
-                            modifier = Modifier.weight(1f)
-                        ) { Text("Baixar da nuvem") }
-                    }
-                    OutlinedButton(onClick = { confirmarSair = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Sair da conta", color = VermelhoPrejuizo)
-                    }
-                }
-            }
-
-            AtualizacaoCard(
-                estado = atualizacao,
-                versao = vm.versaoInstalada,
-                codigo = vm.codigoInstalado,
-                onProcurar = vm::procurarAtualizacao,
-                onInstalar = vm::instalarAtualizacao
-            )
-
-            // Formulário recriado só quando a config é carregada pela primeira vez.
-            key(cfg.id) {
-                FormularioConfig(cfg, onSalvar = vm::salvar)
-            }
-
-            CardSecao(titulo = "Custos fixos mensais") {
-                Text(
-                    "Seguro, parcela, IPVA, internet... Não lance como despesa: o app divide o total " +
-                        "pelos dias trabalhados no mês e desconta do lucro de cada dia.",
-                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            GrupoLista("NA RUA") {
+                LinhaAcao(
+                    titulo = "Leitor de ofertas",
+                    detalhe = if (leitorOk) "Lendo Uber · 99 · iFood" else "Desconectado — toque para religar",
+                    detalheColorido = if (leitorOk) Lima else VermelhoPrejuizo,
+                    onClick = { sub = SubTela.LEITOR }
                 )
-                custos.forEach { c ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(c.nome, modifier = Modifier.weight(1f))
-                        Text(c.valorMensalCentavos.emReais() + "/mês", fontWeight = FontWeight.SemiBold)
-                        IconButton(onClick = { excluirCusto = c }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario)
-                        }
-                    }
-                }
-                val total = custos.filter { it.ativo }.sumOf { it.valorMensalCentavos }
-                if (total > 0) {
-                    LinhaValor("Total por mês", total.emReais(), negrito = true)
-                    LinhaValor(
-                        "Por dia trabalhado (${cfg.diasTrabalhoMes} dias)",
-                        custoFixoDiario(total, cfg.diasTrabalhoMes).emReais(), cor = VermelhoPrejuizo
+                LinhaInterruptor(
+                    titulo = "Aviso por voz",
+                    detalhe = "Fala a decisão e o R$/km da oferta",
+                    marcado = voz,
+                    onMudar = vm::definirVoz
+                )
+                LinhaInterruptor(
+                    titulo = "Bolha flutuante",
+                    detalhe = "Lucro do dia por cima da Uber e da 99",
+                    marcado = bolha,
+                    onMudar = vm::definirBolha
+                )
+                LinhaInterruptor(
+                    titulo = "Resumo diário às 22h",
+                    detalhe = "Notificação com faturamento, despesas e lucro",
+                    marcado = resumo,
+                    onMudar = vm::definirResumo,
+                    ultima = true
+                )
+            }
+
+            GrupoLista("CONFIGURAR") {
+                LinhaAcao(
+                    titulo = "Meu veículo e custos",
+                    detalhe = listOfNotNull(
+                        cfg.veiculoNome?.takeIf { it.isNotBlank() },
+                        "meta ${cfg.metaLucroMensalCentavos.emReais()}/mês".takeIf { cfg.metaLucroMensalCentavos > 0 }
+                    ).joinToString(" · ").ifBlank { "Toque para calcular seu custo real" },
+                    valor = if (cfg.custoKmCentavos > 0) cfg.custoKmCentavos.campo() else null,
+                    onClick = { sub = SubTela.VEICULO }
+                )
+                LinhaAcao(
+                    titulo = "Suas faixas",
+                    detalhe = "Quando a corrida é boa, atenção ou ruim",
+                    semaforo = true,
+                    onClick = { sub = SubTela.FAIXAS }
+                )
+                LinhaAcao(
+                    titulo = "Endereços de risco",
+                    detalhe = if (palavrasRisco.isEmpty()) "Nenhuma palavra cadastrada"
+                    else "${palavrasRisco.size} palavra(s) cadastrada(s)",
+                    onClick = { sub = SubTela.RISCO },
+                    ultima = true
+                )
+            }
+
+            GrupoLista("APLICATIVO") {
+                if (vm.loginDisponivel) {
+                    LinhaAcao(
+                        titulo = "Conta e nuvem",
+                        detalhe = usuario?.email ?: "Entrar para salvar na nuvem",
+                        onClick = { sub = SubTela.NUVEM }
                     )
                 }
-                OutlinedButton(onClick = { novoCusto = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("+ Adicionar custo fixo")
-                }
-            }
-
-            CardSecao(titulo = "Backup e exportação") {
-                Text(
-                    "Seus dados ficam só neste celular. Faça backup de vez em quando e salve no Google Drive " +
-                        "(escolha \"Drive\" na tela que abrir).",
-                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                LinhaAcao(
+                    titulo = "Backup e exportação",
+                    detalhe = "Arquivo de backup e planilhas CSV",
+                    onClick = { sub = SubTela.BACKUP }
                 )
-                Button(
-                    onClick = { criarBackup.launch("motoristapro-backup-$hoje.db") },
-                    enabled = !ocupado,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
-                ) { Text(if (ocupado) "Aguarde..." else "Fazer backup completo", fontWeight = FontWeight.Bold) }
-                OutlinedButton(onClick = { confirmarRestauracao = true }, enabled = !ocupado, modifier = Modifier.fillMaxWidth()) {
-                    Text("Restaurar backup")
-                }
-                Text("Exportar para Excel (CSV)", style = MaterialTheme.typography.labelLarge, color = TextoSecundario)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = { criarCsvCorridas.launch("corridas-$hoje.csv") }, enabled = !ocupado,
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Corridas") }
-                    OutlinedButton(
-                        onClick = { criarCsvDespesas.launch("despesas-$hoje.csv") }, enabled = !ocupado,
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Despesas") }
-                    OutlinedButton(
-                        onClick = { criarCsvOfertas.launch("ofertas-$hoje.csv") }, enabled = !ocupado,
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Ofertas") }
-                }
-            }
-
-            CardCustoReal(
-                custoKmCentavos = cfg.custoKmCentavos,
-                onAbrir = { assistenteAberto = true }
-            )
-
-            CardSuasFaixas(
-                faixas = faixas,
-                temCusto = cfg.custoKmCentavos > 0,
-                valorMinimoViagem = cfg.tarifaMinimaCentavos,
-                onFaixaKm = vm::definirFaixaKm,
-                onFaixaHora = vm::definirFaixaHora,
-                onFaixaNota = vm::definirFaixaNota,
-                onUsarNota = vm::definirUsarNota,
-                onLucroMinimo = vm::definirLucroMinimo,
-                onLucroPercent = vm::definirLucroPercent,
-                onValorMinimo = vm::definirValorMinimoViagem,
-                onAbrirAssistente = { assistenteAberto = true }
-            )
-
-            CardSecao(titulo = "Leitor de ofertas") {
-                Text(
-                    if (leitorOk) "Conectado e lendo Uber, 99 e iFood" else "Desconectado",
-                    color = if (leitorOk) Lima else VermelhoPrejuizo,
-                    fontWeight = FontWeight.SemiBold
-                )
-                if (!leitorOk) {
-                    Text(
-                        "O Android desligou o leitor (acontece ao fechar o app pela tela de recentes ou por economia " +
-                            "de bateria). Toque em Acessibilidade, DESLIGUE e LIGUE de novo o \"MotoristaPro – Leitor de ofertas\". " +
-                            "Para não repetir: libere \"Início automático\" e deixe a bateria \"Sem restrições\" em Informações do app.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextoSecundario
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = vm::testarLeitor, modifier = Modifier.weight(1f)) { Text("Testar janela") }
-                    OutlinedButton(onClick = { context.abrirConfigAcessibilidade() }, modifier = Modifier.weight(1f)) {
-                        Text("Acessibilidade")
-                    }
-                }
-                LinhaSwitch(
-                    "Bolha flutuante",
-                    "Lucro do dia e cronômetro do turno por cima da Uber/99. Toque na bolha para abrir o app.",
-                    bolha, vm::definirBolha
-                )
-                LinhaSwitch(
-                    "Ler oferta pela imagem (OCR)",
-                    "Para apps que escondem o texto do card (como a 99). Lê a tela no próprio celular, " +
-                        "sem internet. Gasta um pouco mais de bateria. Android 11 ou mais novo.",
-                    ocr, vm::definirOcr
+                LinhaAcao(
+                    titulo = "Versão do app",
+                    detalhe = "${vm.versaoInstalada} (build ${vm.codigoInstalado})",
+                    onClick = { sub = SubTela.VERSAO },
+                    ultima = true
                 )
             }
 
-            CardSecao(titulo = "Aviso por voz") {
-                LinhaSwitch(
-                    "Falar a oferta em voz alta",
-                    "Diz \"Aceitar\", \"Analisar\" ou \"Recusar\" com o R$/km — para decidir sem " +
-                        "tirar a mão do guidão. Usa a voz do próprio Android, sem internet.",
-                    voz, vm::definirVoz
-                )
-                if (voz) {
-                    LinhaSwitch(
-                        "Modo curto",
-                        "Só a decisão e o R$/km. Sem nota, paradas nem R$/hora.",
-                        vozResumida, vm::definirVozResumida
-                    )
-                    Text(
-                        "Se não ouvir nada, instale a voz em português: Configurações do Android > " +
-                            "Idiomas > Conversão de texto em voz.",
-                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                    )
-                }
-            }
-
-            CardSecaoEnderecosRisco(
-                ativo = riscoLigado,
-                mercados = riscoMercados,
-                palavras = palavrasRisco,
-                onAtivo = vm::definirRisco,
-                onMercados = vm::definirRiscoMercados,
-                onAdicionar = vm::adicionarPalavraRisco,
-                onRemover = vm::removerPalavraRisco
-            )
-
-            DiagnosticoCard(diagnostico, leitorOk)
-
-            CardSecao(titulo = "Automação") {
-                LinhaSwitch(
-                    "Resumo diário às 22h",
-                    "Notificação com faturamento, despesas e lucro do dia.",
-                    resumo, vm::definirResumo
-                )
-                if (!notificacoesOk && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    OutlinedButton(
-                        onClick = { pedirNotificacao.launch(Manifest.permission.POST_NOTIFICATIONS) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Permitir notificações") }
-                }
-            }
-
-            CardSecao(titulo = "Permissões") {
-                OutlinedButton(onClick = { context.abrirDetalhesDoApp() }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Informações do app (localização, bateria)")
-                }
-                Text(
-                    "Dica: tire o MotoristaPro da otimização de bateria para o leitor e o GPS não serem desligados.",
-                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                )
-            }
             Spacer(Modifier.height(8.dp))
         }
     }
@@ -459,6 +331,205 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             dismissButton = { TextButton(onClick = { confirmarSair = false }) { Text("Cancelar") } }
         )
     }
+
+    // ------------------------------------------------------------- sub-telas
+    // Cada linha da lista abre o seu proprio conteudo em tela cheia. Os cartoes
+    // sao os mesmos de antes - so pararam de disputar espaco numa pagina so.
+    sub?.let { aberta ->
+        Dialog(
+            onDismissRequest = { sub = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            SubTelaHost(titulo = aberta.titulo, onFechar = { sub = null }) {
+                when (aberta) {
+                    SubTela.PERFIL ->
+                    PerfilCard(
+                        cfg = cfg,
+                        emailConta = usuario?.email ?: usuario?.nome,
+                        onSalvar = vm::salvarPerfil
+                    )
+                    SubTela.VEICULO -> {
+                    CardCustoReal(
+                        custoKmCentavos = cfg.custoKmCentavos,
+                        onAbrir = { assistenteAberto = true }
+                    )
+                    // Formulário recriado só quando a config é carregada pela primeira vez.
+                    key(cfg.id) {
+                        FormularioConfig(cfg, onSalvar = vm::salvar)
+                    }
+                    CardSecao(titulo = "Custos fixos mensais") {
+                        Text(
+                            "Seguro, parcela, IPVA, internet... Não lance como despesa: o app divide o total " +
+                                "pelos dias trabalhados no mês e desconta do lucro de cada dia.",
+                            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                        )
+                        custos.forEach { c ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(c.nome, modifier = Modifier.weight(1f))
+                                Text(c.valorMensalCentavos.emReais() + "/mês", fontWeight = FontWeight.SemiBold)
+                                IconButton(onClick = { excluirCusto = c }) {
+                                    Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario)
+                                }
+                            }
+                        }
+                        val total = custos.filter { it.ativo }.sumOf { it.valorMensalCentavos }
+                        if (total > 0) {
+                            LinhaValor("Total por mês", total.emReais(), negrito = true)
+                            LinhaValor(
+                                "Por dia trabalhado (${cfg.diasTrabalhoMes} dias)",
+                                custoFixoDiario(total, cfg.diasTrabalhoMes).emReais(), cor = VermelhoPrejuizo
+                            )
+                        }
+                        OutlinedButton(onClick = { novoCusto = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("+ Adicionar custo fixo")
+                        }
+                    }
+                    }
+                    SubTela.FAIXAS ->
+                    CardSuasFaixas(
+                        faixas = faixas,
+                        temCusto = cfg.custoKmCentavos > 0,
+                        valorMinimoViagem = cfg.tarifaMinimaCentavos,
+                        onFaixaKm = vm::definirFaixaKm,
+                        onFaixaHora = vm::definirFaixaHora,
+                        onFaixaNota = vm::definirFaixaNota,
+                        onUsarNota = vm::definirUsarNota,
+                        onLucroMinimo = vm::definirLucroMinimo,
+                        onLucroPercent = vm::definirLucroPercent,
+                        onValorMinimo = vm::definirValorMinimoViagem,
+                        onAbrirAssistente = { assistenteAberto = true }
+                    )
+                    SubTela.RISCO ->
+                    CardSecaoEnderecosRisco(
+                        ativo = riscoLigado,
+                        mercados = riscoMercados,
+                        palavras = palavrasRisco,
+                        onAtivo = vm::definirRisco,
+                        onMercados = vm::definirRiscoMercados,
+                        onAdicionar = vm::adicionarPalavraRisco,
+                        onRemover = vm::removerPalavraRisco
+                    )
+                    SubTela.LEITOR -> {
+                    CardSecao(titulo = "Leitor de ofertas") {
+                        Text(
+                            if (leitorOk) "Conectado e lendo Uber, 99 e iFood" else "Desconectado",
+                            color = if (leitorOk) Lima else VermelhoPrejuizo,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (!leitorOk) {
+                            Text(
+                                "O Android desligou o leitor (acontece ao fechar o app pela tela de recentes ou por economia " +
+                                    "de bateria). Toque em Acessibilidade, DESLIGUE e LIGUE de novo o \"MotoristaPro – Leitor de ofertas\". " +
+                                    "Para não repetir: libere \"Início automático\" e deixe a bateria \"Sem restrições\" em Informações do app.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextoSecundario
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = vm::testarLeitor, modifier = Modifier.weight(1f)) { Text("Testar janela") }
+                            OutlinedButton(onClick = { context.abrirConfigAcessibilidade() }, modifier = Modifier.weight(1f)) {
+                                Text("Acessibilidade")
+                            }
+                        }
+                        LinhaSwitch(
+                            "Bolha flutuante",
+                            "Lucro do dia e cronômetro do turno por cima da Uber/99. Toque na bolha para abrir o app.",
+                            bolha, vm::definirBolha
+                        )
+                        LinhaSwitch(
+                            "Ler oferta pela imagem (OCR)",
+                            "Para apps que escondem o texto do card (como a 99). Lê a tela no próprio celular, " +
+                                "sem internet. Gasta um pouco mais de bateria. Android 11 ou mais novo.",
+                            ocr, vm::definirOcr
+                        )
+                    }
+                    DiagnosticoCard(diagnostico, leitorOk)
+                    CardSecao(titulo = "Permissões") {
+                        OutlinedButton(onClick = { context.abrirDetalhesDoApp() }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Informações do app (localização, bateria)")
+                        }
+                        Text(
+                            "Dica: tire o MotoristaPro da otimização de bateria para o leitor e o GPS não serem desligados.",
+                            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                        )
+                    }
+                    }
+                    SubTela.NUVEM -> {
+                    if (vm.loginDisponivel && usuario != null) {
+                        CardSecao(titulo = "Nuvem") {
+                            LinhaValor(
+                                "Último backup",
+                                if (nuvem.atualizadoNaNuvemEm > 0) dataHora(nuvem.atualizadoNaNuvemEm) else "ainda não enviado"
+                            )
+                            if (nuvem.corridasNaNuvem >= 0) LinhaValor("Corridas na nuvem", "${nuvem.corridasNaNuvem}")
+                            Text(
+                                "Os dados sobem automaticamente ao entrar. Use \"Baixar da nuvem\" ao trocar de celular.",
+                                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = vm::enviarParaNuvem,
+                                    enabled = !nuvem.ocupado,
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
+                                ) { Text(if (nuvem.ocupado) "Aguarde..." else "Enviar agora") }
+                                OutlinedButton(
+                                    onClick = { confirmarBaixarNuvem = true },
+                                    enabled = !nuvem.ocupado,
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Baixar da nuvem") }
+                            }
+                            OutlinedButton(onClick = { confirmarSair = true }, modifier = Modifier.fillMaxWidth()) {
+                                Text("Sair da conta", color = VermelhoPrejuizo)
+                            }
+                        }
+                    }
+                    }
+                    SubTela.BACKUP ->
+                    CardSecao(titulo = "Backup e exportação") {
+                        Text(
+                            "Seus dados ficam só neste celular. Faça backup de vez em quando e salve no Google Drive " +
+                                "(escolha \"Drive\" na tela que abrir).",
+                            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                        )
+                        Button(
+                            onClick = { criarBackup.launch("motoristapro-backup-$hoje.db") },
+                            enabled = !ocupado,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
+                        ) { Text(if (ocupado) "Aguarde..." else "Fazer backup completo", fontWeight = FontWeight.Bold) }
+                        OutlinedButton(onClick = { confirmarRestauracao = true }, enabled = !ocupado, modifier = Modifier.fillMaxWidth()) {
+                            Text("Restaurar backup")
+                        }
+                        Text("Exportar para Excel (CSV)", style = MaterialTheme.typography.labelLarge, color = TextoSecundario)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = { criarCsvCorridas.launch("corridas-$hoje.csv") }, enabled = !ocupado,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Corridas") }
+                            OutlinedButton(
+                                onClick = { criarCsvDespesas.launch("despesas-$hoje.csv") }, enabled = !ocupado,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Despesas") }
+                            OutlinedButton(
+                                onClick = { criarCsvOfertas.launch("ofertas-$hoje.csv") }, enabled = !ocupado,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Ofertas") }
+                        }
+                    }
+                    SubTela.VERSAO ->
+                    AtualizacaoCard(
+                        estado = atualizacao,
+                        versao = vm.versaoInstalada,
+                        codigo = vm.codigoInstalado,
+                        onProcurar = vm::procurarAtualizacao,
+                        onInstalar = vm::instalarAtualizacao
+                    )
+                }
+            }
+        }
+    }
+
     if (assistenteAberto) {
         Dialog(
             onDismissRequest = { assistenteAberto = false },
@@ -1053,4 +1124,183 @@ private fun CampoMinimo(
             onValor(it)
         }
     )
+}
+
+
+// ====================================================== lista e sub-telas
+
+/**
+ * As telas que a lista do "Mais" abre.
+ *
+ * A regra do corte: o que o motorista mexe TODO DIA fica como interruptor na
+ * lista; o que ele configura UMA VEZ some para dentro de uma destas.
+ */
+enum class SubTela(val titulo: String) {
+    PERFIL("Meu perfil"),
+    VEICULO("Meu veículo e custos"),
+    FAIXAS("Suas faixas"),
+    RISCO("Endereços de risco"),
+    LEITOR("Leitor de ofertas"),
+    NUVEM("Conta e nuvem"),
+    BACKUP("Backup e exportação"),
+    VERSAO("Versão do app")
+}
+
+/** Moldura das sub-telas: barra com título e voltar, conteúdo rolável embaixo. */
+@Composable
+private fun SubTelaHost(
+    titulo: String,
+    onFechar: () -> Unit,
+    conteudo: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onFechar) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+            }
+            Text(
+                titulo,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = conteudo
+        )
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+/** Um grupo da lista: rótulo pequeno em cima e as linhas num cartão só. */
+@Composable
+private fun GrupoLista(rotulo: String, conteudo: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            rotulo,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextoSecundario,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(content = conteudo)
+        }
+    }
+}
+
+/** Linha que abre outra tela. O valor da direita deixa o estado visível sem entrar. */
+@Composable
+private fun LinhaAcao(
+    titulo: String,
+    detalhe: String,
+    onClick: () -> Unit,
+    valor: String? = null,
+    detalheColorido: Color? = null,
+    semaforo: Boolean = false,
+    ultima: Boolean = false
+) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 15.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(titulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                detalhe,
+                style = MaterialTheme.typography.bodySmall,
+                color = detalheColorido ?: TextoSecundario
+            )
+        }
+        if (semaforo) {
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.padding(end = 8.dp)) {
+                listOf(VermelhoPrejuizo, AmareloAlerta, Lima).forEach { cor ->
+                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(cor))
+                }
+            }
+        }
+        if (valor != null) {
+            Text(
+                valor,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Lima,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+        }
+        Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
+    }
+    if (!ultima) HorizontalDivider(color = Contorno, modifier = Modifier.padding(start = 15.dp))
+}
+
+/** Linha com interruptor: o que se liga e desliga na rua, sem abrir nada. */
+@Composable
+private fun LinhaInterruptor(
+    titulo: String,
+    detalhe: String,
+    marcado: Boolean,
+    onMudar: (Boolean) -> Unit,
+    ultima: Boolean = false
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(titulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(detalhe, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+        }
+        Switch(checked = marcado, onCheckedChange = onMudar)
+    }
+    if (!ultima) HorizontalDivider(color = Contorno, modifier = Modifier.padding(start = 15.dp))
+}
+
+/** Cabeçalho do "Mais": avatar, nome e um resumo de uma linha. */
+@Composable
+private fun PerfilLinha(cfg: Configuracao, email: String?, onClick: () -> Unit) {
+    val nome = cfg.nomeMotorista?.takeIf { it.isNotBlank() } ?: "Motorista"
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.fillMaxWidth().clickable { onClick() }.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(42.dp).clip(RoundedCornerShape(21.dp)).background(Lima),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    nome.first().uppercase(),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                Text(nome, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    listOfNotNull(cfg.veiculoNome?.takeIf { it.isNotBlank() }, email)
+                        .joinToString(" · ").ifBlank { "Toque para completar seus dados" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextoSecundario
+                )
+            }
+            Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
+        }
+    }
 }

@@ -22,10 +22,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +34,8 @@ import com.motoristapro.ui.theme.Fundo
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.SuperficieAlta
 import com.motoristapro.ui.theme.TextoSecundario
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 /** Uma permissão que o app precisa, com o texto que explica POR QUE precisa. */
 data class Liberacao(
@@ -46,6 +46,26 @@ data class Liberacao(
 )
 
 /**
+ * Lembra o que o motorista marcou como "já liberei".
+ *
+ * Existe por um motivo concreto: em MIUI (Xiaomi), o "Sem restrições" da tela do
+ * fabricante nem sempre é o mesmo que o Android reporta — o app liberou, mas a
+ * API continua dizendo que não. Sem esta saída, o card ficaria pedindo para sempre.
+ */
+private class Dispensadas(context: Context) {
+    private val prefs = context.applicationContext
+        .getSharedPreferences("preparacao", Context.MODE_PRIVATE)
+
+    fun lista(): Set<String> = prefs.getStringSet(CHAVE, emptySet()).orEmpty()
+
+    fun dispensar(titulo: String) {
+        prefs.edit().putStringSet(CHAVE, lista() + titulo).apply()
+    }
+
+    private companion object { const val CHAVE = "dispensadas" }
+}
+
+/**
  * Card de preparação: o que ainda falta liberar para o app funcionar de verdade.
  *
  * Some sozinho quando está tudo liberado — não fica ocupando a tela para sempre.
@@ -54,11 +74,17 @@ data class Liberacao(
  */
 @Composable
 fun CardPreparacao(liberacoes: List<Liberacao>, modifier: Modifier = Modifier) {
-    val faltam = liberacoes.count { !it.concedida }
-    if (faltam == 0) return
+    val contexto = androidx.compose.ui.platform.LocalContext.current
+    val guardadas = remember { Dispensadas(contexto) }
+    var dispensadas by remember { mutableStateOf(guardadas.lista()) }
+
+    // "Concedida" vale tanto o que o Android confirma quanto o que o motorista marcou.
+    val pendentes = liberacoes.filterNot { it.concedida || it.titulo in dispensadas }
+    if (pendentes.isEmpty()) return
 
     var mostrarXiaomi by remember { mutableStateOf(false) }
     val total = liberacoes.size
+    val faltam = pendentes.size
     val feitas = total - faltam
 
     CardSecao(modifier = modifier, destaque = true) {
@@ -84,7 +110,7 @@ fun CardPreparacao(liberacoes: List<Liberacao>, modifier: Modifier = Modifier) {
             )
         }
 
-        liberacoes.filterNot { it.concedida }.forEach { l ->
+        pendentes.forEach { l ->
             Row(
                 Modifier.fillMaxWidth().padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -97,6 +123,20 @@ fun CardPreparacao(liberacoes: List<Liberacao>, modifier: Modifier = Modifier) {
                     Text(l.porque, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
                 }
                 TextButton(onClick = l.abrir) { Text("Liberar", color = Lima) }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(
+                    onClick = {
+                        guardadas.dispensar(l.titulo)
+                        dispensadas = guardadas.lista()
+                    }
+                ) {
+                    Text(
+                        "Já liberei, pode sumir",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextoSecundario
+                    )
+                }
             }
         }
 

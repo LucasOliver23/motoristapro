@@ -9,10 +9,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.motoristapro.data.local.entity.CategoriaDespesa
@@ -24,6 +22,8 @@ import com.motoristapro.ui.litrosParaMl
 import com.motoristapro.ui.paraCentavos
 import com.motoristapro.ui.theme.TextoSecundario
 import java.util.Locale
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 private val PT = Locale("pt", "BR")
 
