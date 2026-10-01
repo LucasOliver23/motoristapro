@@ -222,4 +222,55 @@ class CalculadoraCustoTest {
     fun ipvaNormal_naoGeraAviso() {
         assertTrue(CalculadoraCusto.calcular(referencia).avisos.none { it.campo == "IPVA" })
     }
+
+    // -------------------------------------------------- metas e custos fixos
+
+    @Test
+    fun metasDiariaESemanal_saemDaMensal() {
+        // 6 dias/semana = 25,98 dias/mes. R$ 5.000 no mes.
+        val d = referencia.copy(metaLucroMensalCentavos = 500_000)
+        perto(19_246, d.metaLucroDiarioCentavos, 2, "meta por dia")
+        perto(115_473, d.metaLucroSemanalCentavos, 2, "meta por semana")
+    }
+
+    @Test
+    fun metaZerada_naoViraDivisaoEstranha() {
+        val d = referencia.copy(metaLucroMensalCentavos = 0)
+        assertEquals(0L, d.metaLucroDiarioCentavos)
+        assertEquals(0L, d.metaLucroSemanalCentavos)
+    }
+
+    @Test
+    fun custosFixosDoMes_soOQueNaoDependeDoKm() {
+        val itens = referencia.custosFixosDoMes().toMap()
+        // Seguro R$ 90, IPVA 4% de R$ 15.000 / 12, depreciacao 12% / 12.
+        assertEquals(9_000L, itens["Seguro"])
+        assertEquals(5_000L, itens["IPVA"])
+        assertEquals(15_000L, itens["Depreciação do veículo"])
+        // Combustivel e manutencao NAO entram: dependem do km e ja estao no R$/km.
+        assertTrue(itens.keys.none { it.contains("Combustível") || it.contains("Manutenção") })
+    }
+
+    @Test
+    fun custosFixosDoMes_alugadoNaoPagaIpvaNemDepreciacao() {
+        val alugado = referencia.copy(
+            forma = FormaAquisicao.ALUGADO,
+            aluguelMensalCentavos = 80_000
+        )
+        val itens = alugado.custosFixosDoMes().toMap()
+        assertEquals(80_000L, itens["Aluguel do veículo"])
+        assertTrue(itens["IPVA"] == null)
+        assertTrue(itens["Depreciação do veículo"] == null)
+    }
+
+    @Test
+    fun custosFixosDoMes_naoCriaLinhaZerada() {
+        val semNada = referencia.copy(
+            seguroMensalCentavos = 0,
+            valorVeiculoCentavos = 0,
+            ipvaPercentX100 = 0,
+            outrosMensaisCentavos = 0
+        )
+        assertTrue(semNada.custosFixosDoMes().isEmpty())
+    }
 }

@@ -28,7 +28,7 @@ import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Versão atual do esquema do banco (constante de topo: pode ser usada na anotação). */
-const val VERSAO_BANCO = 8
+const val VERSAO_BANCO = 9
 
 /**
  * Banco local do MotoristaPro.
@@ -89,7 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun construir(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NOME_BANCO)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .addCallback(SEED)
                 // NÃO use fallbackToDestructiveMigration(): apagaria o histórico do motorista.
                 .build()
@@ -161,6 +161,20 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN nome_motorista TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN telefone TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN cidade TEXT")
+            }
+        }
+
+        /**
+         * v8 -> v9: o assistente virou o unico lugar de digitar os dados. Ele
+         * guarda o nome do veiculo e passa a criar os custos fixos sozinho —
+         * daí a coluna que separa o que veio dele do que o motorista digitou.
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE perfil_custo ADD COLUMN veiculo_nome TEXT")
+                db.execSQL(
+                    "ALTER TABLE custos_fixos ADD COLUMN origem TEXT NOT NULL DEFAULT 'MANUAL'"
+                )
             }
         }
 

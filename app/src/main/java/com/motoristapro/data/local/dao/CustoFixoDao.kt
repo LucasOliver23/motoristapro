@@ -25,4 +25,8 @@ interface CustoFixoDao {
     /** Soma mensal dos custos fixos ativos (centavos). */
     @Query("SELECT COALESCE(SUM(valor_mensal_centavos), 0) FROM custos_fixos WHERE ativo = 1")
     fun observarTotalMensal(): Flow<Long>
+
+    /** Apaga os que o assistente criou, para reescrevê-los com a conta nova. */
+    @Query("DELETE FROM custos_fixos WHERE origem = :origem")
+    suspend fun apagarPorOrigem(origem: String)
 }

@@ -325,9 +325,9 @@ private fun Rotulo(texto: String) {
     Text(texto, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
 }
 
-/** Botões colados num trilho só, estilo "PP P M G". */
+/** Botões colados num trilho só, estilo "PP P M G". Usado também pelos horários. */
 @Composable
-private fun Seletor(opcoes: List<String>, indiceAtivo: Int, onEscolher: (Int) -> Unit) {
+internal fun Seletor(opcoes: List<String>, indiceAtivo: Int, onEscolher: (Int) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
         opcoes.forEachIndexed { i, rotulo ->
             val ativo = i == indiceAtivo

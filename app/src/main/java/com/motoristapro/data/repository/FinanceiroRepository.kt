@@ -274,6 +274,15 @@ class FinanceiroRepository(private val db: AppDatabase) {
     fun faixasHorarias(inicio: Long, fim: Long, minimoOfertas: Int = 3): Flow<List<FaixaHoraria>> =
         ofertaDao.observarFaixasHorarias(inicio, fim, minimoOfertas)
 
+    /** Faixas de 2 h de um dia da semana só (-1 = todos). Tela "Melhores horários". */
+    fun faixasHorariasDoDia(
+        inicio: Long,
+        fim: Long,
+        diaSemana: Int,
+        minimoOfertas: Int = 1
+    ): Flow<List<FaixaHoraria>> =
+        ofertaDao.observarFaixasPorDiaDaSemana(inicio, fim, diaSemana, minimoOfertas)
+
     /** Mantém só os últimos [dias] dias de ofertas. */
     suspend fun limparOfertasAntigas(dias: Int = 180): Int =
         ofertaDao.apagarAntesDe(System.currentTimeMillis() - dias * 24L * 60 * 60 * 1000)
@@ -292,6 +301,23 @@ class FinanceiroRepository(private val db: AppDatabase) {
     }
 
     suspend fun excluirCustoFixo(id: Long) = custoFixoDao.excluir(id)
+
+    /**
+     * Reescreve os custos fixos que vieram do assistente de custo.
+     *
+     * Apaga e recria em vez de atualizar: assim, um custo que o motorista zerou
+     * no assistente (trocou o seguro por um mais barato, quitou o financiamento)
+     * some da lista, em vez de ficar cobrando pelo resto da vida. O que ele
+     * digitou à mão (origem MANUAL) não é tocado.
+     */
+    suspend fun substituirCustosFixosDoAssistente(itens: List<Pair<String, Long>>) {
+        custoFixoDao.apagarPorOrigem(CustoFixo.ASSISTENTE)
+        itens.filter { it.second > 0 }.forEach { (nome, valor) ->
+            custoFixoDao.inserir(
+                CustoFixo(nome = nome, valorMensalCentavos = valor, origem = CustoFixo.ASSISTENTE)
+            )
+        }
+    }
 
     // ================================================================== configuração
 

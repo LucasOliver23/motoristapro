@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
@@ -40,7 +41,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -82,6 +82,7 @@ import com.motoristapro.ui.paraCentavosOuZero
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.TextoSecundario
 import com.motoristapro.ui.theme.VermelhoPrejuizo
+import com.motoristapro.service.AppNavegacao
 import com.motoristapro.service.EstiloCartao
 import com.motoristapro.ui.theme.PreferenciaTema
 import java.util.Locale
@@ -164,7 +165,13 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     // Relido quando a sub-tela fecha: e la que ele muda.
     val estiloCartao = remember { EstiloCartao(context) }
     var estilo by remember { mutableStateOf(estiloCartao.ler()) }
-    LaunchedEffect(sub) { if (sub == null) estilo = estiloCartao.ler() }
+    var navegacao by remember { mutableStateOf(AppNavegacao.lida(context)) }
+    LaunchedEffect(sub) {
+        if (sub == null) {
+            estilo = estiloCartao.ler()
+            navegacao = AppNavegacao.lida(context)
+        }
+    }
 
     var notificacoesOk by remember { mutableStateOf(Notificacoes.podeNotificar(context)) }
     var bateriaOk by remember { mutableStateOf(context.bateriaLiberada()) }
@@ -246,6 +253,16 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         titulo = "Aparência do app",
                         estado = PreferenciaTema.modo.rotulo.lowercase(PT),
                         onClick = { sub = SubTela.APARENCIA }
+                    ),
+                    Ferramenta(
+                        titulo = "Melhores horários",
+                        estado = "em que hora rola corrida boa",
+                        onClick = { sub = SubTela.HORARIOS }
+                    ),
+                    Ferramenta(
+                        titulo = "App de navegação",
+                        estado = navegacao.rotulo.lowercase(PT),
+                        onClick = { sub = SubTela.NAVEGACAO }
                     ),
                     Ferramenta(
                         titulo = "Aviso por voz",
@@ -363,26 +380,42 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onSalvar = vm::salvarPerfil
                     )
                     SubTela.VEICULO -> {
+                    // Tela de LEITURA. Quem preenche e o assistente de custo: os
+                    // mesmos numeros digitados em dois lugares viviam divergindo
+                    // (meta de R$ 200/dia convivendo com meta mensal de R$ 5.000).
                     CardCustoReal(
                         custoKmCentavos = cfg.custoKmCentavos,
                         onAbrir = { assistenteAberto = true }
                     )
-                    // Formulário recriado só quando a config é carregada pela primeira vez.
-                    key(cfg.id) {
-                        FormularioConfig(cfg, onSalvar = vm::salvar)
-                    }
+                    ResumoVeiculo(cfg)
+                    ResumoMetas(cfg)
                     CardSecao(titulo = "Custos fixos mensais") {
                         Text(
-                            "Seguro, parcela, IPVA, internet... Não lance como despesa: o app divide o total " +
-                                "pelos dias trabalhados no mês e desconta do lucro de cada dia.",
+                            "O que você paga todo mês, rode ou não. O app divide pelos dias trabalhados " +
+                                "e desconta do lucro de cada dia, no Início.",
                             style = MaterialTheme.typography.bodySmall, color = TextoSecundario
                         )
                         custos.forEach { c ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(c.nome, modifier = Modifier.weight(1f))
+                                Column(Modifier.weight(1f)) {
+                                    Text(c.nome)
+                                    if (c.doAssistente) {
+                                        Text(
+                                            "vem do assistente de custo",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = TextoSecundario
+                                        )
+                                    }
+                                }
                                 Text(c.valorMensalCentavos.emReais() + "/mês", fontWeight = FontWeight.SemiBold)
-                                IconButton(onClick = { excluirCusto = c }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario)
+                                // Excluir so o que foi digitado a mao: apagar um do
+                                // assistente nao adiantaria, ele volta no proximo calculo.
+                                if (c.doAssistente) {
+                                    Spacer(Modifier.width(48.dp))
+                                } else {
+                                    IconButton(onClick = { excluirCusto = c }) {
+                                        Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario)
+                                    }
                                 }
                             }
                         }
@@ -395,7 +428,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             )
                         }
                         OutlinedButton(onClick = { novoCusto = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text("+ Adicionar custo fixo")
+                            Text("+ Adicionar custo fixo que o assistente não pergunta")
                         }
                     }
                     }
@@ -532,6 +565,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         }
                     }
                     SubTela.ESTILO -> EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
+                    SubTela.HORARIOS -> MelhoresHorariosScreen()
+                    SubTela.NAVEGACAO -> AppNavegacaoScreen()
                     SubTela.APARENCIA -> AparenciaScreen()
                     SubTela.VERSAO ->
                     AtualizacaoCard(
@@ -616,100 +651,6 @@ private fun NovoCustoFixoDialog(onDismiss: () -> Unit, onSalvar: (String, Long) 
     )
 }
 
-@Composable
-private fun FormularioConfig(
-    cfg: Configuracao,
-    onSalvar: (FormConfig) -> Unit
-) {
-    var veiculo by rememberSaveable { mutableStateOf(cfg.veiculoNome ?: "") }
-    var consumo by rememberSaveable {
-        mutableStateOf(if (cfg.consumoKmLx100 > 0) String.format(PT, "%.1f", cfg.consumoKmLx100 / 100.0) else "")
-    }
-    var preco by rememberSaveable { mutableStateOf(if (cfg.precoLitroCentavos > 0) cfg.precoLitroCentavos.campo() else "") }
-    var custoKm by rememberSaveable { mutableStateOf(cfg.custoKmCentavos.campo()) }
-    var metaDia by rememberSaveable { mutableStateOf(cfg.metaLucroDiarioCentavos.campo()) }
-    var metaSemana by rememberSaveable { mutableStateOf(cfg.metaLucroSemanalCentavos.campo()) }
-    var metaMes by rememberSaveable { mutableStateOf(cfg.metaLucroMensalCentavos.campo()) }
-    var tarifa by rememberSaveable { mutableStateOf(cfg.tarifaMinimaCentavos.campo()) }
-    var dias by rememberSaveable { mutableStateOf(cfg.diasTrabalhoMes.toString()) }
-
-    // "12,5" km/L -> 1250 (mesma conversão x1000/10)
-    val consumoX100 = if (consumo.isBlank()) 0L else consumo.litrosParaMl()?.div(10)
-    val precoC = if (preco.isBlank()) 0L else preco.paraCentavosOuZero()
-    val custoC = custoKm.paraCentavosOuZero()
-    val metaDiaC = metaDia.paraCentavosOuZero()
-    val metaSemanaC = metaSemana.paraCentavosOuZero()
-    val metaMesC = metaMes.paraCentavosOuZero()
-    val tarifaC = tarifa.paraCentavosOuZero()
-    val diasC = dias.trim().toIntOrNull()?.takeIf { it in 1..31 }
-
-    val combustivelKm = if (consumoX100 != null && consumoX100 > 0 && precoC != null && precoC > 0)
-        precoC * 100.0 / consumoX100 else null
-
-    val valido = listOf(consumoX100, precoC, custoC, metaDiaC, metaSemanaC, metaMesC, tarifaC)
-        .all { it != null } && diasC != null
-
-    CardSecao(titulo = "Veículo") {
-        CampoFormulario("Modelo (ex.: Onix 1.0 2020)", veiculo, { veiculo = it }, numerico = false)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CampoFormulario("Consumo (km/L)", consumo, { consumo = it }, Modifier.weight(1f), erro = consumoX100 == null)
-            CampoFormulario("Preço do litro (R$)", preco, { preco = it }, Modifier.weight(1f), erro = precoC == null)
-        }
-        if (combustivelKm != null) {
-            Text(
-                "Combustível por km: ${combustivelKm.centavosEmReais()}",
-                color = Lima, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold
-            )
-        }
-        CampoFormulario(
-            "Custo total por km (R$)", custoKm, { custoKm = it }, erro = custoC == null,
-            ajuda = "Combustível + manutenção + seguro. Usado no lucro estimado da oferta."
-        )
-        if (combustivelKm != null) {
-            OutlinedButton(onClick = {
-                custoKm = Math.round(combustivelKm * 1.3).campo()
-            }) { Text("Sugerir: combustível + 30% (manutenção/desgaste)") }
-        }
-    }
-
-    CardSecao(titulo = "Metas de lucro") {
-        CampoFormulario("Meta diária (R$)", metaDia, { metaDia = it }, erro = metaDiaC == null)
-        CampoFormulario("Meta semanal (R$)", metaSemana, { metaSemana = it }, erro = metaSemanaC == null)
-        CampoFormulario("Meta mensal (R$)", metaMes, { metaMes = it }, erro = metaMesC == null)
-        CampoFormulario(
-            "Dias trabalhados por mês", dias, { dias = it.filter(Char::isDigit) }, erro = diasC == null,
-            ajuda = "Usado para dividir os custos fixos por dia (1 a 31)."
-        )
-    }
-
-    Button(
-        onClick = {
-            if (valido) {
-                onSalvar(
-                    FormConfig(
-                        veiculoNome = veiculo.trim().ifEmpty { null },
-                        consumoKmLx100 = consumoX100 ?: 0L,
-                        precoLitroCentavos = precoC ?: 0L,
-                        custoKmCentavos = custoC ?: 0L,
-                        metaDiaria = metaDiaC ?: 0L,
-                        metaSemanal = metaSemanaC ?: 0L,
-                        metaMensal = metaMesC ?: 0L,
-                        tarifaMinima = tarifaC ?: 0L,
-                        diasTrabalhoMes = diasC ?: 26
-                    )
-                )
-            }
-        },
-        enabled = valido,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
-    ) { Text("Salvar configurações", fontWeight = FontWeight.Bold) }
-}
-
-/**
- * Lista de palavras que marcam uma corrida como arriscada. O motorista conhece a cidade
- * dele melhor que qualquer base de dados — então quem cadastra é ele.
- */
 @Composable
 private fun CardSecaoEnderecosRisco(
     ativo: Boolean,
@@ -988,6 +929,52 @@ private fun CardCustoReal(custoKmCentavos: Long, onAbrir: () -> Unit) {
     }
 }
 
+/** O veículo, como o assistente deixou. Só leitura: editar é refazer o cálculo. */
+@Composable
+private fun ResumoVeiculo(cfg: Configuracao) {
+    CardSecao(titulo = "Veículo") {
+        val nome = cfg.veiculoNome?.takeIf { it.isNotBlank() }
+        if (nome == null && cfg.consumoKmLx100 <= 0) {
+            Text(
+                "Nada preenchido ainda. Tudo isto vem do assistente de custo, ali em cima.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+            return@CardSecao
+        }
+        if (nome != null) LinhaValor("Modelo", nome)
+        if (cfg.consumoKmLx100 > 0) {
+            LinhaValor("Consumo", String.format(PT, "%.1f km/L", cfg.consumoKmLx100 / 100.0))
+        }
+        if (cfg.precoLitroCentavos > 0) LinhaValor("Preço do litro", cfg.precoLitroCentavos.emReais())
+        cfg.custoCombustivelKmCentavos?.let {
+            LinhaValor("Combustível por km", it.centavosEmReais(), cor = AmareloAlerta)
+        }
+    }
+}
+
+/** As metas, todas saindo da mensal que o assistente perguntou. */
+@Composable
+private fun ResumoMetas(cfg: Configuracao) {
+    CardSecao(titulo = "Metas de lucro") {
+        if (cfg.metaLucroMensalCentavos <= 0) {
+            Text(
+                "Sem meta cadastrada. O assistente pergunta quanto você quer levar por mês " +
+                    "e divide pelos dias trabalhados.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+            return@CardSecao
+        }
+        LinhaValor("Por dia trabalhado", cfg.metaLucroDiarioCentavos.emReais(), negrito = true, cor = Lima)
+        LinhaValor("Por semana", cfg.metaLucroSemanalCentavos.emReais())
+        LinhaValor("Por mês", cfg.metaLucroMensalCentavos.emReais())
+        LinhaValor("Dias trabalhados por mês", "${cfg.diasTrabalhoMes}")
+        Text(
+            "A meta do dia é a barra do lucro de hoje, no Início. As três saem da meta mensal.",
+            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+        )
+    }
+}
+
 /**
  * As faixas do semáforo. Tudo aqui salva na hora — arrastou, valeu na próxima oferta.
  *
@@ -1159,7 +1146,9 @@ enum class SubTela(val titulo: String) {
     BACKUP("Backup e exportação"),
     VERSAO("Versão do app"),
     ESTILO("Estilo do cartão"),
-    APARENCIA("Aparência do app")
+    APARENCIA("Aparência do app"),
+    HORARIOS("Melhores horários"),
+    NAVEGACAO("App de navegação")
 }
 
 /**

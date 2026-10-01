@@ -39,8 +39,14 @@
         <package android:name="com.ubercab.driver" />
         <package android:name="com.app99.driver" />
         <package android:name="br.com.ifood.driver.app" />
-        <!-- Street View / Maps a partir da janela da oferta -->
+        <!-- Street View / Maps e Waze a partir da janela da oferta -->
         <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.waze" />
+        <!-- "Perguntar sempre": qualquer app que saiba abrir um endereco -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
     </queries>
 
     <application

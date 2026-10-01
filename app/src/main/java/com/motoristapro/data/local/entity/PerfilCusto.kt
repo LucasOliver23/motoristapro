@@ -28,6 +28,10 @@ data class PerfilCusto(
     @ColumnInfo(name = "tipo_veiculo", defaultValue = "MOTO")
     val tipoVeiculo: String = "MOTO",
 
+    /** Como o motorista chama o veículo: "Fan 160 2021". */
+    @ColumnInfo(name = "veiculo_nome")
+    val veiculoNome: String? = null,
+
     /** PASSAGEIROS, ENTREGAS ou AMBOS (nome do enum TipoTrabalho). */
     @ColumnInfo(name = "tipo_trabalho", defaultValue = "PASSAGEIROS")
     val tipoTrabalho: String = "PASSAGEIROS",

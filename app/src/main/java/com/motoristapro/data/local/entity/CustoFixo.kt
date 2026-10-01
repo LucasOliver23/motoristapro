@@ -21,5 +21,20 @@ data class CustoFixo(
     val valorMensalCentavos: Long,
 
     @ColumnInfo(name = "ativo", defaultValue = "1")
-    val ativo: Boolean = true
-)
+    val ativo: Boolean = true,
+
+    /**
+     * MANUAL = o motorista digitou aqui. ASSISTENTE = veio do assistente de custo
+     * e é reescrito toda vez que ele recalcula — por isso a tela não deixa editar
+     * esses, senão a próxima conta apagaria a edição sem avisar.
+     */
+    @ColumnInfo(name = "origem", defaultValue = "MANUAL")
+    val origem: String = MANUAL
+) {
+    val doAssistente: Boolean get() = origem == ASSISTENTE
+
+    companion object {
+        const val MANUAL = "MANUAL"
+        const val ASSISTENTE = "ASSISTENTE"
+    }
+}

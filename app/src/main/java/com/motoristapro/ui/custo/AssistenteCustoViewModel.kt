@@ -127,18 +127,33 @@ class AssistenteCustoViewModel(private val repo: FinanceiroRepository) : ViewMod
      */
     fun aplicarAoSemaforo() {
         val r = _estado.value.resultado ?: return
+        val d = _estado.value.dados
         viewModelScope.launch {
             runCatching {
                 val cfg = repo.obterConfiguracao()
                 repo.salvarConfiguracao(
                     cfg.copy(
                         custoKmCentavos = r.custoPorKmCentavos,
-                        metaLucroMensalCentavos = _estado.value.dados.metaLucroMensalCentavos
+                        tarifaMinimaCentavos = r.tarifaMinimaPorKmCentavos,
+                        // O assistente e a UNICA porta de entrada destes dados:
+                        // a tela "Meu veiculo e custos" so mostra o que sai daqui.
+                        veiculoNome = d.veiculoNome.takeIf { it.isNotBlank() } ?: cfg.veiculoNome,
+                        consumoKmLx100 = d.consumoX100.takeIf { it > 0 } ?: cfg.consumoKmLx100,
+                        precoLitroCentavos = d.precoLitroCentavos.takeIf { it > 0 }
+                            ?: cfg.precoLitroCentavos,
+                        metaLucroMensalCentavos = d.metaLucroMensalCentavos
                             .takeIf { it > 0 } ?: cfg.metaLucroMensalCentavos,
-                        diasTrabalhoMes = Math.round(_estado.value.dados.diasPorMes).toInt()
-                            .coerceIn(1, 31)
+                        // Diaria e semanal saem da mensal: uma meta so, sem se contradizer.
+                        metaLucroDiarioCentavos = d.metaLucroDiarioCentavos
+                            .takeIf { it > 0 } ?: cfg.metaLucroDiarioCentavos,
+                        metaLucroSemanalCentavos = d.metaLucroSemanalCentavos
+                            .takeIf { it > 0 } ?: cfg.metaLucroSemanalCentavos,
+                        diasTrabalhoMes = Math.round(d.diasPorMes).toInt().coerceIn(1, 31)
                     )
                 )
+                // Seguro, IPVA, parcela e depreciacao viram linhas da lista de
+                // custos fixos, que e o que o Inicio desconta do lucro do dia.
+                repo.substituirCustosFixosDoAssistente(d.custosFixosDoMes())
             }
             _estado.value = _estado.value.copy(aplicado = true)
         }
@@ -168,6 +183,7 @@ fun PerfilCusto.paraDados() = DadosCusto(
     tipoVeiculo = runCatching { TipoVeiculo.valueOf(tipoVeiculo) }.getOrDefault(TipoVeiculo.MOTO),
     tipoTrabalho = runCatching { TipoTrabalho.valueOf(tipoTrabalho) }
         .getOrDefault(TipoTrabalho.PASSAGEIROS),
+    veiculoNome = veiculoNome.orEmpty(),
     valorVeiculoCentavos = valorVeiculoCentavos,
     parcelaMensalCentavos = parcelaMensalCentavos,
     aluguelMensalCentavos = aluguelMensalCentavos,
@@ -199,6 +215,7 @@ fun DadosCusto.paraEntidade() = PerfilCusto(
     forma = forma.name,
     tipoVeiculo = tipoVeiculo.name,
     tipoTrabalho = tipoTrabalho.name,
+    veiculoNome = veiculoNome.takeIf { it.isNotBlank() },
     valorVeiculoCentavos = valorVeiculoCentavos,
     parcelaMensalCentavos = parcelaMensalCentavos,
     aluguelMensalCentavos = aluguelMensalCentavos,

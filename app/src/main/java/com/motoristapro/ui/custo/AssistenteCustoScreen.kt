@@ -232,6 +232,13 @@ private fun PassoFixos(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
         )
     }
 
+    CardSecao(titulo = "Qual é o veículo") {
+        CampoTexto(
+            "Nome do veículo", d.veiculoNome,
+            ajuda = "Como você chama ele. Ex.: Fan 160 2021."
+        ) { v -> editar { it.copy(veiculoNome = v) } }
+    }
+
     if (d.forma == FormaAquisicao.ALUGADO) {
         CardSecao(titulo = "Aluguel") {
             CampoDinheiro("Aluguel mensal", d.aluguelMensalCentavos) { v -> editar { it.copy(aluguelMensalCentavos = v) } }
@@ -398,6 +405,17 @@ private fun PassoMetas(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
             "Lucro que quer levar por mês", d.metaLucroMensalCentavos,
             ajuda = "O que sobra pra você, já pagos todos os custos acima."
         ) { v -> editar { it.copy(metaLucroMensalCentavos = v) } }
+
+        if (d.metaLucroMensalCentavos > 0) {
+            HorizontalDivider(color = Contorno)
+            // A meta do dia e a da semana saem desta: uma meta so, sem se contradizer.
+            LinhaCalculada("Por dia trabalhado", d.metaLucroDiarioCentavos, destaque = true)
+            LinhaCalculada("Por semana", d.metaLucroSemanalCentavos)
+            Text(
+                "A meta do dia é a que aparece no Início, na barra do lucro de hoje.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        }
     }
 }
 
@@ -538,6 +556,19 @@ private fun CampoDinheiro(
         // Ao sair do campo, "15000" vira "15.000,00" — o motorista confere de relance
         // se não faltou nem sobrou um zero.
         aoPerderFoco = { t -> t.paraCentavosOuZero()?.campoReais() ?: t }
+    )
+}
+
+/** Campo de texto comum (sem teclado numérico), para nome do veículo e afins. */
+@Composable
+private fun CampoTexto(rotulo: String, valor: String, ajuda: String? = null, onValor: (String) -> Unit) {
+    var texto by rememberSaveable(rotulo) { mutableStateOf(valor) }
+    CampoFormulario(
+        rotulo = rotulo,
+        valor = texto,
+        onValor = { novo -> texto = novo; onValor(novo) },
+        numerico = false,
+        ajuda = ajuda
     )
 }
 

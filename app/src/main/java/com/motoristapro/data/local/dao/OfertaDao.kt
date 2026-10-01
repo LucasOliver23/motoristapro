@@ -104,6 +104,37 @@ interface OfertaDao {
     )
     fun observarFaixasHorarias(inicio: Long, fim: Long, minimoOfertas: Int = 3): Flow<List<FaixaHoraria>>
 
+    /**
+     * O mesmo, podendo olhar um dia da semana só — "como costuma ser a minha
+     * terça-feira". diaSemana segue o strftime do SQLite: 0 = domingo ... 6 =
+     * sábado; -1 = todos os dias.
+     */
+    @Query(
+        """
+        SELECT
+            CAST(strftime('%H', recebida_em / 1000, 'unixepoch', 'localtime') AS INTEGER) / 2 AS faixa,
+            COUNT(*)                            AS ofertas,
+            COALESCE(SUM(valor_centavos), 0)    AS valor_centavos,
+            COALESCE(SUM(metros), 0)            AS metros,
+            COALESCE(SUM(minutos), 0)           AS minutos
+        FROM ofertas
+        WHERE recebida_em >= :inicio AND recebida_em < :fim AND metros > 0
+          AND (
+              :diaSemana < 0
+              OR CAST(strftime('%w', recebida_em / 1000, 'unixepoch', 'localtime') AS INTEGER) = :diaSemana
+          )
+        GROUP BY faixa
+        HAVING COUNT(*) >= :minimoOfertas
+        ORDER BY faixa
+        """
+    )
+    fun observarFaixasPorDiaDaSemana(
+        inicio: Long,
+        fim: Long,
+        diaSemana: Int,
+        minimoOfertas: Int = 1
+    ): Flow<List<FaixaHoraria>>
+
     /** Limpeza: ofertas antigas não são guardadas para sempre. */
     @Query("DELETE FROM ofertas WHERE recebida_em < :limite")
     suspend fun apagarAntesDe(limite: Long): Int

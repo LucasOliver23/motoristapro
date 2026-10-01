@@ -38,6 +38,8 @@ data class DadosCusto(
     val forma: FormaAquisicao = FormaAquisicao.QUITADO,
     val tipoVeiculo: TipoVeiculo = TipoVeiculo.MOTO,
     val tipoTrabalho: TipoTrabalho = TipoTrabalho.PASSAGEIROS,
+    /** Como o motorista chama o veículo: "Fan 160 2021". */
+    val veiculoNome: String = "",
 
     // ---- fixos ----
     val valorVeiculoCentavos: Long = 0,
@@ -73,7 +75,7 @@ data class DadosCusto(
     val metaLucroMensalCentavos: Long = 0
 ) {
     /** 6 dias/semana ≈ 26 dias/mês (6 × 4,33). */
-    val diasPorMes: Double get() = diasPorSemana * SEMANAS_POR_MES
+    val diasPorMes: Double get() = diasPorSemana * SEMANAS_NO_MES
 
     val kmPorMes: Double get() = kmPorDia * diasPorMes
 
@@ -87,8 +89,39 @@ data class DadosCusto(
 
     val ipvaMensalEmCentavos: Double get() = ipvaAnualEmCentavos / 12.0
 
+    /**
+     * A meta do dia e a da semana saem da MENSAL — o motorista informa uma só.
+     * Antes as três eram digitadas à mão e viviam se contradizendo (R$ 200/dia
+     * com 26 dias dá R$ 5.200, não os R$ 5.000 que estavam na mensal).
+     */
+    val metaLucroDiarioCentavos: Long
+        get() = if (diasPorMes > 0) Math.round(metaLucroMensalCentavos / diasPorMes) else 0
+
+    val metaLucroSemanalCentavos: Long
+        get() = Math.round(metaLucroMensalCentavos / SEMANAS_NO_MES)
+
+    /**
+     * Os custos fixos que viram linha na lista do Início (rateada por dia
+     * trabalhado). Só os de valor fixo no mês — combustível e manutenção
+     * dependem do km rodado e entram no R$/km, não aqui.
+     */
+    fun custosFixosDoMes(): List<Pair<String, Long>> = buildList {
+        when (forma) {
+            FormaAquisicao.FINANCIADO -> add("Parcela do financiamento" to parcelaMensalCentavos)
+            FormaAquisicao.ALUGADO -> add("Aluguel do veículo" to aluguelMensalCentavos)
+            FormaAquisicao.QUITADO -> Unit
+        }
+        if (forma != FormaAquisicao.ALUGADO) {
+            add("IPVA" to Math.round(ipvaMensalEmCentavos))
+            add("Depreciação do veículo" to
+                Math.round(valorVeiculoCentavos * (desvalorizacaoAnualX100 / 10_000.0) / 12.0))
+        }
+        add("Seguro" to seguroMensalCentavos)
+        add("Outros custos fixos" to outrosMensaisCentavos)
+    }.filter { it.second > 0 }
+
     private companion object {
-        const val SEMANAS_POR_MES = 4.33
+        const val SEMANAS_NO_MES = 4.33
     }
 }
 
