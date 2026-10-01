@@ -15,18 +15,20 @@ import com.motoristapro.data.local.dao.DespesaDao
 import com.motoristapro.data.local.dao.JornadaDao
 import com.motoristapro.data.local.dao.OfertaDao
 import com.motoristapro.data.local.dao.PlataformaDao
+import com.motoristapro.data.local.dao.PerfilCustoDao
 import com.motoristapro.data.local.dao.SincronizacaoDao
 import com.motoristapro.data.local.dao.RelatorioDao
 import com.motoristapro.data.local.entity.Configuracao
 import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.entity.CustoFixo
+import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.local.entity.Despesa
 import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Versão atual do esquema do banco (constante de topo: pode ser usada na anotação). */
-const val VERSAO_BANCO = 6
+const val VERSAO_BANCO = 7
 
 /**
  * Banco local do MotoristaPro.
@@ -38,6 +40,7 @@ const val VERSAO_BANCO = 6
  *  4 -> plataforma iFood (só dados)
  *  5 -> tabelas ofertas (histórico) e custos_fixos
  *  6 -> perfil do motorista (nome, telefone, cidade)
+ *  7 -> perfil de custo do veículo (assistente de custo real por km)
  *
  * Ao alterar qualquer @Entity: suba [version], escreva a Migration e registre em [get].
  * O JSON de cada versão é exportado para app/schemas/ (versione no git).
@@ -50,7 +53,8 @@ const val VERSAO_BANCO = 6
         Configuracao::class,
         Jornada::class,
         OfertaRecebida::class,
-        CustoFixo::class
+        CustoFixo::class,
+        PerfilCusto::class
     ],
     version = VERSAO_BANCO,
     exportSchema = true
@@ -67,6 +71,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun ofertaDao(): OfertaDao
     abstract fun custoFixoDao(): CustoFixoDao
     abstract fun sincronizacaoDao(): SincronizacaoDao
+    abstract fun perfilCustoDao(): PerfilCustoDao
 
     companion object {
         /** Versão atual do esquema (usada também para validar backups). */
@@ -84,7 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun construir(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NOME_BANCO)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .addCallback(SEED)
                 // NÃO use fallbackToDestructiveMigration(): apagaria o histórico do motorista.
                 .build()
@@ -156,6 +161,44 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN nome_motorista TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN telefone TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN cidade TEXT")
+            }
+        }
+
+        /** v6 -> v7: tabela do assistente de custo (uma linha, criada em branco). */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS perfil_custo (
+                        id INTEGER NOT NULL PRIMARY KEY,
+                        forma TEXT NOT NULL DEFAULT 'QUITADO',
+                        tipo_veiculo TEXT NOT NULL DEFAULT 'MOTO',
+                        valor_veiculo_centavos INTEGER NOT NULL DEFAULT 0,
+                        parcela_mensal_centavos INTEGER NOT NULL DEFAULT 0,
+                        aluguel_mensal_centavos INTEGER NOT NULL DEFAULT 0,
+                        seguro_mensal_centavos INTEGER NOT NULL DEFAULT 0,
+                        ipva_percent_x100 INTEGER NOT NULL DEFAULT 400,
+                        desvalorizacao_anual_x100 INTEGER NOT NULL DEFAULT 1000,
+                        outros_mensais_centavos INTEGER NOT NULL DEFAULT 0,
+                        revisao_centavos INTEGER NOT NULL DEFAULT 0,
+                        intervalo_revisao_km INTEGER NOT NULL DEFAULT 0,
+                        troca_oleo_centavos INTEGER NOT NULL DEFAULT 0,
+                        intervalo_oleo_km INTEGER NOT NULL DEFAULT 0,
+                        jogo_pneus_centavos INTEGER NOT NULL DEFAULT 0,
+                        duracao_pneus_km INTEGER NOT NULL DEFAULT 0,
+                        outros_desgaste_centavos INTEGER NOT NULL DEFAULT 0,
+                        outros_desgaste_km INTEGER NOT NULL DEFAULT 0,
+                        combustivel TEXT NOT NULL DEFAULT 'GASOLINA',
+                        preco_litro_centavos INTEGER NOT NULL DEFAULT 0,
+                        consumo_x100 INTEGER NOT NULL DEFAULT 0,
+                        km_por_dia INTEGER NOT NULL DEFAULT 0,
+                        dias_por_semana INTEGER NOT NULL DEFAULT 6,
+                        horas_por_dia INTEGER NOT NULL DEFAULT 10,
+                        meta_lucro_mensal_centavos INTEGER NOT NULL DEFAULT 0,
+                        calculado_em INTEGER NOT NULL DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
             }
         }
 

@@ -86,3 +86,36 @@ CREATE TABLE IF NOT EXISTS custos_fixos (
     valor_mensal_centavos INTEGER NOT NULL,
     ativo                 INTEGER NOT NULL DEFAULT 1
 );
+
+-- ============================================================ versão 7
+-- Assistente de custo: as respostas do motorista sobre o veículo.
+-- O resultado (custo por km) não fica aqui — é calculado e gravado em
+-- configuracoes.custo_km_centavos quando ele toca em "Aplicar ao semáforo".
+CREATE TABLE IF NOT EXISTS perfil_custo (
+    id                         INTEGER NOT NULL PRIMARY KEY,
+    forma                      TEXT    NOT NULL DEFAULT 'QUITADO',  -- QUITADO|FINANCIADO|ALUGADO
+    tipo_veiculo               TEXT    NOT NULL DEFAULT 'MOTO',     -- CARRO|MOTO
+    valor_veiculo_centavos     INTEGER NOT NULL DEFAULT 0,
+    parcela_mensal_centavos    INTEGER NOT NULL DEFAULT 0,
+    aluguel_mensal_centavos    INTEGER NOT NULL DEFAULT 0,
+    seguro_mensal_centavos     INTEGER NOT NULL DEFAULT 0,
+    ipva_percent_x100          INTEGER NOT NULL DEFAULT 400,        -- 4,00% ao ano
+    desvalorizacao_anual_x100  INTEGER NOT NULL DEFAULT 1000,       -- 10,00% ao ano
+    outros_mensais_centavos    INTEGER NOT NULL DEFAULT 0,
+    revisao_centavos           INTEGER NOT NULL DEFAULT 0,
+    intervalo_revisao_km       INTEGER NOT NULL DEFAULT 0,
+    troca_oleo_centavos        INTEGER NOT NULL DEFAULT 0,
+    intervalo_oleo_km          INTEGER NOT NULL DEFAULT 0,
+    jogo_pneus_centavos        INTEGER NOT NULL DEFAULT 0,
+    duracao_pneus_km           INTEGER NOT NULL DEFAULT 0,
+    outros_desgaste_centavos   INTEGER NOT NULL DEFAULT 0,
+    outros_desgaste_km         INTEGER NOT NULL DEFAULT 0,
+    combustivel                TEXT    NOT NULL DEFAULT 'GASOLINA',
+    preco_litro_centavos       INTEGER NOT NULL DEFAULT 0,
+    consumo_x100               INTEGER NOT NULL DEFAULT 0,          -- 35 km/L = 3500
+    km_por_dia                 INTEGER NOT NULL DEFAULT 0,
+    dias_por_semana            INTEGER NOT NULL DEFAULT 6,
+    horas_por_dia              INTEGER NOT NULL DEFAULT 10,
+    meta_lucro_mensal_centavos INTEGER NOT NULL DEFAULT 0,
+    calculado_em               INTEGER NOT NULL DEFAULT 0
+);

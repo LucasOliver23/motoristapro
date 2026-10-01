@@ -31,6 +31,19 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Valores digitados no formulário da aba Mais (já convertidos). */
+/** Fotografia das faixas do semáforo para a tela desenhar. */
+data class EstadoFaixas(
+    val kmRuim: Float,
+    val kmBoa: Float,
+    val horaRuim: Float,
+    val horaBoa: Float,
+    val notaRuim: Float,
+    val notaBoa: Float,
+    val usarNota: Boolean,
+    val lucroMinimo: Float,
+    val lucroPercent: Float
+)
+
 data class FormConfig(
     val veiculoNome: String?,
     val consumoKmLx100: Long,
@@ -40,14 +53,6 @@ data class FormConfig(
     val metaSemanal: Long,
     val metaMensal: Long,
     val tarifaMinima: Long,
-    val minReaisKm: Float,
-    val minReaisHora: Float,
-    /** Lucro líquido mínimo por corrida, em reais. 0 = não usar. */
-    val minLucroReais: Float,
-    /** Lucro líquido mínimo como % do valor. 0 = não usar. */
-    val minLucroPercent: Float,
-    /** Nota mínima do passageiro (1,0 a 5,0). 0 = não usar. */
-    val minNota: Float,
     val diasTrabalhoMes: Int
 )
 
@@ -161,6 +166,18 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     private val _riscoPalavras = MutableStateFlow(risco.palavras)
     val riscoPalavras: StateFlow<List<String>> = _riscoPalavras.asStateFlow()
 
+    /** Faixas do semáforo. Salvam na hora: arrastou, valeu. */
+    private val _faixas = MutableStateFlow(lerFaixas())
+    val faixas: StateFlow<EstadoFaixas> = _faixas.asStateFlow()
+
+    private fun lerFaixas() = EstadoFaixas(
+        kmRuim = limites.kmRuimAbaixo, kmBoa = limites.kmBoaAcima,
+        horaRuim = limites.horaRuimAbaixo, horaBoa = limites.horaBoaAcima,
+        notaRuim = limites.notaRuimAbaixo, notaBoa = limites.notaBoaAcima,
+        usarNota = limites.usarNota,
+        lucroMinimo = limites.minLucroReais, lucroPercent = limites.minLucroPercent
+    )
+
     private val _mensagens = Channel<String>(Channel.BUFFERED)
     val mensagens: Flow<String> = _mensagens.receiveAsFlow()
 
@@ -181,11 +198,6 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
                         diasTrabalhoMes = f.diasTrabalhoMes
                     )
                 )
-                limites.minReaisPorKm = f.minReaisKm
-                limites.minReaisPorHora = f.minReaisHora
-                limites.minLucroReais = f.minLucroReais
-                limites.minLucroPercent = f.minLucroPercent
-                limites.minNota = f.minNota
             }
                 .onSuccess { _mensagens.send("Configurações salvas") }
                 .onFailure { _mensagens.send("Erro ao salvar: ${it.message}") }
@@ -281,6 +293,43 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     fun definirOcr(ativo: Boolean) {
         prefs.ocrAtivo = ativo
         _ocr.value = ativo
+    }
+
+    // ------------------------------------------------------------ faixas
+
+    fun definirFaixaKm(ruim: Float, boa: Float) {
+        limites.definirFaixaKm(ruim, boa)
+        _faixas.value = lerFaixas()
+    }
+
+    fun definirFaixaHora(ruim: Float, boa: Float) {
+        limites.definirFaixaHora(ruim, boa)
+        _faixas.value = lerFaixas()
+    }
+
+    fun definirFaixaNota(ruim: Float, boa: Float) {
+        limites.definirFaixaNota(ruim, boa)
+        _faixas.value = lerFaixas()
+    }
+
+    fun definirUsarNota(usar: Boolean) {
+        limites.usarNota = usar
+        _faixas.value = lerFaixas()
+    }
+
+    fun definirLucroMinimo(reais: Float) {
+        limites.minLucroReais = reais.coerceAtLeast(0f)
+        _faixas.value = lerFaixas()
+    }
+
+    fun definirLucroPercent(pct: Float) {
+        limites.minLucroPercent = pct.coerceIn(0f, 99f)
+        _faixas.value = lerFaixas()
+    }
+
+    /** Valor mínimo da viagem mora na Configuração (Room), não nas preferências. */
+    fun definirValorMinimoViagem(centavos: Long) {
+        viewModelScope.launch { runCatching { repo.definirTarifaMinima(centavos.coerceAtLeast(0)) } }
     }
 
     fun definirResumo(ativo: Boolean) {

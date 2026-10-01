@@ -19,6 +19,10 @@
     <!-- Notificação do turno e do resumo diário (Android 13+ pede em tempo de execução). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Pedir ao Android para não matar o leitor de ofertas por economia de bateria.
+         Sem isso o serviço cai no meio do turno em celulares Xiaomi, Oppo e afins. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <!-- Login e backup na nuvem (Firebase). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

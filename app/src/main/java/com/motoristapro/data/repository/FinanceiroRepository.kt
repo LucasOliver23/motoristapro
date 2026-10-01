@@ -6,6 +6,7 @@ import com.motoristapro.data.local.dao.ResumoOfertas
 import com.motoristapro.data.local.dao.ResumoPeriodo
 import com.motoristapro.data.local.dao.TotaisJornada
 import com.motoristapro.data.local.dao.TotalPorCategoria
+import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.local.entity.CategoriaDespesa
 import com.motoristapro.data.local.entity.Configuracao
 import com.motoristapro.data.local.entity.Corrida
@@ -89,6 +90,7 @@ class FinanceiroRepository(private val db: AppDatabase) {
     private val jornadaDao = db.jornadaDao()
     private val plataformaDao = db.plataformaDao()
     private val ofertaDao = db.ofertaDao()
+    private val perfilCustoDao = db.perfilCustoDao()
     private val custoFixoDao = db.custoFixoDao()
 
     // ================================================================== corridas
@@ -258,6 +260,15 @@ class FinanceiroRepository(private val db: AppDatabase) {
         ofertaDao.observarPorPeriodo(inicio, fim)
 
     fun resumoOfertas(inicio: Long, fim: Long): Flow<ResumoOfertas> = ofertaDao.observarResumo(inicio, fim)
+
+    // ---------------------------------------------------------- perfil de custo
+
+    /** Respostas do assistente de custo. null = o motorista ainda não preencheu. */
+    fun perfilCusto(): Flow<PerfilCusto?> = perfilCustoDao.observar()
+
+    suspend fun obterPerfilCusto(): PerfilCusto? = perfilCustoDao.obter()
+
+    suspend fun salvarPerfilCusto(perfil: PerfilCusto) = perfilCustoDao.salvar(perfil)
 
     /** Faixas de 2 h do dia com o R$/km médio das ofertas — os "melhores horários". */
     fun faixasHorarias(inicio: Long, fim: Long, minimoOfertas: Int = 3): Flow<List<FaixaHoraria>> =

@@ -81,6 +81,19 @@ import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.TextoSecundario
 import com.motoristapro.ui.theme.VermelhoPrejuizo
 import java.util.Locale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.motoristapro.ui.componentes.CardPreparacao
+import com.motoristapro.ui.componentes.Liberacao
+import com.motoristapro.ui.componentes.bateriaLiberada
+import com.motoristapro.ui.componentes.pedirBateriaLivre
+import com.motoristapro.ui.componentes.FaixaTresCores
+import com.motoristapro.ui.componentes.LinhaFaixa
+import com.motoristapro.ui.componentes.TabelaFaixas
+import com.motoristapro.ui.custo.AssistenteCustoScreen
+import com.motoristapro.ui.theme.AmareloAlerta
+import com.motoristapro.ui.theme.Contorno
+import androidx.compose.material3.HorizontalDivider
 
 private val PT = Locale("pt", "BR")
 
@@ -108,6 +121,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val riscoLigado by vm.riscoAtivo.collectAsStateWithLifecycle()
     val riscoMercados by vm.riscoMercados.collectAsStateWithLifecycle()
     val palavrasRisco by vm.riscoPalavras.collectAsStateWithLifecycle()
+    val faixas by vm.faixas.collectAsStateWithLifecycle()
+    var assistenteAberto by remember { mutableStateOf(false) }
     var novoCusto by remember { mutableStateOf(false) }
     var excluirCusto by remember { mutableStateOf<CustoFixo?>(null) }
     var confirmarRestauracao by remember { mutableStateOf(false) }
@@ -153,6 +168,35 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            CardPreparacao(
+                listOf(
+                    Liberacao(
+                        titulo = "Leitor de ofertas",
+                        porque = "Sem ele o app não enxerga a corrida que aparece na tela.",
+                        concedida = leitorOk,
+                        abrir = { context.abrirConfigAcessibilidade() }
+                    ),
+                    Liberacao(
+                        titulo = "Bateria sem restrições",
+                        porque = "É o que impede o Android de desligar o leitor no meio do turno.",
+                        concedida = context.bateriaLiberada(),
+                        abrir = { context.pedirBateriaLivre() }
+                    ),
+                    Liberacao(
+                        titulo = "Notificações",
+                        porque = "Resumo do dia e avisos de atualização.",
+                        concedida = notificacoesOk,
+                        abrir = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                pedirNotificacao.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                context.abrirDetalhesDoApp()
+                            }
+                        }
+                    )
+                )
+            )
+
             PerfilCard(
                 cfg = cfg,
                 emailConta = usuario?.email ?: usuario?.nome,
@@ -199,15 +243,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
 
             // Formulário recriado só quando a config é carregada pela primeira vez.
             key(cfg.id) {
-                FormularioConfig(
-                    cfg = cfg,
-                    minKmInicial = vm.limites.minReaisPorKm,
-                    minHoraInicial = vm.limites.minReaisPorHora,
-                    minLucroInicial = vm.limites.minLucroReais,
-                    minLucroPctInicial = vm.limites.minLucroPercent,
-                    minNotaInicial = vm.limites.minNota,
-                    onSalvar = vm::salvar
-                )
+                FormularioConfig(cfg, onSalvar = vm::salvar)
             }
 
             CardSecao(titulo = "Custos fixos mensais") {
@@ -269,6 +305,25 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     ) { Text("Ofertas") }
                 }
             }
+
+            CardCustoReal(
+                custoKmCentavos = cfg.custoKmCentavos,
+                onAbrir = { assistenteAberto = true }
+            )
+
+            CardSuasFaixas(
+                faixas = faixas,
+                temCusto = cfg.custoKmCentavos > 0,
+                valorMinimoViagem = cfg.tarifaMinimaCentavos,
+                onFaixaKm = vm::definirFaixaKm,
+                onFaixaHora = vm::definirFaixaHora,
+                onFaixaNota = vm::definirFaixaNota,
+                onUsarNota = vm::definirUsarNota,
+                onLucroMinimo = vm::definirLucroMinimo,
+                onLucroPercent = vm::definirLucroPercent,
+                onValorMinimo = vm::definirValorMinimoViagem,
+                onAbrirAssistente = { assistenteAberto = true }
+            )
 
             CardSecao(titulo = "Leitor de ofertas") {
                 Text(
@@ -404,6 +459,15 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             dismissButton = { TextButton(onClick = { confirmarSair = false }) { Text("Cancelar") } }
         )
     }
+    if (assistenteAberto) {
+        Dialog(
+            onDismissRequest = { assistenteAberto = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            AssistenteCustoScreen(onFechar = { assistenteAberto = false })
+        }
+    }
+
     if (confirmarRestauracao) {
         AlertDialog(
             onDismissRequest = { confirmarRestauracao = false },
@@ -470,11 +534,6 @@ private fun NovoCustoFixoDialog(onDismiss: () -> Unit, onSalvar: (String, Long) 
 @Composable
 private fun FormularioConfig(
     cfg: Configuracao,
-    minKmInicial: Float,
-    minHoraInicial: Float,
-    minLucroInicial: Float,
-    minLucroPctInicial: Float,
-    minNotaInicial: Float,
     onSalvar: (FormConfig) -> Unit
 ) {
     var veiculo by rememberSaveable { mutableStateOf(cfg.veiculoNome ?: "") }
@@ -487,11 +546,6 @@ private fun FormularioConfig(
     var metaSemana by rememberSaveable { mutableStateOf(cfg.metaLucroSemanalCentavos.campo()) }
     var metaMes by rememberSaveable { mutableStateOf(cfg.metaLucroMensalCentavos.campo()) }
     var tarifa by rememberSaveable { mutableStateOf(cfg.tarifaMinimaCentavos.campo()) }
-    var minKm by rememberSaveable { mutableStateOf(String.format(PT, "%.2f", minKmInicial)) }
-    var minHora by rememberSaveable { mutableStateOf(String.format(PT, "%.2f", minHoraInicial)) }
-    var minLucro by rememberSaveable { mutableStateOf(String.format(PT, "%.2f", minLucroInicial)) }
-    var minLucroPct by rememberSaveable { mutableStateOf(minLucroPctInicial.toInt().toString()) }
-    var minNota by rememberSaveable { mutableStateOf(String.format(PT, "%.1f", minNotaInicial)) }
     var dias by rememberSaveable { mutableStateOf(cfg.diasTrabalhoMes.toString()) }
 
     // "12,5" km/L -> 1250 (mesma conversão x1000/10)
@@ -502,20 +556,13 @@ private fun FormularioConfig(
     val metaSemanaC = metaSemana.paraCentavosOuZero()
     val metaMesC = metaMes.paraCentavosOuZero()
     val tarifaC = tarifa.paraCentavosOuZero()
-    val minKmC = minKm.paraCentavosOuZero()
-    val minHoraC = minHora.paraCentavosOuZero()
-    val minLucroC = minLucro.paraCentavosOuZero()
-    val minNotaC = minNota.paraCentavosOuZero()?.takeIf { it == 0L || it in 100..500 }
-    val minLucroPctC = minLucroPct.trim().ifBlank { "0" }.toIntOrNull()?.takeIf { it in 0..99 }
     val diasC = dias.trim().toIntOrNull()?.takeIf { it in 1..31 }
 
     val combustivelKm = if (consumoX100 != null && consumoX100 > 0 && precoC != null && precoC > 0)
         precoC * 100.0 / consumoX100 else null
 
-    val valido = listOf(
-        consumoX100, precoC, custoC, metaDiaC, metaSemanaC, metaMesC,
-        tarifaC, minKmC, minHoraC, minLucroC, minNotaC
-    ).all { it != null } && diasC != null && minLucroPctC != null
+    val valido = listOf(consumoX100, precoC, custoC, metaDiaC, metaSemanaC, metaMesC, tarifaC)
+        .all { it != null } && diasC != null
 
     CardSecao(titulo = "Veículo") {
         CampoFormulario("Modelo (ex.: Onix 1.0 2020)", veiculo, { veiculo = it }, numerico = false)
@@ -550,33 +597,6 @@ private fun FormularioConfig(
         )
     }
 
-    CardSecao(titulo = "Critérios da oferta") {
-        CampoFormulario(
-            "Tarifa mínima por corrida (R$)", tarifa, { tarifa = it }, erro = tarifaC == null,
-            ajuda = "Abaixo disso a oferta aparece em vermelho. 0 = desligado."
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CampoFormulario("Mínimo R$/km", minKm, { minKm = it }, Modifier.weight(1f), erro = minKmC == null)
-            CampoFormulario("Mínimo R$/hora", minHora, { minHora = it }, Modifier.weight(1f), erro = minHoraC == null)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CampoFormulario("Lucro mínimo (R$)", minLucro, { minLucro = it }, Modifier.weight(1f), erro = minLucroC == null)
-            CampoFormulario(
-                "Lucro mínimo (%)", minLucroPct, { minLucroPct = it.filter(Char::isDigit) },
-                Modifier.weight(1f), erro = minLucroPctC == null
-            )
-        }
-        CampoFormulario(
-            "Nota mínima do passageiro", minNota, { minNota = it }, erro = minNotaC == null,
-            ajuda = "De 1,0 a 5,0. 0 = desligado. Vale só quando o app de corrida mostra a nota."
-        )
-        Text(
-            "Qualquer mínimo acima derruba a oferta para vermelho na hora. Lucro e % " +
-                "dependem do custo por km preenchido no Veículo.",
-            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-        )
-    }
-
     Button(
         onClick = {
             if (valido) {
@@ -590,11 +610,6 @@ private fun FormularioConfig(
                         metaSemanal = metaSemanaC ?: 0L,
                         metaMensal = metaMesC ?: 0L,
                         tarifaMinima = tarifaC ?: 0L,
-                        minReaisKm = (minKmC ?: 0L) / 100f,
-                        minReaisHora = (minHoraC ?: 0L) / 100f,
-                        minLucroReais = (minLucroC ?: 0L) / 100f,
-                        minLucroPercent = (minLucroPctC ?: 0).toFloat(),
-                        minNota = (minNotaC ?: 0L) / 100f,
                         diasTrabalhoMes = diasC ?: 26
                     )
                 )
@@ -848,4 +863,194 @@ private fun AtualizacaoCard(
             ) { Text(if (estado.verificando) "Procurando..." else "Procurar atualização") }
         }
     }
+}
+
+
+// ====================================================== custo real e faixas
+
+/** Atalho para o assistente de custo, mostrando o que já está valendo. */
+@Composable
+private fun CardCustoReal(custoKmCentavos: Long, onAbrir: () -> Unit) {
+    CardSecao(titulo = "Custo real por km") {
+        if (custoKmCentavos > 0) {
+            Text(
+                "${custoKmCentavos.emReais()} / km",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Lima
+            )
+            Text(
+                "É o que o app desconta de cada corrida para mostrar o lucro de verdade.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        } else {
+            Text(
+                "Você ainda não calculou seu custo. Sem ele, o app mostra o valor bruto da " +
+                    "corrida — não o que sobra pra você.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        }
+        Button(
+            onClick = onAbrir,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0B0F14))
+        ) {
+            Text(
+                if (custoKmCentavos > 0) "Recalcular meu custo" else "Calcular meu custo",
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+/**
+ * As faixas do semáforo. Tudo aqui salva na hora — arrastou, valeu na próxima oferta.
+ *
+ * Lucro mínimo em R$ e em % ficam BLOQUEADOS enquanto não existir custo por km:
+ * sem o custo não há lucro a calcular, e deixar o motorista configurar algo que
+ * nunca vai valer é pior do que não oferecer.
+ */
+@Composable
+private fun CardSuasFaixas(
+    faixas: EstadoFaixas,
+    temCusto: Boolean,
+    valorMinimoViagem: Long,
+    onFaixaKm: (Float, Float) -> Unit,
+    onFaixaHora: (Float, Float) -> Unit,
+    onFaixaNota: (Float, Float) -> Unit,
+    onUsarNota: (Boolean) -> Unit,
+    onLucroMinimo: (Float) -> Unit,
+    onLucroPercent: (Float) -> Unit,
+    onValorMinimo: (Long) -> Unit,
+    onAbrirAssistente: () -> Unit
+) {
+    CardSecao(titulo = "Suas faixas") {
+        TabelaFaixas(
+            listOf(
+                LinhaFaixa(
+                    "R$/km",
+                    String.format(PT, "< %.2f", faixas.kmRuim),
+                    String.format(PT, "%.2f–%.2f", faixas.kmRuim, faixas.kmBoa),
+                    String.format(PT, "≥ %.2f", faixas.kmBoa)
+                ),
+                LinhaFaixa(
+                    "R$/hora",
+                    String.format(PT, "< %.0f", faixas.horaRuim),
+                    String.format(PT, "%.0f–%.0f", faixas.horaRuim, faixas.horaBoa),
+                    String.format(PT, "≥ %.0f", faixas.horaBoa)
+                )
+            ) + if (faixas.usarNota) listOf(
+                LinhaFaixa(
+                    "Nota",
+                    String.format(PT, "< %.2f", faixas.notaRuim),
+                    String.format(PT, "%.2f–%.2f", faixas.notaRuim, faixas.notaBoa),
+                    String.format(PT, "≥ %.2f", faixas.notaBoa)
+                )
+            ) else emptyList()
+        )
+
+        HorizontalDivider(color = Contorno, modifier = Modifier.padding(vertical = 4.dp))
+
+        FaixaTresCores(
+            titulo = "Ganho por km",
+            unidade = "R$/km",
+            inicio = faixas.kmRuim, fim = faixas.kmBoa,
+            minimo = 0.5f, maximo = 6f, passos = 54,
+            formatar = { String.format(PT, "R$ %.2f", it) },
+            onMudar = onFaixaKm
+        )
+
+        FaixaTresCores(
+            titulo = "Ganho por hora",
+            unidade = "R$/hora",
+            inicio = faixas.horaRuim, fim = faixas.horaBoa,
+            minimo = 10f, maximo = 120f, passos = 21,
+            formatar = { String.format(PT, "R$ %.0f", it) },
+            onMudar = onFaixaHora
+        )
+
+        LinhaSwitch(
+            "Usar a nota do passageiro",
+            "Só vale nas telas que mostram a nota. Uber mostra; a 99 nem sempre.",
+            faixas.usarNota, onUsarNota
+        )
+        if (faixas.usarNota) {
+            FaixaTresCores(
+                titulo = "Nota do passageiro",
+                unidade = "estrelas",
+                inicio = faixas.notaRuim, fim = faixas.notaBoa,
+                minimo = 3f, maximo = 5f, passos = 39,
+                formatar = { String.format(PT, "★ %.2f", it) },
+                onMudar = onFaixaNota
+            )
+        }
+
+        HorizontalDivider(color = Contorno, modifier = Modifier.padding(vertical = 4.dp))
+        Text("Condições mínimas", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(
+            "Violou qualquer uma, a oferta fica vermelha na hora — não importa o resto.",
+            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+        )
+
+        CampoMinimo(
+            rotulo = "Valor mínimo da viagem (R$)",
+            valorInicial = if (valorMinimoViagem > 0) valorMinimoViagem.campo() else "",
+            habilitado = true,
+            onValor = { onValorMinimo(it.paraCentavosOuZero() ?: 0L) }
+        )
+        CampoMinimo(
+            rotulo = "Lucro líquido mínimo (R$)",
+            valorInicial = if (faixas.lucroMinimo > 0f) String.format(PT, "%.2f", faixas.lucroMinimo) else "",
+            habilitado = temCusto,
+            onValor = { onLucroMinimo(((it.paraCentavosOuZero() ?: 0L) / 100f)) }
+        )
+        CampoMinimo(
+            rotulo = "Porcentagem de lucro (%)",
+            valorInicial = if (faixas.lucroPercent > 0f) faixas.lucroPercent.toInt().toString() else "",
+            habilitado = temCusto,
+            onValor = { onLucroPercent(it.filter(Char::isDigit).toFloatOrNull() ?: 0f) }
+        )
+
+        if (!temCusto) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Requer custo por km",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AmareloAlerta,
+                    fontWeight = FontWeight.SemiBold
+                )
+                TextButton(onClick = onAbrirAssistente) { Text("Calcular agora", color = Lima) }
+            }
+        }
+    }
+}
+
+/** Campo de mínimo: quando bloqueado, mostra "Requer custo" em vez de aceitar digitação. */
+@Composable
+private fun CampoMinimo(
+    rotulo: String,
+    valorInicial: String,
+    habilitado: Boolean,
+    onValor: (String) -> Unit
+) {
+    var texto by rememberSaveable(rotulo) { mutableStateOf(valorInicial) }
+    if (!habilitado) {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(rotulo, style = MaterialTheme.typography.bodyMedium, color = TextoSecundario)
+            Text("Requer custo", style = MaterialTheme.typography.bodySmall, color = AmareloAlerta)
+        }
+        return
+    }
+    CampoFormulario(
+        rotulo = rotulo,
+        valor = texto,
+        onValor = {
+            texto = it
+            onValor(it)
+        }
+    )
 }
