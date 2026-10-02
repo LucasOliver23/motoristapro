@@ -39,29 +39,44 @@ class StatusApps(context: Context) {
         .getSharedPreferences("status_apps", Context.MODE_PRIVATE)
 
     /**
-     * As pistas de estado, NA ORDEM. A primeira que casar decide.
+     * As pistas de estado, NA ORDEM, e POR APP.
      *
-     * A ordem é o segredo: os BOTÕES falam do que VAI acontecer, não do que
-     * está acontecendo. "Ficar online" é um botão que só existe quando se está
-     * OFFLINE — e ele contém a palavra "online". Lendo as palavras soltas
-     * primeiro, toda tela de app offline seria lida como online.
+     * Duas lições das telas reais:
      *
-     * O inDrive é o único confirmado em tela de verdade (o botão do topo). Os
-     * outros vêm das frases comuns desses apps; errando, a correção na mão
-     * resolve na hora e o padrão certo entra numa versão nova.
+     * 1. **Os botões falam do que VAI acontecer.** "Ficar online" só existe
+     *    quando se está OFFLINE, e contém a palavra "online". Lendo as palavras
+     *    soltas primeiro, toda tela de app offline viraria online.
+     *
+     * 2. **Cada app fala uma língua.** O inDrive tem um botão "Online/Offline"
+     *    no topo e pronto — mas a tela dele também diz "Procurando pedidos
+     *    perto..." enquanto o motorista está OFFLINE. Uma regra genérica com
+     *    "procurando" marcaria online o tempo todo. Por isso o inDrive usa só o
+     *    botão dele, e a regra genérica vale para quem não tem regra própria.
      */
-    private val pistas: List<Pair<Regex, StatusApp>> = listOf(
-        // Botões de AÇÃO: dizem o contrário do estado atual.
+    private val pistasPorApp: Map<AppDeCorrida, List<Pair<Regex, StatusApp>>> = mapOf(
+        // inDrive: só o botão do topo. É o único confirmado em tela.
+        AppDeCorrida.INDRIVE to listOf(
+            Regex("""\boffline\b""", RegexOption.IGNORE_CASE) to StatusApp.OFFLINE,
+            Regex("""\bonline\b""", RegexOption.IGNORE_CASE) to StatusApp.ONLINE
+        ),
+        // 99: "Desconectar" é o botão de SAIR do ar — logo, está no ar.
+        AppDeCorrida.NOVE9 to listOf(
+            Regex("""\bdesconectar\b|sair\s+do\s+ar""", RegexOption.IGNORE_CASE) to StatusApp.ONLINE,
+            Regex("""\bconectar\b|conecte-se\s+para\s+(aceitar|receber)|ficar\s+online""",
+                RegexOption.IGNORE_CASE) to StatusApp.OFFLINE
+        )
+    )
+
+    /** Para Uber, iFood e qualquer app sem regra própria. */
+    private val pistasGerais: List<Pair<Regex, StatusApp>> = listOf(
         Regex("""ficar\s+online|fique\s+online|come[çc]ar?\s+a\s+(dirigir|receber)|entrar\s+no\s+ar""",
             RegexOption.IGNORE_CASE) to StatusApp.OFFLINE,
-        Regex("""ficar\s+offline|fique\s+offline|sair\s+do\s+ar|encerrar\s+turno""",
+        Regex("""ficar\s+offline|fique\s+offline|sair\s+do\s+ar|desconectar""",
             RegexOption.IGNORE_CASE) to StatusApp.ONLINE,
-        // Frases de ESTADO.
         Regex("""voc[êe]\s+est[áa]\s+offline|voc[êe]\s+saiu\s+do\s+ar""",
             RegexOption.IGNORE_CASE) to StatusApp.OFFLINE,
-        Regex("""voc[êe]\s+est[áa]\s+online|procurando\s+(viagens|corridas|pedidos)|aguardando\s+(viagens|corridas|pedidos)|\bdispon[íi]vel\b""",
+        Regex("""voc[êe]\s+est[áa]\s+online|procurando\s+(viagens|corridas)|\bdispon[íi]vel\b""",
             RegexOption.IGNORE_CASE) to StatusApp.ONLINE,
-        // Palavra solta, por último (é o caso do inDrive).
         Regex("""\boffline\b""", RegexOption.IGNORE_CASE) to StatusApp.OFFLINE,
         Regex("""\bonline\b""", RegexOption.IGNORE_CASE) to StatusApp.ONLINE
     )
@@ -70,6 +85,7 @@ class StatusApps(context: Context) {
     fun lerDaTela(pacote: String, textos: List<String>): StatusApp? {
         val app = AppDeCorrida.porPacote(pacote) ?: return null
         val tudo = textos.joinToString("\n")
+        val pistas = pistasPorApp[app] ?: pistasGerais
         val status = pistas.firstOrNull { it.first.containsMatchIn(tudo) }?.second ?: return null
         definir(app, status, automatico = true)
         return status

@@ -85,6 +85,18 @@ class RelogioJornada(
         fecharTrecho()
     }
 
+    /**
+     * Fecha o trecho aberto AGORA.
+     *
+     * Chamado pela tela da Jornada de poucos em poucos segundos: sem isso os
+     * números só mexiam quando o motorista voltava para um app de corrida, e a
+     * tela parecia travada enquanto ele a olhava.
+     */
+    fun atualizarAgora() {
+        if (System.currentTimeMillis() - marcoMs < INTERVALO_TELA_MS) return
+        fecharTrecho()
+    }
+
     /** Botão "Iniciar jornada": vale mesmo com todos os apps offline. */
     fun iniciarNaMao() {
         escopo.launch {
@@ -188,6 +200,8 @@ class RelogioJornada(
         const val KEY_MARCO = "marco_ms"
         const val KEY_ESTADO = "estado"
         const val INTERVALO_GRAVACAO_MS = 60_000L
+        /** Com a tela da Jornada aberta, fecha o trecho a cada 5 s. */
+        const val INTERVALO_TELA_MS = 5_000L
         /** 12 h num trecho só é erro de relógio, não turno. */
         const val TRECHO_MAX_SEG = 12 * 3600L
     }

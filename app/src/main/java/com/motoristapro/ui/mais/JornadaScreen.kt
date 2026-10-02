@@ -86,6 +86,10 @@ fun JornadaScreen() {
         while (true) {
             delay(1_000)
             tique++
+            // Fecha o trecho de tempos em tempos para a divisão por estado andar
+            // junto com o cronômetro, em vez de só pular quando o motorista volta
+            // para um app de corrida.
+            relogio.atualizarAgora()
         }
     }
     var auto by remember { mutableStateOf(relogio.inicioAutomatico) }
