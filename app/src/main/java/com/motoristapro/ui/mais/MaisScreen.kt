@@ -238,7 +238,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             PerfilLinha(cfg = cfg, email = usuario?.email ?: usuario?.nome) { sub = SubTela.PERFIL }
 
             GradeFerramentas(
-                listOf(
+                titulo = "MEU TRABALHO",
+                itens = listOf(
                     Ferramenta(
                         titulo = "Meu veículo e custos",
                         estado = if (cfg.custoKmCentavos > 0) "${cfg.custoKmCentavos.campo()}/km de custo"
@@ -253,24 +254,28 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.FAIXAS }
                     ),
                     Ferramenta(
+                        titulo = "Resumo do dia às 22h",
+                        estado = "faturamento, despesas e lucro",
+                        ligado = resumo,
+                        onClick = { vm.definirResumo(!resumo) }
+                    ),
+                )
+            )
+
+            GradeFerramentas(
+                titulo = "LEITOR DE OFERTAS",
+                itens = listOf(
+                    Ferramenta(
+                        titulo = "Leitor de ofertas",
+                        estado = if (leitorOk) "lendo Uber · 99 · iFood" else "desconectado — religue",
+                        aceso = leitorOk,
+                        alerta = !leitorOk,
+                        onClick = { sub = SubTela.LEITOR }
+                    ),
+                    Ferramenta(
                         titulo = "Estilo do cartão",
                         estado = "${estilo.campos.size} números · ${estilo.tema.rotulo.lowercase(PT)}",
                         onClick = { sub = SubTela.ESTILO }
-                    ),
-                    Ferramenta(
-                        titulo = "Aparência do app",
-                        estado = PreferenciaTema.modo.rotulo.lowercase(PT),
-                        onClick = { sub = SubTela.APARENCIA }
-                    ),
-                    Ferramenta(
-                        titulo = "Melhores horários",
-                        estado = "em que hora rola corrida boa",
-                        onClick = { sub = SubTela.HORARIOS }
-                    ),
-                    Ferramenta(
-                        titulo = "App de navegação",
-                        estado = navegacao.rotulo.lowercase(PT),
-                        onClick = { sub = SubTela.NAVEGACAO }
                     ),
                     Ferramenta(
                         titulo = "Aviso por voz",
@@ -292,18 +297,16 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.RISCO }
                     ),
                     Ferramenta(
-                        titulo = "Resumo do dia às 22h",
-                        estado = "faturamento, despesas e lucro",
-                        ligado = resumo,
-                        onClick = { vm.definirResumo(!resumo) }
+                        titulo = "App de navegação",
+                        estado = navegacao.rotulo.lowercase(PT),
+                        onClick = { sub = SubTela.NAVEGACAO }
                     ),
-                    Ferramenta(
-                        titulo = "Leitor de ofertas",
-                        estado = if (leitorOk) "lendo Uber · 99 · iFood" else "desconectado — religue",
-                        aceso = leitorOk,
-                        alerta = !leitorOk,
-                        onClick = { sub = SubTela.LEITOR }
-                    ),
+                )
+            )
+
+            GradeFerramentas(
+                titulo = "O APP",
+                itens = listOf(
                     Ferramenta(
                         titulo = "Minha assinatura",
                         estado = when (acesso.situacao) {
@@ -331,10 +334,15 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.BACKUP }
                     ),
                     Ferramenta(
+                        titulo = "Aparência do app",
+                        estado = PreferenciaTema.modo.rotulo.lowercase(PT),
+                        onClick = { sub = SubTela.APARENCIA }
+                    ),
+                    Ferramenta(
                         titulo = "Versão do app",
                         estado = "${vm.versaoInstalada} (build ${vm.codigoInstalado})",
                         onClick = { sub = SubTela.VERSAO }
-                    )
+                    ),
                 )
             )
 
@@ -637,7 +645,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         }
                     }
                     SubTela.ESTILO -> EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
-                    SubTela.HORARIOS -> MelhoresHorariosScreen()
                     // Tratada antes, fora desta moldura (ela rola por conta propria).
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
@@ -1229,7 +1236,6 @@ enum class SubTela(val titulo: String) {
     VERSAO("Versão do app"),
     ESTILO("Estilo do cartão"),
     APARENCIA("Aparência do app"),
-    HORARIOS("Melhores horários"),
     ASSINATURA("Minha assinatura"),
     NAVEGACAO("App de navegação")
 }
@@ -1358,10 +1364,10 @@ class Ferramenta(
 
 /** Grade de dois por linha. Column simples (e não LazyVerticalGrid): está dentro de um scroll. */
 @Composable
-private fun GradeFerramentas(itens: List<Ferramenta>) {
+private fun GradeFerramentas(titulo: String = "FERRAMENTAS", itens: List<Ferramenta>) {
     Column(Modifier.fillMaxWidth()) {
         Text(
-            "FERRAMENTAS",
+            titulo,
             style = MaterialTheme.typography.labelSmall,
             color = TextoSecundario,
             fontWeight = FontWeight.Bold,

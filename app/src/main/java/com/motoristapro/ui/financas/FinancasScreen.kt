@@ -37,9 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.motoristapro.data.local.entity.Despesa
+import com.motoristapro.data.local.model.CorridaComPlataforma
 import com.motoristapro.data.repository.emReais
 import com.motoristapro.ui.componentes.BarraHorizontal
 import com.motoristapro.ui.componentes.CardSecao
+import com.motoristapro.ui.componentes.ChipsSelecao
 import com.motoristapro.ui.componentes.ConfirmarExclusao
 import com.motoristapro.ui.componentes.DespesaDialog
 import com.motoristapro.ui.componentes.LinhaValor
@@ -123,7 +125,16 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
                     ProgressoMeta("Hoje", metas.hoje, cfg.metaLucroDiarioCentavos, metas.hoje.emReais(), cfg.metaLucroDiarioCentavos.emReais())
                     ProgressoMeta("Esta semana", metas.semana, cfg.metaLucroSemanalCentavos, metas.semana.emReais(), cfg.metaLucroSemanalCentavos.emReais())
                     ProgressoMeta("Este mês", metas.mes, cfg.metaLucroMensalCentavos, metas.mes.emReais(), cfg.metaLucroMensalCentavos.emReais())
-                    Text("Altere as metas na aba Mais.", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                    // Só leitura, de propósito: a meta mensal é definida UMA vez no
+                    // assistente de custos, e a diária e a semanal saem dela. Poder
+                    // editar aqui também deixaria dois números discordando.
+                    Text(
+                        if (cfg.metaLucroMensalCentavos > 0)
+                            "Meta do mês: ${cfg.metaLucroMensalCentavos.emReais()} — definida em " +
+                                "Mais ▸ Meu veículo e custos. A diária e a semanal saem dela."
+                        else "Defina sua meta em Mais ▸ Meu veículo e custos.",
+                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                    )
                 }
             }
 
@@ -147,32 +158,58 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
             }
 
             item {
-                // As ENTRADAS entram sozinhas (cada corrida registrada) e por isso
-                // não viram linha aqui — seriam centenas. O que se lança na mão é
-                // a saída. A linha abaixo deixa claro que as duas estão contadas.
+                // Entradas e saídas no MESMO extrato. A corrida registrada entra
+                // sozinha (vem da aba Corridas) e a despesa entra na mão — mas
+                // para quem olha é um extrato só, em ordem de tempo.
                 Column(Modifier.padding(top = 4.dp)) {
                     Text(
                         "Lançamentos",
                         style = MaterialTheme.typography.titleSmall,
                         color = TextoSecundario
                     )
-                    val r = mes.resumo
-                    Text(
-                        "Entradas: ${r.qtdCorridas} corrida(s) • ${r.faturamentoCentavos.emReais()} " +
-                            "(automático, da aba Corridas)",
-                        style = MaterialTheme.typography.labelSmall, color = Lima
-                    )
-                    Text(
-                        "Saídas: ${mes.despesas.size} lançamento(s) • ${r.despesasCentavos.emReais()}",
-                        style = MaterialTheme.typography.labelSmall, color = VermelhoPrejuizo
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "+ ${mes.totalEntradasCentavos.emReais()}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Lima, fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "- ${mes.totalSaidasCentavos.emReais()}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = VermelhoPrejuizo, fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+            item {
+                ChipsSelecao(
+                    opcoes = FiltroLancamento.entries.toList(),
+                    selecionado = mes.filtro,
+                    rotulo = { it.rotulo },
+                    onSelecionar = vm::filtrarLancamentos
+                )
+            }
+            val lancamentos = mes.lancamentos
+            if (lancamentos.isEmpty()) {
+                item {
+                    Vazio(
+                        when (mes.filtro) {
+                            FiltroLancamento.ENTRADAS -> "Nenhuma corrida registrada neste mês."
+                            FiltroLancamento.SAIDAS -> "Nenhuma despesa neste mês."
+                            FiltroLancamento.TUDO -> "Nenhum lançamento neste mês."
+                        }
                     )
                 }
             }
-            if (mes.despesas.isEmpty()) {
-                item { Vazio("Nenhuma despesa neste mês.") }
-            }
-            items(mes.despesas, key = { it.id }) { d ->
-                DespesaItem(d, onClick = { editando = d }, onExcluir = { excluir = d })
+            items(lancamentos, key = { chaveDoLancamento(it) }) { l ->
+                when (l) {
+                    is Lancamento.Entrada -> EntradaItem(l.corrida)
+                    is Lancamento.Saida -> DespesaItem(
+                        l.despesa,
+                        onClick = { editando = l.despesa },
+                        onExcluir = { excluir = l.despesa }
+                    )
+                }
             }
         }
     }
@@ -190,6 +227,43 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
             onDismiss = { excluir = null },
             onConfirmar = { vm.excluir(alvo.id); excluir = null }
         )
+    }
+}
+
+/** Chave estável da lista: corrida e despesa podem ter o mesmo id. */
+private fun chaveDoLancamento(l: Lancamento): String = when (l) {
+    is Lancamento.Entrada -> "c" + l.corrida.corrida.id
+    is Lancamento.Saida -> "d" + l.despesa.id
+}
+
+/**
+ * Uma entrada do extrato: a corrida como ela foi registrada.
+ *
+ * Sem lixeira e sem editar de propósito — isso se faz na aba Corridas, onde a
+ * corrida tem plataforma, km e tempo para conferir antes de mexer.
+ */
+@Composable
+private fun EntradaItem(item: CorridaComPlataforma) {
+    val c = item.corrida
+    val data = Instant.ofEpochMilli(c.inicioEm).atZone(ZoneId.systemDefault()).format(FORMATO_DATA)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(item.plataformaNome, fontWeight = FontWeight.SemiBold)
+                Text(
+                    listOf(data, String.format(PT, "%.1f km", c.kmTotal)).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                )
+            }
+            Text(
+                "+ " + c.receitaCentavos.emReais(),
+                fontWeight = FontWeight.Bold, color = Lima
+            )
+        }
     }
 }
 
