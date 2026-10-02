@@ -100,7 +100,11 @@ class OfertaAccessibilityService : AccessibilityService() {
                 escopo.launch { AcoesOferta.abrirLocal(this@OfertaAccessibilityService, endereco) }
             }
         }
-        bolha = BolhaFlutuante(this)
+        bolha = BolhaFlutuante(this).apply {
+            // Plano B do leitor: segurar o dedo na bolha manda ler a tela agora,
+            // com imagem inclusive. Serve quando a oferta nao chega sozinha.
+            aoSegurar = { lerAgora() }
+        }
         aplicarPreferencias()
 
         // Bolha: lucro de hoje + início do turno, reativos ao banco.
@@ -312,6 +316,31 @@ class OfertaAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * As corridas que a lista do inDrive mostrou por último.
+     *
+     * A lista é a única tela em que as duas distâncias de cada corrida aparecem.
+     * Guardamos para completar o detalhe quando ele abrir — por isso a validade
+     * curta: o motorista rola a lista o tempo todo e oferta velha some do app.
+     */
+    private var listaInDrive: List<OfertaInDrive.CorridaDaLista> = emptyList()
+    private var listaInDriveEm = 0L
+
+    private fun guardarListaInDrive(corridas: List<OfertaInDrive.CorridaDaLista>) {
+        if (corridas.isEmpty()) return
+        // Junta com o que já havia: rolar a lista troca quais ficam na tela, e a
+        // corrida que o motorista abre pode ter saído de vista no meio do caminho.
+        val juntas = (corridas + listaInDrive)
+            .distinctBy { it.valor to Math.round(it.kmBusca * 10) }
+            .take(MAX_CORRIDAS_LISTA)
+        listaInDrive = juntas
+        listaInDriveEm = System.currentTimeMillis()
+    }
+
+    private fun listaInDriveValida(): List<OfertaInDrive.CorridaDaLista> =
+        if (System.currentTimeMillis() - listaInDriveEm < VALIDADE_LISTA_MS) listaInDrive
+        else emptyList()
+
     /** Oferta escolhida + de onde veio + quantas ofertas havia na tela (listas mostram várias). */
     private class Achado(val oferta: Oferta, val pacote: String, val total: Int)
 
@@ -327,7 +356,14 @@ class OfertaAccessibilityService : AccessibilityService() {
         // Resultado real: 4,4 km numa corrida de 4,4 de busca + 6,0 de viagem.
         val doInDrive = leituras.filter { it.pacote == OfertaInDrive.PACOTE }
         if (doInDrive.isNotEmpty()) {
-            return escolher(doInDrive.flatMap { it.textos }, OfertaInDrive.PACOTE)
+            val textos = doInDrive.flatMap { it.textos }
+            // Passando pela lista: guarda as corridas e NAO mostra cartao nenhum.
+            // E ali que estao os dois km (ponto A e ponto B) de cada corrida.
+            if (OfertaInDrive.ehLista(textos)) {
+                guardarListaInDrive(OfertaInDrive.extrairDaLista(textos))
+                return null
+            }
+            return escolher(textos, OfertaInDrive.PACOTE)
         }
 
         for (l in leituras) {
@@ -345,7 +381,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         // de uma vez (o leitor comum faria um Frankenstein) e os botoes de
         // contraproposta tem valores MAIORES que o da corrida.
         if (pacote == OfertaInDrive.PACOTE) {
-            val oferta = OfertaInDrive.extrair(textos) ?: return null
+            val oferta = OfertaInDrive.extrair(textos, listaInDriveValida()) ?: return null
             return Achado(oferta, pacote, 1)
         }
 
@@ -478,6 +514,22 @@ class OfertaAccessibilityService : AccessibilityService() {
 
     // ================================================================== teste manual
 
+    /**
+     * Leitura sob encomenda: o motorista segurou o dedo na bolha.
+     *
+     * Zera a memoria do que ja foi mostrado (senao a mesma oferta nao reaparece)
+     * e, se a leitura por texto nao fechar, cai direto na leitura por imagem.
+     */
+    fun lerAgora() {
+        assinaturaDispensada = null
+        ultimaAssinatura = null
+        varredurasVazias = 0
+        varrerTela()
+        if (overlay?.visivel != true && ocrDisponivel()) {
+            solicitarOcr(ultimoPacote ?: OfertaInDrive.PACOTE)
+        }
+    }
+
     /** Usado pelo botão "Testar" do Dashboard: mostra uma oferta fictícia por 6 segundos. */
     fun mostrarTeste() {
         val ov = overlay ?: return
@@ -503,6 +555,8 @@ class OfertaAccessibilityService : AccessibilityService() {
         private const val MAX_TEXTOS = 1500
         private const val JANELA_DUPLICADA_MS = 5 * 60 * 1000L
         private const val INTERVALO_OCR_MS = 800L
+        private const val VALIDADE_LISTA_MS = 10 * 60 * 1000L
+        private const val MAX_CORRIDAS_LISTA = 40
 
         /** Loga todos os textos lidos (para calibrar as Regex). Mude para false na versão final. */
         const val LOG_TEXTOS = true

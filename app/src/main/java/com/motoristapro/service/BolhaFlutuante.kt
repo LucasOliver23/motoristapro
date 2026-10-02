@@ -135,25 +135,39 @@ class BolhaFlutuante(private val context: Context) {
             var toqueX = 0f
             var toqueY = 0f
             var moveu = false
+            // Segurar na bolha = "leia esta tela agora". Feito na mao porque o
+            // setOnTouchListener devolve true e engole os eventos antes do
+            // detector de toque longo do proprio Android.
+            var jaLeu = false
+            val segurou = Runnable {
+                jaLeu = true
+                aoSegurar?.invoke()
+            }
             setOnTouchListener { view, ev ->
                 when (ev.action) {
                     MotionEvent.ACTION_DOWN -> {
                         xInicial = params.x; yInicial = params.y
                         toqueX = ev.rawX; toqueY = ev.rawY
                         moveu = false
+                        jaLeu = false
+                        handler.postDelayed(segurou, TEMPO_SEGURAR_MS)
                         true
                     }
                     MotionEvent.ACTION_MOVE -> {
                         val dx = (ev.rawX - toqueX).toInt()
                         val dy = (ev.rawY - toqueY).toInt()
-                        if (abs(dx) > dp(6) || abs(dy) > dp(6)) moveu = true
+                        if (abs(dx) > dp(6) || abs(dy) > dp(6)) {
+                            moveu = true
+                            handler.removeCallbacks(segurou)
+                        }
                         params.x = (xInicial + dx).coerceAtLeast(0)
                         params.y = (yInicial + dy).coerceAtLeast(0)
                         if (view.isAttachedToWindow) runCatching { wm.updateViewLayout(view, params) }
                         true
                     }
                     MotionEvent.ACTION_UP -> {
-                        if (moveu) {
+                        handler.removeCallbacks(segurou)
+                        if (moveu || jaLeu) {
                             // Gruda na borda mais próxima.
                             val largura = context.resources.displayMetrics.widthPixels
                             params.x = if (params.x + view.width / 2 < largura / 2) 0 else largura - view.width
@@ -163,11 +177,24 @@ class BolhaFlutuante(private val context: Context) {
                         }
                         true
                     }
+                    MotionEvent.ACTION_CANCEL -> {
+                        handler.removeCallbacks(segurou)
+                        true
+                    }
                     else -> false
                 }
             }
         }
     }
+
+    /**
+     * Chamado quando o motorista SEGURA o dedo na bolha.
+     *
+     * Serve de plano B do leitor: tem app (e tela) em que a oferta não chega
+     * sozinha, e aí ele abre a corrida, segura a bolha e o app lê o que está
+     * na tela naquele instante.
+     */
+    var aoSegurar: (() -> Unit)? = null
 
     private fun abrirApp() {
         try {
@@ -184,6 +211,8 @@ class BolhaFlutuante(private val context: Context) {
 
     private companion object {
         const val TAG = "MotoristaPro"
+        /** Meio segundo de dedo parado na bolha já conta como "leia agora". */
+        const val TEMPO_SEGURAR_MS = 500L
         val COR_LIMA = 0xFFA3E635.toInt()
         val COR_FUNDO = 0xEE0F1410.toInt()
         val COR_FUNDO_NEGATIVO = 0xEE3A1212.toInt()

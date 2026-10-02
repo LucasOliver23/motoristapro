@@ -163,6 +163,95 @@ class OfertaInDriveTest {
         assertNull(OfertaInDrive.extrair(ambiguo))
     }
 
+    // ------------------------------------------------- a lista de pedidos
+
+    /** Tela "Pedidos de viagem" com cinco corridas, transcrita do vídeo. */
+    private val listaDePedidos = listOf(
+        "Resolva esses problemas para evitar perder as melhores solicitações",
+        "Preço justo", "R$9", "R$ 2,4/km",
+        "Avenida 85 219 (St. Marista)", "0,7 km",
+        "Instituto Habiens (Praça do Cruzeiro - Setor Sul, Goiânia - ...", "3,0 km",
+        "Larissa", "★ 4.94 (70)", "9 min.",
+        "R$8", "R$ 1,2/km",
+        "Rua 1058 332 (St. Pedro Ludovico)", "3,6 km",
+        "Goiânia Shopping (Avenida T-10 - Setor Bueno, Goiânia - GO)", "3,3 km",
+        "Micaela", "★ 4.81 (500)", "7 min.",
+        "Preço justo", "PIX", "R$19", "R$ 0,9/km",
+        "Rua Oiraná 25 (Parque Amazonia)", "3,8 km",
+        "Buffet Duarte e delícias restaurante (Avenida Tamoios ...", "16,4 km",
+        "Izadora", "★ 4.97 (37)", "10 min.",
+        "Preço justo", "PIX", "R$23", "R$ 0,8/km",
+        "Chama Forte Peças E Conserto (Rua Senador Jaime - Setor C...", "4,8 km",
+        "Rua Nevada, 962 (Setor Colonial Sul, Aparecida de Goi...", "23,6 km",
+        "Rei das", "★ 5.0 (0)", "7 min.",
+        "PIX", "Entregador", "Pedido comercial", "R$18", "R$ 1/km",
+        "Selaria Gaúcha", "5,0 km", "Rua Rmp 25 Q Area 0", "13,8 km",
+        "Alessandra", "★ 4.84 (204)", "Agora mesmo", "Couro",
+        "Pedidos de viagem", "Desempenho"
+    )
+
+    @Test
+    fun listaEReconhecida_eOdetalheNao() {
+        assertTrue(OfertaInDrive.ehLista(listaDePedidos))
+        assertTrue(!OfertaInDrive.ehLista(detalhe11))
+    }
+
+    @Test
+    fun listaTrazAsDuasDistanciasDeCadaCorrida() {
+        val corridas = OfertaInDrive.extrairDaLista(listaDePedidos)
+        assertEquals(5, corridas.size)
+
+        // Os totais que o próprio inDrive usa para mostrar o R$/km de cada card.
+        val porValor = corridas.associateBy { it.valor }
+        perto(3.7, porValor[9.0]!!.kmTotal, "R$ 9")     // 0,7 + 3,0  -> R$ 2,4/km
+        perto(6.9, porValor[8.0]!!.kmTotal, "R$ 8")     // 3,6 + 3,3  -> R$ 1,2/km
+        perto(20.2, porValor[19.0]!!.kmTotal, "R$ 19")  // 3,8 + 16,4 -> R$ 0,9/km
+        perto(28.4, porValor[23.0]!!.kmTotal, "R$ 23")  // 4,8 + 23,6 -> R$ 0,8/km
+        perto(18.8, porValor[18.0]!!.kmTotal, "R$ 18")  // 5,0 + 13,8 -> R$ 1/km
+    }
+
+    @Test
+    fun linhaDoReaisPorKm_naoViraCorrida() {
+        // "R$ 2,4/km" tem R$ e número, mas não é o valor de nenhuma corrida.
+        val corridas = OfertaInDrive.extrairDaLista(listaDePedidos)
+        assertTrue(corridas.none { it.valor == 2.4 || it.valor == 1.2 || it.valor == 0.8 })
+    }
+
+    // --------------------------------- o detalhe completado pela lista
+
+    /** Mesma corrida de R$ 23, agora aberta — com a etiqueta verde do mapa escondida. */
+    private val detalhe23SemViagem = listOf(
+        "Pedido de viagem", "14 min", "4,7 km", "34 min",
+        "R$ 0,8/km", "~4,7 km", "R$ 23", "Preço justo", "Rei das", "5.0 (0)",
+        "Chama Forte Peças E Conserto (Rua Senador Jaime - Setor Centro Oeste, Goiânia - GO)",
+        "Rua Nevada, 962 (Setor Colonial Sul, Aparecida de Goiânia - GO)", "PIX",
+        "Aceitar por R$ 23", "Ofereça sua tarifa", "R$ 26", "R$ 28", "R$ 29", "Fechar"
+    )
+
+    @Test
+    fun semALista_oDetalheIncompletoNaoMostraNada() {
+        assertNull(OfertaInDrive.extrair(detalhe23SemViagem))
+    }
+
+    @Test
+    fun comALista_oDetalheIncompletoFechaAConta() {
+        val corridas = OfertaInDrive.extrairDaLista(listaDePedidos)
+        val oferta = OfertaInDrive.extrair(detalhe23SemViagem, corridas)!!
+        perto(28.4, oferta.km, "km vindo da lista")
+        perto(0.81, oferta.reaisPorKm, "R$/km")          // o inDrive mostra R$ 0,8/km
+        // Sem a etiqueta verde não há o tempo da viagem: contar só os 14 min da
+        // busca daria R$ 98/hora. Zero deixa o R$/hora de fora da classificação.
+        assertEquals(0, oferta.minutos)
+    }
+
+    @Test
+    fun aListaNaoAtropelaUmDetalheCompleto() {
+        // detalhe11 traz busca e viagem; sem a corrida dele na lista, vale a tela.
+        val oferta = OfertaInDrive.extrair(detalhe11, OfertaInDrive.extrairDaLista(listaDePedidos))!!
+        perto(10.4, oferta.km, "km da própria tela")
+        assertEquals(22, oferta.minutos)
+    }
+
     @Test
     fun telaVazia_naoQuebra() {
         assertNull(OfertaInDrive.extrair(emptyList()))

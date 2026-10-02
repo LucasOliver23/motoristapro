@@ -3,26 +3,28 @@ package com.motoristapro.service
 /**
  * Leitor das ofertas do inDrive.
  *
- * O inDrive é diferente da Uber e da 99 e precisa de regras próprias:
+ * O inDrive é diferente da Uber e da 99 em tudo que importa aqui:
  *
- * 1. **Lista cheia de ofertas.** A tela "Pedidos de viagem" mostra dez, quinze
- *    corridas de uma vez. Ler essa tela daria um número Frankenstein, com o valor
- *    de uma e o km de outra. Por isso este leitor só age na tela de DETALHE —
- *    aquela em que aparecem "Aceitar por R$ X" e "Ofereça sua tarifa", que é
- *    quando o motorista está de fato decidindo uma corrida.
+ * 1. **A LISTA é a melhor fonte.** Em "Pedidos de viagem" cada card já traz as
+ *    DUAS distâncias — a do ponto A (busca) e a do ponto B (viagem) — e é com
+ *    elas que o próprio inDrive calcula o R$/km que exibe. Conferido numa tela
+ *    com cinco ofertas: 4,8 + 23,6 km em R$ 23 dá R$ 0,81/km, e o inDrive mostra
+ *    R$ 0,8/km. Só que a lista mostra uma dúzia de corridas de uma vez, então
+ *    ela é LIDA e GUARDADA, sem cartão nenhum na tela.
  *
- * 2. **"Ofereça sua tarifa" tem valores maiores na tela.** Embaixo do botão de
- *    aceitar ficam sugestões de contraproposta (R$ 7, R$ 8, R$ 9). O leitor comum
- *    pega o MAIOR R$ da tela e cravaria R$ 9 numa corrida de R$ 6. Aqui o valor
- *    vem do próprio botão "Aceitar por R$ 6" — não tem como errar.
+ * 2. **A tela de detalhe esconde a viagem.** Abrindo a corrida, o cartão traz só
+ *    "~4,7 km" (a busca) e a etiqueta verde do mapa — a que tem o km da viagem —
+ *    some conforme o zoom. Foi o que deixou o app anunciar R$ 2,50/km numa
+ *    corrida de R$ 1,06/km. Por isso o detalhe pergunta à lista: "a corrida de
+ *    R$ 23 tinha quantos km no total?".
  *
- * 3. **A distância de busca aparece duas vezes.** No mapa ("1,0 km") e no cartão
- *    ("~1,0 km"). Somar tudo contaria a busca em dobro. Aqui as distâncias
- *    repetidas contam uma vez só.
+ * 3. **"Ofereça sua tarifa" tem valores MAIORES na tela.** Embaixo do botão de
+ *    aceitar ficam as contrapropostas (R$ 26, R$ 28, R$ 29). O leitor comum pega
+ *    o maior R$ da tela e cravaria R$ 29 numa corrida de R$ 23. Aqui o valor vem
+ *    do botão "Aceitar por R$ 23".
  *
- * 4. **O tempo do passageiro se mistura com o da rota.** Ao lado da nota aparece
- *    um "2 min." que é há quanto tempo o pedido chegou, não trecho de viagem.
- *    Só conta o "N min" que vem colado num "N km" — que são as etiquetas do mapa.
+ * 4. **O "7 min." do card não é tempo de viagem**, é há quanto tempo o pedido
+ *    chegou. Só conta o "N min" colado num "N km", que são as etiquetas do mapa.
  *
  * Kotlin puro: coberto por teste unitário (OfertaInDriveTest).
  */
@@ -44,6 +46,15 @@ object OfertaInDrive {
 
     private val RE_MIN = Regex("""(\d+)\s*min""", RegexOption.IGNORE_CASE)
 
+    /** A lista tem esta aba embaixo; a tela de detalhe, não. */
+    private val RE_LISTA = Regex("""pedidos\s+de\s+viagem""", RegexOption.IGNORE_CASE)
+
+    /** "R$ 2,4/km", "R$ 1/km" — informação, nunca o valor da corrida. */
+    private val RE_POR_KM = Regex("""R\$\s*\d+(?:[.,]\d+)?\s*/\s*km""", RegexOption.IGNORE_CASE)
+
+    /** "R$23", "R$ 19" — o valor de um card da lista. */
+    private val RE_VALOR = Regex("""R\$\s*(\d{1,3}(?:\.\d{3})*(?:[.,]\d{1,2})?)""")
+
     /** Entrega: muda o que esperar da tela (às vezes sem minutos). */
     private val RE_ENTREGA = Regex(
         """\bentregas?\b|entregador|porta\s+a\s+porta""",
@@ -52,6 +63,63 @@ object OfertaInDrive {
 
     private const val KM_MAX = 500.0
     private const val MIN_MAX = 600
+
+    /**
+     * Uma corrida como a LISTA mostra: valor, km até o passageiro e km da viagem.
+     * É a única fonte em que as duas distâncias aparecem sempre.
+     */
+    data class CorridaDaLista(
+        val valor: Double,
+        val kmBusca: Double,
+        val kmViagem: Double,
+        val enderecos: List<String>
+    ) {
+        val kmTotal: Double get() = kmBusca + kmViagem
+    }
+
+    /** A tela aberta é a lista de pedidos (e não o detalhe de uma corrida)? */
+    fun ehLista(textos: List<String>): Boolean {
+        val tudo = textos.joinToString("\n")
+        return RE_LISTA.containsMatchIn(tudo) && !RE_ACEITAR.containsMatchIn(tudo)
+    }
+
+    /**
+     * As corridas da lista, uma a uma.
+     *
+     * Cada card começa numa linha com o valor ("R$23") — a linha do "R$ 0,8/km"
+     * não serve de fronteira. Dentro do card, a primeira distância é a do ponto A
+     * e a segunda a do ponto B; card com menos de duas distâncias é descartado,
+     * porque meia leitura aqui vira R$/km inflado lá na frente.
+     */
+    fun extrairDaLista(textos: List<String>): List<CorridaDaLista> {
+        if (textos.isEmpty()) return emptyList()
+        val inicios = textos.indices.filter { i ->
+            RE_VALOR.containsMatchIn(textos[i]) && !RE_POR_KM.containsMatchIn(textos[i])
+        }
+        return inicios.mapIndexedNotNull { pos, ini ->
+            val fim = inicios.getOrNull(pos + 1) ?: textos.size
+            umCard(textos.subList(ini, fim))
+        }
+    }
+
+    private fun umCard(linhas: List<String>): CorridaDaLista? {
+        val tudo = linhas.joinToString("\n")
+        val valor = RE_VALOR.find(linhas.first())
+            ?.groupValues?.get(1)
+            ?.let { OfertaParser.paraDouble(it) }
+            ?.takeIf { it > 0.0 }
+            ?: return null
+
+        val distancias = RE_KM.findAll(tudo)
+            .mapNotNull { OfertaParser.paraDouble(it.groupValues[2])?.takeIf { d -> d > 0.0 } }
+            .toList()
+        if (distancias.size < 2) return null
+
+        val busca = distancias[0]
+        val viagem = distancias[1]
+        if (busca + viagem > KM_MAX) return null
+        return CorridaDaLista(valor, busca, viagem, OfertaParser.extrairEnderecos(linhas))
+    }
 
     /**
      * A tela aberta é a de decidir uma corrida?
@@ -67,8 +135,15 @@ object OfertaInDrive {
     fun pareceEntrega(textos: List<String>): Boolean =
         RE_ENTREGA.containsMatchIn(textos.joinToString("\n"))
 
-    /** A oferta da tela de detalhe, ou null se não for essa tela ou faltar número. */
-    fun extrair(textos: List<String>): Oferta? {
+    /**
+     * A oferta da tela de detalhe, completada pelo que a lista já tinha mostrado.
+     *
+     * @param lista a última leitura da lista de pedidos. A distância de lá é a
+     *        boa: no detalhe, a etiqueta do mapa some conforme o zoom, e quando
+     *        aparece traz uma rota diferente (23,7 km contra os 28,4 da lista,
+     *        na mesma corrida de R$ 23 — o inDrive concorda com a lista).
+     */
+    fun extrair(textos: List<String>, lista: List<CorridaDaLista> = emptyList()): Oferta? {
         if (textos.isEmpty() || !ehTelaDeDetalhe(textos)) return null
         return try {
             val tudo = textos.joinToString("\n")
@@ -78,10 +153,19 @@ object OfertaInDrive {
                 ?: return null
             if (valor <= 0.0) return null
 
-            val km = somarDistancias(tudo) ?: return null
+            val daTela = somarDistancias(tudo)
+            val daLista = procurarNaLista(valor, tudo, lista)
+
+            // A lista manda. Sem ela, vale o que a tela deu — e sem nenhum dos
+            // dois não se mostra nada, em vez de chutar o km da viagem.
+            val km = daLista ?: daTela ?: return null
             if (km <= 0.0 || km > KM_MAX || !km.isFinite()) return null
 
-            val minutos = somarMinutosDaRota(textos)
+            // Os minutos só valem quando a PRÓPRIA tela trouxe a rota inteira.
+            // Se o km veio da lista é porque a etiqueta verde não apareceu — e
+            // ela leva o tempo da viagem junto. Contar só os 14 min da busca
+            // daria R$ 98/hora numa corrida de R$ 28/hora.
+            val minutos = if (daTela != null) somarMinutosDaRota(textos) else 0
             if (minutos < 0 || minutos > MIN_MAX) return null
 
             Oferta(
@@ -94,6 +178,30 @@ object OfertaInDrive {
         } catch (e: Exception) {
             null
         }
+    }
+
+    /**
+     * Acha na lista a corrida que está aberta agora.
+     *
+     * Casa pelo VALOR, que é exato nos dois lados. Com duas corridas do mesmo
+     * valor na tela, desempata pela distância de busca mais parecida ("~4,7 km"
+     * no detalhe contra "4,8 km" na lista — arredondam diferente, então é o mais
+     * próximo, não o igual).
+     */
+    private fun procurarNaLista(
+        valor: Double,
+        tudo: String,
+        lista: List<CorridaDaLista>
+    ): Double? {
+        val mesmoValor = lista.filter { Math.abs(it.valor - valor) < 0.01 }
+        if (mesmoValor.isEmpty()) return null
+        if (mesmoValor.size == 1) return mesmoValor.first().kmTotal
+
+        val buscaNaTela = RE_KM.findAll(tudo)
+            .firstOrNull { it.groupValues[1] == "~" }
+            ?.let { OfertaParser.paraDouble(it.groupValues[2]) }
+            ?: return mesmoValor.first().kmTotal
+        return mesmoValor.minByOrNull { Math.abs(it.kmBusca - buscaNaTela) }?.kmTotal
     }
 
     /**
