@@ -193,7 +193,18 @@ class OfertaAccessibilityService : AccessibilityService() {
         val semValorEmTexto = leituras.none { l -> l.textos.any { it.contains("R$") } }
         val quaseSemTexto = leituras.sumOf { it.textos.size } < 15
         val pacoteOcr = leituras.any { it.pacote in pacotesQuePrecisamOcr }
-        if (resultado == null && semValorEmTexto && (quaseSemTexto || pacoteOcr) && ocrDisponivel()) {
+
+        // inDrive: se o motorista esta decidindo uma corrida mas a leitura nao
+        // fechou, falta o km da viagem — o mapa pode nao estar na arvore de
+        // acessibilidade. A imagem da tela resolve, e vale a pena o print aqui
+        // porque sem isso nao ha cartao nenhum.
+        val inDriveIncompleto = resultado == null &&
+            leituras.any { it.pacote == OfertaInDrive.PACOTE } &&
+            OfertaInDrive.ehTelaDeDetalhe(leituras.flatMap { it.textos })
+
+        if (resultado == null && ocrDisponivel() &&
+            (inDriveIncompleto || (semValorEmTexto && (quaseSemTexto || pacoteOcr)))
+        ) {
             solicitarOcr(leituras.first().pacote)
             return
         }
@@ -310,6 +321,15 @@ class OfertaAccessibilityService : AccessibilityService() {
      * Em telas com várias corridas, escolhe a de melhor R$/km.
      */
     private fun interpretar(leituras: List<Leitura>): Achado? {
+        // inDrive: o mapa e o cartao sao JANELAS DIFERENTES. A etiqueta verde do
+        // mapa traz o km da viagem e o cartao traz so o da busca — olhar janela
+        // por janela devolvia a primeira que desse certo, que era a do cartao.
+        // Resultado real: 4,4 km numa corrida de 4,4 de busca + 6,0 de viagem.
+        val doInDrive = leituras.filter { it.pacote == OfertaInDrive.PACOTE }
+        if (doInDrive.isNotEmpty()) {
+            return escolher(doInDrive.flatMap { it.textos }, OfertaInDrive.PACOTE)
+        }
+
         for (l in leituras) {
             if (l.textos.isEmpty()) continue
             escolher(l.textos, l.pacote)?.let { return it }

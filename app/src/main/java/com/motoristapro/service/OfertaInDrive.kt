@@ -78,7 +78,7 @@ object OfertaInDrive {
                 ?: return null
             if (valor <= 0.0) return null
 
-            val km = somarDistancias(tudo)
+            val km = somarDistancias(tudo) ?: return null
             if (km <= 0.0 || km > KM_MAX || !km.isFinite()) return null
 
             val minutos = somarMinutosDaRota(textos)
@@ -97,20 +97,38 @@ object OfertaInDrive {
     }
 
     /**
-     * Busca + viagem, contando cada distância uma vez.
+     * Busca + viagem, contando cada distância uma vez. null = leitura incompleta.
      *
-     * O "~1,0 km" do cartão é a mesma busca que o mapa já mostrou; somar os dois
-     * daria 4,5 km numa corrida de 3,5 km — e km a mais faz a corrida parecer
-     * PIOR do que é, o que é o erro menos perigoso, mas erro.
+     * O "~" do cartão marca a distância de BUSCA ("~4,4 km"), que o mapa também
+     * mostra na etiqueta azul. A etiqueta verde traz a viagem (6,0 km). Somar
+     * tudo contaria a busca em dobro; somar só o que está no cartão daria apenas
+     * a busca.
+     *
+     * Esse segundo caso aconteceu de verdade e é o motivo deste método poder
+     * devolver null: numa corrida de R$ 11 com 4,4 km de busca e 6,0 km de
+     * viagem, o app leu só os 4,4 e anunciou R$ 2,50/km numa corrida de
+     * R$ 1,06/km — corrida ruim com cara de ótima, o pior erro possível aqui.
+     *
+     * Então: achou a busca mas não achou NENHUMA outra distância? A viagem não
+     * foi lida, e o certo é não mostrar nada em vez de mostrar um número que
+     * engana.
      */
-    private fun somarDistancias(tudo: String): Double {
-        val valores = RE_KM.findAll(tudo)
-            .mapNotNull { OfertaParser.paraDouble(it.groupValues[2]) }
-            .filter { it > 0.0 }
+    private fun somarDistancias(tudo: String): Double? {
+        val achados = RE_KM.findAll(tudo)
+            .mapNotNull { m ->
+                OfertaParser.paraDouble(m.groupValues[2])
+                    ?.takeIf { it > 0.0 }
+                    ?.let { km -> km to (m.groupValues[1] == "~") }
+            }
             .toList()
-        if (valores.isEmpty()) return 0.0
-        // distinct() resolve a repetição da busca; com um valor só, ele é o total.
-        return valores.distinct().sum()
+        if (achados.isEmpty()) return null
+
+        val busca = achados.firstOrNull { it.second }?.first
+            ?: return achados.map { it.first }.distinct().sum()   // tela sem "~": soma o que há
+
+        val viagem = achados.map { it.first }.filter { it != busca }.distinct()
+        if (viagem.isEmpty()) return null                         // só a busca: leitura incompleta
+        return busca + viagem.sum()
     }
 
     /**

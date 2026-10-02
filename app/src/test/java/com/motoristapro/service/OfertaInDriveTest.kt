@@ -120,6 +120,49 @@ class OfertaInDriveTest {
         assertTrue(!OfertaInDrive.pareceEntrega(detalhe6))
     }
 
+    // ------------------------------------------------- leitura incompleta
+
+    private val detalhe11 = listOf(
+        "Pedido de viagem", "12 min", "6,0 km", "10 min", "4,4 km",
+        "R$ 1,1/km", "~4,4 km", "R$ 11", "Preço justo", "Bianca", "4.93", "(17)", "8 min.",
+        "Rua Catauai Q 30 89 (Parque Amazonia)",
+        "Espaço Lidiany Loiola Hair (Rua U-53 - Vila Uniao, Goiânia - GO)", "PIX",
+        "Aceitar por R$ 11", "Ofereça sua tarifa", "R$ 13", "R$ 14", "Fechar"
+    )
+
+    @Test
+    fun buscaMaisViagem_quandoAsDuasAparecem() {
+        val oferta = OfertaInDrive.extrair(detalhe11)!!
+        perto(10.4, oferta.km, "4,4 de busca + 6,0 de viagem")
+        // O inDrive mostra R$ 1,1/km nesta corrida.
+        perto(1.06, oferta.reaisPorKm, "R$/km")
+        assertEquals(22, oferta.minutos)
+    }
+
+    @Test
+    fun soABusca_naoValePorCartao() {
+        // Caso real: o mapa e o cartão são janelas diferentes e só a do cartão
+        // foi lida. Com 4,4 km o app anunciou R$ 2,50/km numa corrida de
+        // R$ 1,06/km — corrida ruim com cara de ótima. Melhor não mostrar nada.
+        val soOCartao = listOf(
+            "R$ 1,1/km", "~4,4 km", "R$ 11", "Preço justo", "Bianca", "4.93", "(17)", "8 min.",
+            "Rua Catauai Q 30 89 (Parque Amazonia)",
+            "Aceitar por R$ 11", "Ofereça sua tarifa", "R$ 13", "R$ 14", "Fechar"
+        )
+        assertTrue(OfertaInDrive.ehTelaDeDetalhe(soOCartao))
+        assertNull(OfertaInDrive.extrair(soOCartao))
+    }
+
+    @Test
+    fun buscaIgualAViagem_naoInventaDistancia() {
+        // Busca e viagem com o mesmo número: sem como separar, não mostra.
+        val ambiguo = listOf(
+            "Pedido de viagem", "5 min", "3,0 km", "~3,0 km", "R$ 10",
+            "Aceitar por R$ 10", "Ofereça sua tarifa"
+        )
+        assertNull(OfertaInDrive.extrair(ambiguo))
+    }
+
     @Test
     fun telaVazia_naoQuebra() {
         assertNull(OfertaInDrive.extrair(emptyList()))
