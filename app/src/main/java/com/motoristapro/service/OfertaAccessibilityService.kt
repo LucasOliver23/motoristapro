@@ -223,7 +223,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         }
 
         registrarDiagnostico(leituras.flatMap { it.textos }, leituras.map { it.pacote }, leituras.size,
-            resultado?.oferta, origem = "texto")
+            resultado?.oferta, origem = "texto", motivo = motivoInDrive(leituras, resultado))
         if (leituras.all { it.textos.isEmpty() }) return
         processarResultado(resultado?.oferta, resultado?.pacote, resultado?.total ?: 1)
     }
@@ -319,7 +319,10 @@ class OfertaAccessibilityService : AccessibilityService() {
         ocr.ler { linhas ->
             if (linhas == null) return@ler      // falha na captura: tenta no próximo evento
             val achado = escolher(linhas, pacote)
-            registrarDiagnostico(linhas, listOf(pacote), 1, achado?.oferta, origem = "imagem (OCR)")
+            val motivo = if (achado == null && pacote == OfertaInDrive.PACOTE) {
+                OfertaInDrive.porQueNaoLeu(linhas, listaInDriveValida())
+            } else null
+            registrarDiagnostico(linhas, listOf(pacote), 1, achado?.oferta, origem = "imagem (OCR)", motivo = motivo)
             if (achado != null) pacotesQuePrecisamOcr += pacote
             processarResultado(achado?.oferta, pacote, achado?.total ?: 1)
         }
@@ -365,14 +368,29 @@ class OfertaAccessibilityService : AccessibilityService() {
         // Resultado real: 4,4 km numa corrida de 4,4 de busca + 6,0 de viagem.
         val doInDrive = leituras.filter { it.pacote == OfertaInDrive.PACOTE }
         if (doInDrive.isNotEmpty()) {
-            val textos = doInDrive.flatMap { it.textos }
             // Passando pela lista: guarda as corridas e NAO mostra cartao nenhum.
             // E ali que estao os dois km (ponto A e ponto B) de cada corrida.
-            if (OfertaInDrive.ehLista(textos)) {
-                guardarListaInDrive(OfertaInDrive.extrairDaLista(textos))
+            val janelasDaLista = doInDrive.filter { OfertaInDrive.ehLista(it.textos) }
+            janelasDaLista.forEach { guardarListaInDrive(OfertaInDrive.extrairDaLista(it.textos)) }
+
+            // O detalhe abre como uma folha POR CIMA da lista, e a lista continua
+            // na arvore de acessibilidade. Juntar tudo trazia os "N km" de uma
+            // duzia de outras corridas para a conta desta — por isso a janela da
+            // lista fica de fora na hora de ler a oferta aberta.
+            val doDetalhe = doInDrive.filterNot { OfertaInDrive.ehLista(it.textos) }
+                .flatMap { it.textos }
+            if (OfertaInDrive.ehTelaDeDetalhe(doDetalhe)) {
+                return escolher(doDetalhe, OfertaInDrive.PACOTE)
+            }
+            // Nenhuma janela de oferta aberta: se o que havia era a lista, nao
+            // mostra nada; senao tenta o conjunto (tela de transicao, OCR etc.).
+            if (janelasDaLista.isNotEmpty()) return null
+            val todosInDrive = doInDrive.flatMap { it.textos }
+            if (OfertaInDrive.ehLista(todosInDrive)) {
+                guardarListaInDrive(OfertaInDrive.extrairDaLista(todosInDrive))
                 return null
             }
-            return escolher(textos, OfertaInDrive.PACOTE)
+            return escolher(todosInDrive, OfertaInDrive.PACOTE)
         }
 
         for (l in leituras) {
@@ -402,13 +420,29 @@ class OfertaAccessibilityService : AccessibilityService() {
         return Achado(melhor, pacote, ofertas.size)
     }
 
+    /**
+     * Por que a tela do inDrive não virou cartão — a mesma separação de janelas
+     * que o leitor usa, para o diagnóstico não explicar uma tela diferente da
+     * que foi lida.
+     */
+    private fun motivoInDrive(leituras: List<Leitura>, resultado: Achado?): String? {
+        if (resultado != null) return null
+        val doInDrive = leituras.filter { it.pacote == OfertaInDrive.PACOTE }
+        if (doInDrive.isEmpty()) return null
+        val doDetalhe = doInDrive.filterNot { OfertaInDrive.ehLista(it.textos) }.flatMap { it.textos }
+        val textos = if (OfertaInDrive.ehTelaDeDetalhe(doDetalhe)) doDetalhe
+            else doInDrive.flatMap { it.textos }
+        return OfertaInDrive.porQueNaoLeu(textos, listaInDriveValida())
+    }
+
     /** Guarda a última leitura com cara de oferta para a tela de diagnóstico (aba Mais). */
     private fun registrarDiagnostico(
         todos: List<String>,
         pacotes: List<String>,
         janelas: Int,
         oferta: Oferta?,
-        origem: String
+        origem: String,
+        motivo: String? = null
     ) {
         val relevante = oferta != null || todos.any { it.contains("R$") || it.contains("km", ignoreCase = true) }
         // Também registra quando o app-alvo está aberto mas não expõe nenhum texto (sinal importante).
@@ -421,7 +455,8 @@ class OfertaAccessibilityService : AccessibilityService() {
             reconhecida = oferta?.let {
                 "R$ %.2f • %.2f km • %d min • R$ %.2f/km".format(it.valor, it.km, it.minutos, it.reaisPorKm)
             },
-            origem = origem
+            origem = origem,
+            motivo = if (oferta == null) motivo else null
         )
         if (LOG_TEXTOS && todos.isNotEmpty()) Log.d(TAG, "Textos ($origem): ${todos.joinToString(" | ")}")
     }
@@ -605,6 +640,8 @@ data class Diagnostico(
     val textos: List<String>,
     /** Resumo da oferta reconhecida, ou null se não reconheceu. */
     val reconhecida: String?,
+    /** Quando não reconheceu: em uma frase, o que faltou (hoje só o inDrive explica). */
+    val motivo: String? = null,
     /** "texto" (acessibilidade) ou "imagem (OCR)". */
     val origem: String = "texto"
 )

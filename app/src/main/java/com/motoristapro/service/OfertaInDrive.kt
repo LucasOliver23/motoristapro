@@ -153,7 +153,11 @@ object OfertaInDrive {
                 ?: return null
             if (valor <= 0.0) return null
 
-            val daTela = somarDistancias(tudo)
+            // Com a lista ATRAS do detalhe (ela continua na arvore de
+            // acessibilidade), os "N km" de uma duzia de outras corridas entram
+            // na conta. Nessa tela misturada so a lista guardada vale.
+            val misturada = RE_LISTA.containsMatchIn(tudo)
+            val daTela = if (misturada) null else somarDistancias(tudo)
             val daLista = procurarNaLista(valor, tudo, lista)
 
             // A lista manda. Sem ela, vale o que a tela deu — e sem nenhum dos
@@ -217,9 +221,15 @@ object OfertaInDrive {
      * viagem, o app leu só os 4,4 e anunciou R$ 2,50/km numa corrida de
      * R$ 1,06/km — corrida ruim com cara de ótima, o pior erro possível aqui.
      *
-     * Então: achou a busca mas não achou NENHUMA outra distância? A viagem não
-     * foi lida, e o certo é não mostrar nada em vez de mostrar um número que
-     * engana.
+     * E tem o caso contrário, visto numa corrida de R$ 6: o cartão trouxe
+     * "~1,5 km" e o mapa "1,6 km" (azul) e "2,7 km" (verde). O 1,5 e o 1,6 são
+     * a MESMA busca, cada um arredondado do seu jeito — somar os três daria
+     * 5,8 km numa corrida de 4,4 km. Como não há como saber qual dos dois é a
+     * busca repetida sem arriscar engolir uma viagem curta de verdade (o que
+     * deixaria a corrida ruim com cara de boa), a tela fica ambígua:
+     *
+     * - busca + exatamente UMA outra distância  -> a soma vale;
+     * - busca + duas ou mais                    -> null, e a lista decide.
      */
     private fun somarDistancias(tudo: String): Double? {
         val achados = RE_KM.findAll(tudo)
@@ -234,9 +244,51 @@ object OfertaInDrive {
         val busca = achados.firstOrNull { it.second }?.first
             ?: return achados.map { it.first }.distinct().sum()   // tela sem "~": soma o que há
 
-        val viagem = achados.map { it.first }.filter { it != busca }.distinct()
-        if (viagem.isEmpty()) return null                         // só a busca: leitura incompleta
-        return busca + viagem.sum()
+        val resto = achados.map { it.first }.filter { it != busca }.distinct()
+        if (resto.isEmpty()) return null                          // só a busca: leitura incompleta
+        if (resto.size > 1) return null                           // ambíguo: a busca pode estar aí
+        return busca + resto.first()
+    }
+
+    /**
+     * Em uma frase, por que esta tela do inDrive não virou cartão.
+     *
+     * Serve só para a tela de Diagnóstico do leitor: até agora ela dizia apenas
+     * "Reconhecida: não", e com isso não havia como saber se faltou o botão, se
+     * faltou o km da viagem ou se a lista guardada estava vazia.
+     */
+    fun porQueNaoLeu(textos: List<String>, lista: List<CorridaDaLista> = emptyList()): String {
+        if (textos.isEmpty()) return "o inDrive não expôs texto nenhum nesta tela"
+        val tudo = textos.joinToString("\n")
+        if (ehLista(textos)) {
+            val n = extrairDaLista(textos).size
+            return "tela da lista: $n corrida(s) guardada(s); o cartão aparece ao abrir a corrida"
+        }
+        if (!ehTelaDeDetalhe(textos)) {
+            return "não é a tela de decidir a corrida (sem \"Aceitar por R$\" nem \"Ofereça sua tarifa\")"
+        }
+        val valor = RE_ACEITAR.find(tudo)?.groupValues?.get(1)?.let { OfertaParser.paraDouble(it) }
+        if (valor == null || valor <= 0.0) {
+            return "achei a tela da oferta, mas não o valor no botão \"Aceitar por R$\""
+        }
+        val misturada = RE_LISTA.containsMatchIn(tudo)
+        val daTela = if (misturada) null else somarDistancias(tudo)
+        val daLista = procurarNaLista(valor, tudo, lista)
+        if (daTela == null && daLista == null) {
+            if (misturada) {
+                return "a lista ficou aberta atras da oferta, entao os km da tela nao servem" +
+                    " — e a corrida de R$ %.2f nao estava na lista guardada (${lista.size} corrida(s))".format(valor)
+            }
+            val kms = RE_KM.findAll(tudo).map { it.groupValues[2] + " km" }.toList()
+            return "valor R$ %.2f lido, mas falta o km da viagem".format(valor) +
+                " — distâncias na tela: " + (if (kms.isEmpty()) "nenhuma" else kms.joinToString(", ")) +
+                "; lista guardada: ${lista.size} corrida(s)"
+        }
+        val km = daLista ?: daTela!!
+        if (km <= 0.0 || km > KM_MAX || !km.isFinite()) return "km fora do esperado (%.1f km)".format(km)
+        val minutos = if (daTela != null) somarMinutosDaRota(textos) else 0
+        if (minutos < 0 || minutos > MIN_MAX) return "tempo fora do esperado ($minutos min)"
+        return "a leitura fechou (R$ %.2f • %.1f km) — se não apareceu cartão, foi na hora de mostrar".format(valor, km)
     }
 
     /**

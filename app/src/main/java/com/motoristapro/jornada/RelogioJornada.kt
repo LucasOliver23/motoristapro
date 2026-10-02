@@ -149,6 +149,24 @@ class RelogioJornada(
         if (statusApps.algumOnline() != antes) fecharTrecho()
     }
 
+    /**
+     * O trecho que está aberto agora, em segundos — o tempo que o banco ainda
+     * não recebeu.
+     *
+     * A tela soma isso ao que está gravado para o cronômetro andar de segundo em
+     * segundo. Sem isso os números pulavam de 5 em 5 s (o intervalo em que o
+     * trecho é fechado), e o motorista via o relógio "demorando a atualizar".
+     */
+    fun segundosDoTrechoAberto(): Long {
+        val marco = marcoMs
+        if (marco <= 0L) return 0L
+        val segundos = (System.currentTimeMillis() - marco) / 1000
+        return if (segundos < 0 || segundos > TRECHO_MAX_SEG) 0L else segundos
+    }
+
+    /** Em que estado esse trecho aberto está correndo. */
+    fun estadoDoTrechoAberto(): EstadoJornada = estadoSalvo
+
     fun status(app: AppDeCorrida): StatusApp = statusApps.status(app)
     fun vistoEm(app: AppDeCorrida): Long = statusApps.vistoEm(app)
     fun corrigidoNaMao(app: AppDeCorrida): Boolean = statusApps.corrigidoNaMao(app)

@@ -844,6 +844,13 @@ private fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean) {
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
         )
+        d.motivo?.takeIf { d.reconhecida == null }?.let { motivo ->
+            Text(
+                "Por quê: $motivo",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextoSecundario
+            )
+        }
         if (d.textos.isNotEmpty()) {
             Text(
                 d.textos.take(40).joinToString(" | "),
@@ -860,6 +867,7 @@ private fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean) {
                     appendLine("MotoristaPro - diagnóstico $hora")
                     appendLine("Apps: ${d.pacotes.joinToString()}  Janelas: ${d.janelas}  Leitura: ${d.origem}")
                     appendLine("Reconhecida: ${d.reconhecida ?: "não"}")
+                    d.motivo?.let { appendLine("Por quê: $it") }
                     appendLine("Textos:")
                     d.textos.forEach { appendLine(it) }
                 }

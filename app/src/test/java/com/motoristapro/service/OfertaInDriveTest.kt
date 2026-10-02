@@ -257,4 +257,91 @@ class OfertaInDriveTest {
         assertNull(OfertaInDrive.extrair(emptyList()))
         assertNull(OfertaInDrive.extrair(listOf("Aceitar por R$ 10")))   // sem km
     }
+
+    // ------------------- o mesmo trecho arredondado de dois jeitos
+
+    /**
+     * Corrida de R$ 6 aberta, do vídeo de 30/09: o cartão trouxe "~1,5 km" e o
+     * mapa "1,6 km" (azul) e "2,7 km" (verde). O 1,5 e o 1,6 são a MESMA busca,
+     * cada um arredondado do seu jeito — somar os três dava 5,8 km numa corrida
+     * que a lista mostrava com 4,4 km.
+     */
+    private val detalhe6Arredondado = listOf(
+        "Pedido de viagem", "1,6 km", "9 min", "2,7 km",
+        "R$ 1,3/km", "~1,5 km", "R$ 6", "Alinny Rodrigues", "5.0", "(24)", "Agora mesmo",
+        "Rua T-51 S/N (St. Bueno)", "Residencial Ana Elvira", "PIX",
+        "Aceitar por R$ 6", "Ofereça sua tarifa", "R$ 7", "R$ 8", "R$ 9", "Pular"
+    )
+
+    /** A mesma corrida como a lista a mostrou (diagnóstico de 15:17 do motorista). */
+    private val listaComOSeis = listOf(
+        "Nova notificação", "Verifique sua foto de perfil",
+        "R$6", "R$ 1,4/km", "Rua T-51 S/N (St. Bueno)", "1,6 km",
+        "Residencial Ana Elvira", "2,8 km", "Alinny Rodrigues", "5.0", "(24)",
+        "Agora mesmo", "Entregador",
+        "R$28", "R$ 0,8/km", "Polo Visual", "5,6 km", "Barbearia 'D Carvalho", "28,2 km",
+        "Ester", "4.8", "(0)", "8 min.",
+        "R$18", "R$ 0,7/km", "Condomínio Residencial Savoy", "6,4 km",
+        "Rua 42", "18,9 km", "Rayssa", "4.84", "(0)", "4 min.",
+        "Pedidos de viagem", "Desempenho"
+    )
+
+    @Test
+    fun treeDistancias_naoSomamTodas() {
+        // Sem a lista, 1,5 + 1,6 + 2,7 daria 5,8 km (R$ 1,03/km) numa corrida de
+        // 4,4 km (R$ 1,36/km). Como não há como saber qual dos dois é a busca
+        // repetida, a tela não vale sozinha.
+        assertNull(OfertaInDrive.extrair(detalhe6Arredondado))
+    }
+
+    @Test
+    fun comALista_aCorridaDeSeisFechaCerto() {
+        val corridas = OfertaInDrive.extrairDaLista(listaComOSeis)
+        assertEquals(3, corridas.size)
+        val oferta = OfertaInDrive.extrair(detalhe6Arredondado, corridas)!!
+        perto(4.4, oferta.km, "1,6 de busca + 2,8 de viagem")
+        // O inDrive mostra R$ 1,4/km nesta corrida.
+        perto(1.36, oferta.reaisPorKm, "R$/km")
+    }
+
+    @Test
+    fun aListaDoDiagnostico_bateComOqueOInDriveMostra() {
+        val porValor = OfertaInDrive.extrairDaLista(listaComOSeis).associateBy { it.valor }
+        perto(4.4, porValor[6.0]!!.kmTotal, "R$ 6")      // 1,6 + 2,8  -> R$ 1,4/km
+        perto(33.8, porValor[28.0]!!.kmTotal, "R$ 28")   // 5,6 + 28,2 -> R$ 0,8/km
+        perto(25.3, porValor[18.0]!!.kmTotal, "R$ 18")   // 6,4 + 18,9 -> R$ 0,7/km
+    }
+
+    // --------------------- a lista aberta ATRÁS do detalhe
+
+    @Test
+    fun listaAtrasDoDetalhe_naoEntraNaConta() {
+        // O detalhe abre como uma folha sobre a lista, e a lista continua na
+        // árvore de acessibilidade. Juntando tudo, os km de uma dúzia de outras
+        // corridas entravam nesta.
+        val misturado = detalhe6Arredondado + listaComOSeis
+        assertTrue(OfertaInDrive.ehTelaDeDetalhe(misturado))
+        assertTrue(!OfertaInDrive.ehLista(misturado))
+
+        // Sem a lista guardada não há conta possível: melhor nada que um número torto.
+        assertNull(OfertaInDrive.extrair(misturado))
+
+        // Com a lista guardada, o valor do botão acha a corrida certa.
+        val oferta = OfertaInDrive.extrair(misturado, OfertaInDrive.extrairDaLista(listaComOSeis))!!
+        perto(4.4, oferta.km, "km vindo da lista guardada")
+    }
+
+    // ------------------------------------------------- por que não leu
+
+    @Test
+    fun oDiagnostico_explicaOqueFaltou() {
+        assertTrue(OfertaInDrive.porQueNaoLeu(emptyList()).contains("não expôs"))
+        assertTrue(OfertaInDrive.porQueNaoLeu(listaComOSeis).contains("lista"))
+        assertTrue(
+            OfertaInDrive.porQueNaoLeu(detalhe6Arredondado).contains("falta o km da viagem")
+        )
+        assertTrue(
+            OfertaInDrive.porQueNaoLeu(detalhe6Arredondado + listaComOSeis).contains("atras da oferta")
+        )
+    }
 }

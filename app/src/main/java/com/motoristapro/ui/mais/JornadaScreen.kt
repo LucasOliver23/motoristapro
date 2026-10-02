@@ -97,8 +97,14 @@ fun JornadaScreen() {
     val emAndamento = jornada?.ativa == true
     val pausada = jornada?.pausada == true
     val estadoAgora = relogio.estadoAtual()
+    // O trecho aberto: o tempo que o banco ainda não recebeu. Entra no cronômetro
+    // e na divisão por estado, senão o cronômetro corria de segundo em segundo e
+    // a divisão pulava de 5 em 5 s — e as duas somas não fechavam na tela.
+    val correndo = emAndamento && !pausada
     // Ler 'tique' aqui é o que manda a tela se redesenhar a cada segundo.
-    val decorridos = if (tique >= 0) segundosAgora(jornada) else 0L
+    val abertos = if (correndo && tique >= 0) relogio.segundosDoTrechoAberto() else 0L
+    val estadoAberto = relogio.estadoDoTrechoAberto()
+    val decorridos = (jornada?.segundosContados ?: 0L) + abertos
 
     // ------------------------------------------------------------- cronômetro
     CardSecao {
@@ -178,7 +184,10 @@ fun JornadaScreen() {
     // ------------------------------------------------------------- por estado
     CardSecao(titulo = "Onde foi o tempo") {
         val j = jornada
-        val tempos = EstadoJornada.entries.map { it to (j?.let { jj -> segundosDe(jj, it) } ?: 0L) }
+        val tempos = EstadoJornada.entries.map { estado ->
+            val gravado = j?.let { segundosDe(it, estado) } ?: 0L
+            estado to gravado + if (estado == estadoAberto) abertos else 0L
+        }
         val total = tempos.sumOf { it.second }.coerceAtLeast(1)
         tempos.forEach { (estado, segundos) ->
             LinhaEstado(estado, segundos, (segundos * 100 / total).toInt())
@@ -198,7 +207,13 @@ fun JornadaScreen() {
     // ------------------------------------------------------------- por app
     CardSecao(titulo = "Tempo online por app") {
         val j = jornada
-        val porApp = AppDeCorrida.entries.map { it to (j?.let { jj -> segundosOnline(jj, it) } ?: 0L) }
+        val porApp = AppDeCorrida.entries.map { aplicativo ->
+            val gravado = j?.let { segundosOnline(it, aplicativo) } ?: 0L
+            // O trecho aberto conta para TODO app que está online agora: duas
+            // corridas de apps diferentes rodam no mesmo minuto.
+            val online = relogio.status(aplicativo) == StatusApp.ONLINE
+            aplicativo to gravado + if (online) abertos else 0L
+        }
         val maior = porApp.maxOfOrNull { it.second }?.coerceAtLeast(1) ?: 1
         porApp.forEach { (aplicativo, segundos) ->
             Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -224,19 +239,6 @@ fun JornadaScreen() {
             }
         }
     }
-}
-
-/**
- * Segundos decorridos desde o começo do turno.
- *
- * Pausada ou encerrada, vale o que já foi somado no banco. Rodando, conta do
- * relógio do celular — é o que faz o número correr na frente do motorista sem
- * precisar escrever no banco a cada segundo.
- */
-private fun segundosAgora(jornada: Jornada?): Long {
-    val j = jornada ?: return 0
-    if (!j.ativa || j.pausada) return j.segundosContados
-    return ((System.currentTimeMillis() - j.inicioEm) / 1000).coerceAtLeast(0)
 }
 
 private fun segundosDe(j: Jornada, e: EstadoJornada): Long = when (e) {
