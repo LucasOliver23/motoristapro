@@ -50,6 +50,7 @@ class OverlayOferta(private val context: Context) {
     private lateinit var tvPrincipal: TextView
     private lateinit var tvDetalhe: TextView
     private lateinit var tvRisco: TextView
+    private lateinit var tvSugestao: TextView
     private lateinit var btRegistrar: TextView
     private lateinit var btLocal: TextView
 
@@ -94,7 +95,8 @@ class OverlayOferta(private val context: Context) {
         custoKmCentavos: Long,
         duracaoMs: Long? = null,
         totalNaTela: Int = 1,
-        alertaRisco: String? = null
+        alertaRisco: String? = null,
+        sugestao: SugestaoDeTarifa? = null
     ) {
         val v = raiz ?: criarView().also { raiz = it }
         val cfg = estilo.ler()
@@ -119,6 +121,16 @@ class OverlayOferta(private val context: Context) {
         if (o.devolucao) partes += "⚠ pode ter devolução"
         tvDetalhe.text = partes.joinToString("  •  ")
         tvDetalhe.visibility = if (partes.isEmpty()) View.GONE else View.VISIBLE
+
+        // "Peça R$ X": no inDrive o motorista toca no botão de contraproposta
+        // logo abaixo; nos outros apps serve para ele saber o tamanho do buraco.
+        if (sugestao == null) {
+            tvSugestao.visibility = View.GONE
+        } else {
+            tvSugestao.text = "\u2191 Peça ${moeda(sugestao.valorSugerido)} " +
+                "(+${moeda(sugestao.aumento)}) e vira BOA"
+            tvSugestao.visibility = View.VISIBLE
+        }
 
         // Faixa de risco: só aparece quando o endereço bate com a lista do motorista.
         if (alertaRisco.isNullOrBlank()) {
@@ -174,6 +186,8 @@ class OverlayOferta(private val context: Context) {
         tvPrincipal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f * e)
         tvDetalhe.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
         tvRisco.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
+        tvSugestao.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f * e)
+        tvSugestao.setTextColor(corTexto)
         btRegistrar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
         btLocal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
 
@@ -240,6 +254,14 @@ class OverlayOferta(private val context: Context) {
         tvTitulo = texto(15f, negrito = true)
         tvPrincipal = texto(24f, negrito = true)
         tvDetalhe = texto(14f, negrito = false)
+        tvSugestao = texto(15f, negrito = true).apply {
+            setPadding(dp(10), dp(4), dp(10), dp(4))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(10).toFloat()
+                setColor(0x33FFFFFF)
+            }
+            visibility = View.GONE
+        }
         tvRisco = texto(14f, negrito = true).apply {
             setPadding(dp(10), dp(4), dp(10), dp(4))
             background = GradientDrawable().apply {
@@ -271,6 +293,7 @@ class OverlayOferta(private val context: Context) {
             addView(tvTitulo)
             addView(tvPrincipal)
             addView(tvDetalhe)
+            addView(tvSugestao)
             addView(tvRisco)
             addView(linhaBotoes)
 

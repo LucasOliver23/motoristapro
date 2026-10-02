@@ -113,6 +113,70 @@ class LimitesOferta(context: Context) {
         }
     }
 
+    /**
+     * Quanto o motorista teria que PEDIR para esta corrida virar BOA.
+     *
+     * Nasceu do inDrive, onde dá para fazer contraproposta ("Ofereça sua tarifa"),
+     * mas serve em qualquer app como medida do tamanho do buraco: "faltam R$ 3".
+     *
+     * A conta sai dos mesmos limites da classificação — R$/km bom, R$/hora bom,
+     * valor mínimo da viagem, lucro mínimo em reais e em porcentagem — e depois
+     * o resultado é CONFERIDO rodando a classificação de verdade. Se um dia a
+     * regra mudar e a álgebra aqui ficar para trás, a conferência devolve null
+     * em vez de prometer uma corrida boa que não é.
+     *
+     * Devolve null quando a oferta já é boa, quando nada a salva (nota baixa não
+     * se conserta com dinheiro) ou quando o aumento seria grande demais para ter
+     * chance de ser aceito.
+     */
+    fun valorParaFicarBoa(
+        o: Oferta,
+        tarifaMinimaCentavos: Long = 0,
+        custoKmCentavos: Long = 0
+    ): SugestaoDeTarifa? {
+        if (o.km <= 0.0 || !o.valor.isFinite()) return null
+        if (classificar(o, tarifaMinimaCentavos, custoKmCentavos) == Classificacao.BOA) return null
+
+        val exigencias = mutableListOf<Double>()
+        if (tarifaMinimaCentavos > 0) exigencias += tarifaMinimaCentavos / 100.0
+        exigencias += kmBoaAcima * o.km
+        if (o.minutos > 0) exigencias += horaBoaAcima * (o.minutos / 60.0)
+
+        if (custoKmCentavos > 0) {
+            val custo = o.km * (custoKmCentavos / 100.0)
+            exigencias += custo + CENTAVO                    // lucro > 0
+            if (minLucroReais > 0f) exigencias += custo + minLucroReais
+            if (minLucroPercent > 0f && minLucroPercent < 100f) {
+                // (V - custo) / V >= p  ->  V >= custo / (1 - p)
+                exigencias += custo / (1.0 - minLucroPercent / 100.0)
+            }
+        }
+
+        val alvo = exigencias.maxOrNull()?.takeIf { it.isFinite() } ?: return null
+        if (alvo <= o.valor) return null
+
+        // Arredonda para cima de 50 em 50 centavos: é o que o inDrive sugere nos
+        // botões, e pedir R$ 9,00 em vez de R$ 8,73 não espanta ninguém.
+        var sugerido = Math.ceil(alvo / PASSO) * PASSO
+        repeat(3) {
+            if (classificar(o.copy(valor = sugerido), tarifaMinimaCentavos, custoKmCentavos) ==
+                Classificacao.BOA
+            ) {
+                return montar(o, sugerido)
+            }
+            sugerido += PASSO
+        }
+        // Chegou aqui: alguma coisa fora do dinheiro trava (nota do passageiro).
+        return null
+    }
+
+    private fun montar(o: Oferta, sugerido: Double): SugestaoDeTarifa? {
+        val aumento = sugerido - o.valor
+        // Pedir o dobro da corrida não é contraproposta, é piada: não sugere.
+        if (sugerido > o.valor * TETO_MULTIPLICADOR || aumento > TETO_AUMENTO) return null
+        return SugestaoDeTarifa(sugerido, aumento)
+    }
+
     private fun faixa(valor: Double, ruimAbaixo: Float, boaAcima: Float): Classificacao = when {
         valor < ruimAbaixo -> Classificacao.RUIM
         valor >= boaAcima -> Classificacao.BOA
@@ -120,6 +184,10 @@ class LimitesOferta(context: Context) {
     }
 
     private companion object {
+        const val CENTAVO = 0.01
+        const val PASSO = 0.50
+        const val TETO_MULTIPLICADOR = 2.0
+        const val TETO_AUMENTO = 40.0
         const val KEY_KM_RUIM = "km_ruim"
         const val KEY_KM_BOA = "km_boa"
         const val KEY_HORA_RUIM = "hora_ruim"
@@ -131,6 +199,9 @@ class LimitesOferta(context: Context) {
         const val KEY_LUCRO_PCT = "min_lucro_pct"
     }
 }
+
+/** Quanto pedir para a corrida virar BOA, e quanto isso é a mais que o ofertado. */
+data class SugestaoDeTarifa(val valorSugerido: Double, val aumento: Double)
 
 enum class Classificacao(val corFundo: Int, val rotulo: String) {
     BOA(0xE62E7D32.toInt(), "BOA"),

@@ -39,6 +39,7 @@
         <package android:name="com.ubercab.driver" />
         <package android:name="com.app99.driver" />
         <package android:name="br.com.ifood.driver.app" />
+        <package android:name="sinet.startup.inDriver" />
         <!-- Street View / Maps e Waze a partir da janela da oferta -->
         <package android:name="com.google.android.apps.maps" />
         <package android:name="com.waze" />

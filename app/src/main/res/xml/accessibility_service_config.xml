@@ -20,7 +20,7 @@
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/acessibilidade_descricao"
-    android:packageNames="com.ubercab.driver,com.app99.driver,br.com.ifood.driver.app"
+    android:packageNames="com.ubercab.driver,com.app99.driver,br.com.ifood.driver.app,sinet.startup.inDriver"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagRetrieveInteractiveWindows|flagIncludeNotImportantViews|flagReportViewIds"

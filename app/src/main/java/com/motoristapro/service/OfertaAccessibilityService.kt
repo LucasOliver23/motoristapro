@@ -233,10 +233,14 @@ class OfertaAccessibilityService : AccessibilityService() {
                 oferta.reaisPorKm, oferta.reaisPorHora, classe.rotulo
             )
         )
+        // "Peca R$ X e vira BOA": vale em qualquer app como medida do buraco, e no
+        // inDrive vira acao direta — os botoes de contraproposta estao ali embaixo.
+        val sugestao = lim.valorParaFicarBoa(oferta, tarifaMinimaCentavos, custoKmCentavos)
         ov.mostrar(
             oferta, classe, custoKmCentavos,
             totalNaTela = totalNaTela,
-            alertaRisco = alertaRisco
+            alertaRisco = alertaRisco,
+            sugestao = sugestao
         )
         voz?.falar(oferta, classe, alertaRisco)
         salvarNoHistorico(oferta, classe)
@@ -317,6 +321,14 @@ class OfertaAccessibilityService : AccessibilityService() {
     }
 
     private fun escolher(textos: List<String>, pacote: String): Achado? {
+        // inDrive tem leitor proprio: a tela de lista mostra uma duzia de ofertas
+        // de uma vez (o leitor comum faria um Frankenstein) e os botoes de
+        // contraproposta tem valores MAIORES que o da corrida.
+        if (pacote == OfertaInDrive.PACOTE) {
+            val oferta = OfertaInDrive.extrair(textos) ?: return null
+            return Achado(oferta, pacote, 1)
+        }
+
         // Corrida de passageiro sempre mostra minutos; entrega (99 Entrega Food, iFood)
         // muitas vezes mostra só "Distância total X km" — aí aceitamos sem o tempo.
         val exigirTempo = pacote != PACOTE_IFOOD && !OfertaParser.pareceEntrega(textos)
@@ -457,7 +469,10 @@ class OfertaAccessibilityService : AccessibilityService() {
         )
         val classe = lim.classificar(o, tarifaMinimaCentavos, custoKmCentavos)
         val alerta = risco?.alerta(o.enderecos)
-        ov.mostrar(o, classe, custoKmCentavos, duracaoMs = 6_000, alertaRisco = alerta)
+        ov.mostrar(
+            o, classe, custoKmCentavos, duracaoMs = 6_000, alertaRisco = alerta,
+            sugestao = lim.valorParaFicarBoa(o, tarifaMinimaCentavos, custoKmCentavos)
+        )
         voz?.falar(o, classe, alerta)
     }
 
@@ -478,7 +493,8 @@ class OfertaAccessibilityService : AccessibilityService() {
         val PACOTES_ALVO = setOf(
             "com.ubercab.driver",   // Uber Driver
             "com.app99.driver",     // 99 Motorista
-            PACOTE_IFOOD            // iFood para Entregadores
+            PACOTE_IFOOD,           // iFood para Entregadores
+            OfertaInDrive.PACOTE    // inDrive
         )
 
         private val _diagnostico = MutableStateFlow<Diagnostico?>(null)

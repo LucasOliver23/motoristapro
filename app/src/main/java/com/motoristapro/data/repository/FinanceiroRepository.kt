@@ -353,6 +353,7 @@ fun nomePlataforma(pacote: String?): String = when (pacote) {
     "com.ubercab.driver" -> "Uber"
     "com.app99.driver" -> "99"
     "br.com.ifood.driver.app" -> "iFood"
+    "sinet.startup.inDriver" -> "inDrive"
     else -> "Particular"
 }
 
