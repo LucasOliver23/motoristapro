@@ -127,6 +127,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val atualizacao by vm.estadoAtualizacao.collectAsStateWithLifecycle()
     var confirmarBaixarNuvem by remember { mutableStateOf(false) }
     var confirmarSair by remember { mutableStateOf(false) }
+    var confirmarZerar by remember { mutableStateOf(false) }
     LaunchedEffect(usuario?.uid) { if (usuario != null) vm.consultarNuvem() }
     val ocr by vm.ocrAtivo.collectAsStateWithLifecycle()
     val voz by vm.vozAtiva.collectAsStateWithLifecycle()
@@ -350,6 +351,27 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             dismissButton = { TextButton(onClick = { confirmarBaixarNuvem = false }) { Text("Cancelar") } }
         )
     }
+    if (confirmarZerar) {
+        AlertDialog(
+            onDismissRequest = { confirmarZerar = false },
+            title = { Text("Começar do zero?") },
+            text = {
+                Text(
+                    "Apaga deste celular as corridas, despesas, turnos, ofertas, custos fixos, " +
+                        "o custo por km, as metas e as faixas do semáforo — como se o app tivesse " +
+                        "acabado de ser instalado.\n\n" +
+                        "O backup na sua conta na nuvem NÃO é apagado: dá para trazer tudo de volta " +
+                        "em \"Baixar da nuvem\"."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmarZerar = false; vm.zerarCelular() }) {
+                    Text("Apagar e começar do zero", color = VermelhoPrejuizo)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmarZerar = false }) { Text("Cancelar") } }
+        )
+    }
     if (confirmarSair) {
         AlertDialog(
             onDismissRequest = { confirmarSair = false },
@@ -529,6 +551,17 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             OutlinedButton(onClick = { confirmarSair = true }, modifier = Modifier.fillMaxWidth()) {
                                 Text("Sair da conta", color = VermelhoPrejuizo)
                             }
+                            HorizontalDivider(color = Contorno)
+                            Text(
+                                "Entrou com outra conta neste celular e os dados do motorista anterior " +
+                                    "ficaram? A partir de agora o app zera sozinho quando a conta muda — " +
+                                    "e aqui você limpa o que já estava.",
+                                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                            )
+                            OutlinedButton(
+                                onClick = { confirmarZerar = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Começar do zero neste celular", color = VermelhoPrejuizo) }
                         }
                     }
                     }

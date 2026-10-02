@@ -45,6 +45,31 @@ interface SincronizacaoDao {
     @Query("DELETE FROM jornadas") suspend fun limparJornadas()
     @Query("DELETE FROM custos_fixos") suspend fun limparCustosFixos()
     @Query("DELETE FROM plataformas") suspend fun limparPlataformas()
+    @Query("DELETE FROM ofertas") suspend fun limparOfertas()
+    @Query("DELETE FROM perfil_custo") suspend fun limparPerfilCusto()
+    @Query("DELETE FROM configuracoes") suspend fun limparConfiguracao()
+
+    /**
+     * Deixa o celular como se o app tivesse acabado de ser instalado.
+     *
+     * Usado quando OUTRA conta entra no mesmo aparelho: os dados são de quem
+     * estava antes, e o motorista novo tem que começar do zero — inclusive o
+     * custo por km e as metas, que são dele, não do celular.
+     *
+     * As plataformas ficam: Uber, 99 e iFood são catálogo do app, não dado de
+     * ninguém, e apagá-las deixaria as corridas sem para onde apontar.
+     */
+    @Transaction
+    suspend fun zerar() {
+        limparCorridas()
+        limparDespesas()
+        limparJornadas()
+        limparCustosFixos()
+        limparOfertas()
+        limparPerfilCusto()
+        limparConfiguracao()
+        inserirConfiguracao(Configuracao())
+    }
 
     @Transaction
     suspend fun exportar(): Pacote = Pacote(

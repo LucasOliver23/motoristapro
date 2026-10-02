@@ -47,6 +47,47 @@ class SincronizacaoNuvem(
     )
     val estado: StateFlow<EstadoNuvem> = _estado.asStateFlow()
 
+    /**
+     * De quem sao os dados que estao neste celular (uid da conta).
+     *
+     * null = ninguem logou ainda; os dados sao de quem usava o app sem conta e
+     * passam a ser da primeira conta que entrar — por isso a troca so dispara
+     * quando ja existe um dono DIFERENTE, nunca no primeiro login.
+     */
+    private var dono: String?
+        get() = prefs.getString(KEY_DONO, null)
+        set(v) = prefs.edit().putString(KEY_DONO, v).apply()
+
+    /**
+     * Apaga os ajustes que sao do motorista, nao do aparelho: faixas do semaforo,
+     * enderecos de risco, estilo do cartao, voz, app de navegacao.
+     *
+     * O tema (claro/escuro) fica: e preferencia de quem esta olhando a tela, e
+     * troca-lo sozinho no login so assustaria.
+     */
+    /**
+     * "Comecar do zero neste celular", do botao em Mais > Conta e nuvem.
+     *
+     * Nao mexe na nuvem: o backup da conta continua la, e o motorista pode
+     * trazer tudo de volta com "Baixar da nuvem" se tiver se arrependido.
+     */
+    suspend fun zerarCelular() = withContext(Dispatchers.IO) {
+        db.sincronizacaoDao().zerar()
+        limparPreferenciasDoMotorista()
+        dono = autenticacao.usuario.value?.uid
+    }
+
+    private fun limparPreferenciasDoMotorista() {
+        listOf(
+            "limites_oferta", "enderecos_risco", "estilo_cartao",
+            "aviso_voz", "navegacao", "preferencias_app", "preparacao"
+        ).forEach { arquivo ->
+            runCatching {
+                context.getSharedPreferences(arquivo, Context.MODE_PRIVATE).edit().clear().apply()
+            }
+        }
+    }
+
     private val firestore: FirebaseFirestore?
         get() = if (autenticacao.disponivel) runCatching { FirebaseFirestore.getInstance() }.getOrNull() else null
 
@@ -131,20 +172,33 @@ class SincronizacaoNuvem(
      * o motorista usa o botão "Baixar da nuvem".
      */
     suspend fun sincronizarAoEntrar(): String = withContext(Dispatchers.IO) {
+        val uid = autenticacao.usuario.value?.uid
+            ?: return@withContext "Entre na sua conta para usar a nuvem"
         val doc = documento() ?: return@withContext "Entre na sua conta para usar a nuvem"
+
+        // TROCA DE CONTA: os dados deste celular sao do motorista anterior.
+        // Antes isto SUBIA o historico dele para a conta nova — o contrario do
+        // que se espera de um app em que cada um entra com a sua conta.
+        val trocouDeConta = dono != null && dono != uid
+        if (trocouDeConta) {
+            db.sincronizacaoDao().zerar()
+            limparPreferenciasDoMotorista()
+        }
+
         try {
             val snapshot = doc.get().esperar()
             val temNuvem = snapshot.getBlob("dados") != null
             val pacoteLocal = db.sincronizacaoDao().exportar()
             val localVazio = pacoteLocal.corridas.isEmpty() && pacoteLocal.despesas.isEmpty()
 
-            if (temNuvem && localVazio) {
-                val qtd = baixar()
-                "Dados da sua conta restaurados ($qtd corridas)"
-            } else {
-                val qtd = enviar()
-                "Backup na nuvem atualizado ($qtd corridas)"
+            val mensagem = when {
+                temNuvem && localVazio -> "Dados da sua conta restaurados (${baixar()} corridas)"
+                // Conta nova e sem backup: comeca do zero mesmo, sem subir nada.
+                trocouDeConta -> "Conta nova neste celular — começando do zero"
+                else -> "Backup na nuvem atualizado (${enviar()} corridas)"
             }
+            dono = uid
+            mensagem
         } catch (e: Exception) {
             Log.e(TAG, "Falha na sincronização inicial", e)
             _estado.value = _estado.value.copy(ocupado = false, erro = e.message)
@@ -166,5 +220,6 @@ class SincronizacaoNuvem(
     private companion object {
         const val TAG = "MotoristaPro"
         const val KEY_ULTIMO_ENVIO = "ultimo_envio_em"
+        const val KEY_DONO = "dono_dos_dados"
     }
 }

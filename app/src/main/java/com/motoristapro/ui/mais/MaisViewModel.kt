@@ -277,6 +277,18 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
         viewModelScope.launch { runCatching { app.nuvem.consultar() } }
     }
 
+    /**
+     * Apaga tudo deste celular e volta o app ao estado de recem-instalado.
+     * A nuvem nao e tocada: "Baixar da nuvem" ainda traz tudo de volta.
+     */
+    fun zerarCelular() {
+        viewModelScope.launch {
+            runCatching { app.nuvem.zerarCelular() }
+                .onSuccess { _mensagens.send("Celular zerado — o app comecou do zero") }
+                .onFailure { _mensagens.send("Erro ao zerar: ${it.message}") }
+        }
+    }
+
     fun sairDaConta() {
         app.autenticacao.sair()
         viewModelScope.launch { _mensagens.send("Você saiu da conta") }
