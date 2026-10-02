@@ -146,4 +146,24 @@ interface OfertaDao {
     /** Limpeza: ofertas antigas não são guardadas para sempre. */
     @Query("DELETE FROM ofertas WHERE recebida_em < :limite")
     suspend fun apagarAntesDe(limite: Long): Int
+
+    @Query("DELETE FROM ofertas WHERE id = :id")
+    suspend fun excluirPorId(id: Long)
+
+    /**
+     * Apaga as leituras tortas do período.
+     *
+     * Mesma conta do campo `leituraSuspeita` da entidade: R$/km acima do teto.
+     * Elas já ficavam fora das médias, mas continuavam na lista — e era isso que
+     * dava a impressão de relatório sujo.
+     */
+    @Query(
+        """
+        DELETE FROM ofertas
+        WHERE recebida_em >= :inicio AND recebida_em < :fim
+          AND metros > 0
+          AND valor_centavos * 1000 / metros > :tetoCentavosPorKm
+        """
+    )
+    suspend fun apagarSuspeitas(inicio: Long, fim: Long, tetoCentavosPorKm: Long): Int
 }

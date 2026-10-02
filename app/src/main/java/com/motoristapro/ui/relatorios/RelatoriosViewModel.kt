@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.motoristapro.MotoristaApp
 import com.motoristapro.data.local.dao.ResumoOfertas
+import com.motoristapro.data.local.dao.TempoConectado
 import com.motoristapro.data.local.dao.ResumoPeriodo
 import com.motoristapro.data.local.model.ConsumoCombustivel
 import com.motoristapro.data.local.model.CustoKmPorCategoria
@@ -18,6 +19,8 @@ import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.data.repository.Periodo
 import com.motoristapro.data.repository.custoFixoDiario
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,19 +32,30 @@ import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.YearMonth
 
-enum class PeriodoRelatorio(val rotulo: String) {
-    SETE_DIAS("7 dias"), MES("Este mês"), TRINTA_DIAS("30 dias");
+/**
+ * Os quatro períodos do relatório.
+ *
+ * "Semanal" são os últimos 7 dias, não a semana do calendário: na segunda-feira
+ * a semana do calendário tem um dia só, e o relatório ficaria sempre vazio no
+ * começo da semana.
+ */
+enum class PeriodoRelatorio(val rotulo: String, val detalhe: String) {
+    DIARIO("Diário", "hoje"),
+    SEMANAL("Semanal", "últimos 7 dias"),
+    MENSAL("Mensal", "este mês"),
+    ANUAL("Anual", "este ano");
 
     /** Primeiro e último dia (inclusive) do período. */
     fun dias(hoje: LocalDate = LocalDate.now()): Pair<LocalDate, LocalDate> = when (this) {
-        SETE_DIAS -> hoje.minusDays(6) to hoje
-        MES -> YearMonth.from(hoje).atDay(1) to hoje
-        TRINTA_DIAS -> hoje.minusDays(29) to hoje
+        DIARIO -> hoje to hoje
+        SEMANAL -> hoje.minusDays(6) to hoje
+        MENSAL -> YearMonth.from(hoje).atDay(1) to hoje
+        ANUAL -> hoje.withDayOfYear(1) to hoje
     }
 }
 
 data class RelatoriosUiState(
-    val periodo: PeriodoRelatorio = PeriodoRelatorio.SETE_DIAS,
+    val periodo: PeriodoRelatorio = PeriodoRelatorio.SEMANAL,
     val carregando: Boolean = true,
     val resumo: ResumoPeriodo = ResumoPeriodo.VAZIO,
     /** Um ponto por dia do período, na ordem (dias sem movimento = 0). */
@@ -56,8 +70,49 @@ data class RelatoriosUiState(
     /** Dias do período com pelo menos uma corrida. */
     val diasTrabalhados: Int = 0,
     val custoFixoMensal: Long = 0,
-    val diasTrabalhoMes: Int = 26
+    val diasTrabalhoMes: Int = 26,
+    /** Custo/km que o assistente de custos calculou (para comparar com o real). */
+    val custoKmConfigurado: Long = 0,
+    /** Tempo de app ligado no período (jornadas, já contando a que está aberta). */
+    val conectado: TempoConectado = TempoConectado.VAZIO
 ) {
+    /** Tempo conectado em segundos. */
+    val segundosConectado: Long get() = conectado.segundos
+
+    /**
+     * Tempo conectado SEM corrida: é o número que dói e o que o motorista não vê
+     * em nenhum app. Nunca negativo — o tempo das corridas registradas na mão
+     * pode cair fora da jornada.
+     */
+    val segundosParado: Long
+        get() = (conectado.segundos - resumo.segundosEmCorrida).coerceAtLeast(0)
+
+    /** Quanto por hora de celular ligado — não por hora em corrida. */
+    val ganhoPorHoraConectadoCentavos: Long
+        get() = if (conectado.segundos > 0) resumo.faturamentoCentavos * 3600 / conectado.segundos else 0
+
+    /** Fatia do tempo conectado que virou corrida (0..100). */
+    val percentualEmCorrida: Int
+        get() = if (conectado.segundos > 0)
+            (resumo.segundosEmCorrida * 100 / conectado.segundos).toInt().coerceIn(0, 100) else 0
+
+    /** Ofertas que viraram corrida registrada. */
+    val corridasAceitas: Int get() = ofertas.registradas
+
+    /** Ofertas lidas que não viraram corrida. */
+    val corridasRecusadas: Int get() = ofertas.naoRegistradas
+
+    /** Taxa de aceite (0..100), null quando o leitor não viu oferta nenhuma. */
+    val taxaDeAceite: Int?
+        get() = if (ofertas.total > 0) ofertas.registradas * 100 / ofertas.total else null
+
+    /** Custo real por km do período: o que foi gasto de verdade ÷ km rodados. */
+    val custoRealKmCentavos: Double
+        get() = custoPorCategoria.sumOf { it.custoKmCentavos ?: 0.0 }
+
+    /** Custo por km que o assistente de custos previu, para comparar com o real. */
+    val custoPlanejadoKmCentavos: Long get() = custoKmConfigurado
+
     /** Custos fixos rateados pelos dias trabalhados no período. */
     val custoFixoPeriodo: Long get() = custoFixoDiario(custoFixoMensal, diasTrabalhoMes) * diasTrabalhados
 
@@ -82,7 +137,7 @@ data class RelatoriosUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 class RelatoriosViewModel(private val repo: FinanceiroRepository) : ViewModel() {
 
-    private val periodo = MutableStateFlow(PeriodoRelatorio.SETE_DIAS)
+    private val periodo = MutableStateFlow(PeriodoRelatorio.SEMANAL)
 
     val uiState: StateFlow<RelatoriosUiState> = periodo
         .flatMapLatest { p ->
@@ -111,17 +166,45 @@ class RelatoriosViewModel(private val repo: FinanceiroRepository) : ViewModel() 
             val consumo = flow<ConsumoCombustivel?> { emit(repo.consumoCombustivel(ini, fim)) }
                 .catch { emit(null) }
             val extras = combine(repo.resumoOfertas(ini, fim), repo.custoFixoMensal(), repo.configuracao()) { of, fixo, cfg ->
-                Triple(of, fixo, cfg.diasTrabalhoMes)
+                Extras(of, fixo, cfg.diasTrabalhoMes, cfg.custoKmCentavos)
             }
             base.combine(consumo) { estado, c -> estado.copy(consumo = c) }
-                .combine(extras) { estado, (of, fixo, dias) ->
-                    estado.copy(ofertas = of, custoFixoMensal = fixo, diasTrabalhoMes = dias)
+                .combine(extras) { estado, x ->
+                    estado.copy(
+                        ofertas = x.ofertas, custoFixoMensal = x.custoFixoMensal,
+                        diasTrabalhoMes = x.diasTrabalhoMes, custoKmConfigurado = x.custoKmCentavos
+                    )
                 }
                 .combine(repo.faixasHorarias(ini, fim)) { estado, fx -> estado.copy(faixas = fx) }
+                .combine(tempoConectadoAoVivo(ini, fim)) { estado, t -> estado.copy(conectado = t) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RelatoriosUiState())
 
+    /**
+     * Tempo conectado se refazendo de minuto em minuto.
+     *
+     * A consulta recebe o "agora" como parâmetro para contar a jornada que ainda
+     * está aberta — e um parâmetro fixo congelaria o número do dia de hoje até
+     * algo mudar no banco. De minuto em minuto basta: ninguém olha o relatório
+     * esperando o segundo virar.
+     */
+    private fun tempoConectadoAoVivo(ini: Long, fim: Long): Flow<TempoConectado> =
+        flow {
+            while (true) {
+                emit(System.currentTimeMillis())
+                delay(60_000)
+            }
+        }.flatMapLatest { agora -> repo.tempoConectado(ini, fim, agora) }
+
     fun selecionar(p: PeriodoRelatorio) { periodo.value = p }
+
+    /** Só para não carregar uma Triple de quatro coisas. */
+    private data class Extras(
+        val ofertas: ResumoOfertas,
+        val custoFixoMensal: Long,
+        val diasTrabalhoMes: Int,
+        val custoKmCentavos: Long
+    )
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {

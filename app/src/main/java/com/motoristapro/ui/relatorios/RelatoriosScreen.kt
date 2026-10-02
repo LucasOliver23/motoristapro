@@ -35,11 +35,75 @@ import androidx.compose.runtime.getValue
 
 private val PT = Locale("pt", "BR")
 
+/**
+ * O quadro do período: tempo, corridas e dinheiro no mesmo lugar.
+ *
+ * O número que não existe em nenhum app de corrida é o R$ POR HORA CONECTADA.
+ * "R$/h em corrida" ignora o tempo parado esperando oferta, então sempre parece
+ * melhor do que a vida real.
+ */
+@Composable
+private fun QuadroDoPeriodo(e: RelatoriosUiState) {
+    val r = e.resumo
+    CardSecao(titulo = "Resumo ${e.periodo.detalhe}") {
+        if (e.segundosConectado > 0) {
+            LinhaValor("Tempo conectado", e.segundosConectado.formatarDuracao(), negrito = true)
+            LinhaValor(
+                "Tempo em corrida",
+                r.segundosEmCorrida.formatarDuracao() + "  •  ${e.percentualEmCorrida}%"
+            )
+            LinhaValor(
+                "Tempo parado",
+                e.segundosParado.formatarDuracao() + "  •  ${100 - e.percentualEmCorrida}%",
+                cor = if (e.percentualEmCorrida < 40) VermelhoPrejuizo else TextoSecundario
+            )
+        } else {
+            Text(
+                "Sem jornada no período. Use \"Iniciar jornada\" na tela inicial para " +
+                    "o app contar seu tempo conectado.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+        if (e.ofertas.total > 0) {
+            LinhaValor(
+                "Corridas aceitas",
+                "${e.corridasAceitas}" + (e.taxaDeAceite?.let { "  •  $it% de aceite" } ?: "")
+            )
+            LinhaValor("Corridas recusadas", "${e.corridasRecusadas}")
+        } else {
+            LinhaValor("Corridas", "${r.qtdCorridas}")
+        }
+        LinhaValor("Km rodados", String.format(PT, "%.1f km", r.kmRodados))
+
+        Spacer(Modifier.height(6.dp))
+        LinhaValor("Faturamento", r.faturamentoCentavos.emReais())
+        LinhaValor("Despesas lançadas", "- " + r.despesasCentavos.emReais(), cor = VermelhoPrejuizo)
+        LinhaValor(
+            "Lucro", r.lucroLiquidoCentavos.emReais(), negrito = true,
+            cor = if (r.lucroLiquidoCentavos >= 0) Lima else VermelhoPrejuizo
+        )
+
+        Spacer(Modifier.height(6.dp))
+        LinhaValor(
+            "R$ por hora conectada",
+            if (e.segundosConectado > 0) e.ganhoPorHoraConectadoCentavos.emReais() + "/h" else "—",
+            negrito = true, cor = Lima
+        )
+        LinhaValor("R$ por km", if (r.metrosRodados > 0) r.ganhoPorKmCentavos.emReais() + "/km" else "—")
+        LinhaValor(
+            "Custo real por km",
+            if (e.custoRealKmCentavos > 0) e.custoRealKmCentavos.centavosEmReais() + "/km" else "—"
+        )
+    }
+}
+
 @Composable
 fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosViewModel.Factory)) {
     val e by vm.uiState.collectAsStateWithLifecycle()
 
-    TelaAba(titulo = "Relatórios", subtitulo = "Desempenho por período") { padding ->
+    TelaAba(titulo = "Relatórios", subtitulo = "Desempenho ${e.periodo.detalhe}") { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -72,6 +136,9 @@ fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosView
                 )
             }
 
+            // ---------------- o quadro do período (tempo, corridas, dinheiro)
+            QuadroDoPeriodo(e)
+
             if (e.custoFixoPeriodo > 0) {
                 CardSecao(titulo = "Lucro real (com custos fixos)") {
                     LinhaValor("Lucro líquido", r.lucroLiquidoCentavos.emReais())
@@ -91,11 +158,12 @@ fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosView
                 val o = e.ofertas
                 CardSecao(titulo = "Ofertas recebidas") {
                     LinhaValor("Recebidas", "${o.total}")
-                    LinhaValor("Registradas", "${o.registradas} (${o.registradas * 100 / o.total}%)")
+                    LinhaValor("Aceitas", "${o.registradas} (${o.registradas * 100 / o.total}%)")
+                    LinhaValor("Recusadas", "${o.naoRegistradas}")
                     BarraHorizontal("Boas", "${o.boas}", o.boas.toFloat() / o.total)
                     BarraHorizontal("Médias", "${o.medias}", o.medias.toFloat() / o.total, cor = com.motoristapro.ui.theme.AmareloAlerta)
                     BarraHorizontal("Ruins", "${o.ruins}", o.ruins.toFloat() / o.total, cor = VermelhoPrejuizo)
-                    LinhaValor("R$/km das registradas", if (o.metrosRegistradas > 0) o.reaisKmRegistradas.emReais() else "—")
+                    LinhaValor("R$/km das aceitas", if (o.metrosRegistradas > 0) o.reaisKmRegistradas.emReais() else "—")
                     LinhaValor("R$/km das recusadas", if (o.metrosNaoRegistradas > 0) o.reaisKmNaoRegistradas.emReais() else "—")
                 }
             }
@@ -202,12 +270,31 @@ fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosView
             }
 
             // ---------------- custos
-            CardSecao(titulo = "Custo por km (real)") {
+            CardSecao(titulo = "Custo real medido (no período)") {
                 if (e.custoPorCategoria.isEmpty()) {
-                    Text("Sem despesas no período.", color = TextoSecundario)
+                    Text(
+                        "Sem despesas lançadas no período. Este card compara o que você " +
+                            "GASTOU de verdade com o custo que o assistente previu.",
+                        color = TextoSecundario, style = MaterialTheme.typography.bodySmall
+                    )
                 } else {
-                    val totalKm = e.custoPorCategoria.sumOf { it.custoKmCentavos ?: 0.0 }
+                    val totalKm = e.custoRealKmCentavos
                     LinhaValor("Total", if (totalKm > 0) totalKm.centavosEmReais() + "/km" else "—", negrito = true)
+                    if (e.custoPlanejadoKmCentavos > 0 && totalKm > 0) {
+                        val planejado = e.custoPlanejadoKmCentavos
+                        val diferenca = ((totalKm - planejado) * 100 / planejado).toInt()
+                        LinhaValor("Planejado (assistente de custos)", planejado.emReais() + "/km")
+                        Text(
+                            when {
+                                diferenca > 5 -> "Você está gastando $diferenca% MAIS que o planejado — " +
+                                    "vale refazer o assistente de custos."
+                                diferenca < -5 -> "Você está gastando ${-diferenca}% menos que o planejado."
+                                else -> "O planejado está batendo com a realidade."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (diferenca > 5) VermelhoPrejuizo else Lima
+                        )
+                    }
                     e.custoPorCategoria.forEach { c ->
                         LinhaValor(
                             c.categoria.rotulo,

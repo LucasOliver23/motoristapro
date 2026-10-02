@@ -4,6 +4,7 @@ import com.motoristapro.data.local.AppDatabase
 import com.motoristapro.data.local.dao.FaixaHoraria
 import com.motoristapro.data.local.dao.ResumoOfertas
 import com.motoristapro.data.local.dao.ResumoPeriodo
+import com.motoristapro.data.local.dao.TempoConectado
 import com.motoristapro.data.local.dao.TotaisJornada
 import com.motoristapro.data.local.dao.TotalPorCategoria
 import com.motoristapro.data.local.entity.PerfilCusto
@@ -13,8 +14,6 @@ import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.entity.CustoFixo
 import com.motoristapro.data.local.entity.Despesa
 import com.motoristapro.data.local.entity.Jornada
-import com.motoristapro.service.AppDeCorrida
-import com.motoristapro.jornada.EstadoJornada
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 import com.motoristapro.data.local.model.CorridaComPlataforma
@@ -254,35 +253,10 @@ class FinanceiroRepository(private val db: AppDatabase) {
     fun jornadasDoPeriodo(inicio: Long, fim: Long): Flow<List<Jornada>> =
         jornadaDao.observarPorPeriodo(inicio, fim)
 
-    /**
-     * Soma um trecho de tempo no estado em que o motorista estava e nos apps que
-     * estavam online naquele trecho.
-     *
-     * O mesmo trecho conta para o estado E para cada app online: são duas
-     * perguntas diferentes ("quanto tempo esperando?" e "quanto tempo com a 99
-     * ligada?"), e um minuto com Uber e 99 ligadas ao mesmo tempo é um minuto
-     * em cada uma — não meio minuto.
-     */
-    suspend fun somarTempoJornada(
-        id: Long,
-        estado: EstadoJornada,
-        segundos: Long,
-        appsOnline: List<AppDeCorrida>
-    ) {
-        if (segundos <= 0) return
-        jornadaDao.somarTempos(
-            id = id,
-            offline = if (estado == EstadoJornada.OFFLINE) segundos else 0,
-            aguardando = if (estado == EstadoJornada.AGUARDANDO) segundos else 0,
-            buscando = if (estado == EstadoJornada.BUSCANDO) segundos else 0,
-            esperando = if (estado == EstadoJornada.ESPERANDO) segundos else 0,
-            emViagem = if (estado == EstadoJornada.EM_VIAGEM) segundos else 0,
-            uber = if (AppDeCorrida.UBER in appsOnline) segundos else 0,
-            noventaENove = if (AppDeCorrida.NOVE9 in appsOnline) segundos else 0,
-            ifood = if (AppDeCorrida.IFOOD in appsOnline) segundos else 0,
-            indrive = if (AppDeCorrida.INDRIVE in appsOnline) segundos else 0
-        )
-    }
+
+    /** Tempo conectado no período, já contando a jornada aberta (ver JornadaDao). */
+    fun tempoConectado(inicio: Long, fim: Long, agora: Long = System.currentTimeMillis()): Flow<TempoConectado> =
+        jornadaDao.observarTempoConectado(inicio, fim, agora)
 
     fun totaisJornadasEncerradas(inicio: Long, fim: Long): Flow<TotaisJornada> =
         jornadaDao.observarTotaisEncerradas(inicio, fim)
@@ -292,6 +266,12 @@ class FinanceiroRepository(private val db: AppDatabase) {
     suspend fun salvarOferta(oferta: OfertaRecebida): Long = ofertaDao.inserir(oferta)
 
     suspend fun marcarOfertaRegistrada(id: Long) = ofertaDao.marcarRegistrada(id)
+
+    suspend fun excluirOferta(id: Long) = ofertaDao.excluirPorId(id)
+
+    /** Apaga as leituras com R$/km impossível no período. Devolve quantas saíram. */
+    suspend fun limparOfertasSuspeitas(inicio: Long, fim: Long): Int =
+        ofertaDao.apagarSuspeitas(inicio, fim, OfertaRecebida.TETO_REAIS_KM_CENTAVOS)
 
     fun ofertasDoPeriodo(inicio: Long, fim: Long): Flow<List<OfertaRecebida>> =
         ofertaDao.observarPorPeriodo(inicio, fim)

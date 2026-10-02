@@ -147,12 +147,26 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
             }
 
             item {
-                Text(
-                    "Lançamentos",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = TextoSecundario,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                // As ENTRADAS entram sozinhas (cada corrida registrada) e por isso
+                // não viram linha aqui — seriam centenas. O que se lança na mão é
+                // a saída. A linha abaixo deixa claro que as duas estão contadas.
+                Column(Modifier.padding(top = 4.dp)) {
+                    Text(
+                        "Lançamentos",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = TextoSecundario
+                    )
+                    val r = mes.resumo
+                    Text(
+                        "Entradas: ${r.qtdCorridas} corrida(s) • ${r.faturamentoCentavos.emReais()} " +
+                            "(automático, da aba Corridas)",
+                        style = MaterialTheme.typography.labelSmall, color = Lima
+                    )
+                    Text(
+                        "Saídas: ${mes.despesas.size} lançamento(s) • ${r.despesasCentavos.emReais()}",
+                        style = MaterialTheme.typography.labelSmall, color = VermelhoPrejuizo
+                    )
+                }
             }
             if (mes.despesas.isEmpty()) {
                 item { Vazio("Nenhuma despesa neste mês.") }

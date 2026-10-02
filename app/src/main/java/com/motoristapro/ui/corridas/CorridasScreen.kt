@@ -21,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -89,6 +90,7 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
     var editando by remember { mutableStateOf<Corrida?>(null) }
     var nova by remember { mutableStateOf(false) }
     var excluir by remember { mutableStateOf<CorridaComPlataforma?>(null) }
+    var excluirOferta by remember { mutableStateOf<OfertaRecebida?>(null) }
 
     LaunchedEffect(Unit) { vm.mensagens.collect { snackbar.showSnackbar(it) } }
 
@@ -131,7 +133,7 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
                 )
             }
             if (modo == ModoLista.OFERTAS) {
-                item { ResumoOfertasCard(ofertas) }
+                item { ResumoOfertasCard(ofertas, onLimparSuspeitas = { vm.limparSuspeitas() }) }
                 if (ofertas.ofertas.isEmpty()) {
                     item { Vazio("Nenhuma oferta lida neste período.\nAs ofertas aparecem aqui assim que o leitor mostra a janela.") }
                 }
@@ -146,8 +148,12 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
                             quantas = doDia.size
                         )
                     }
-                    items(doDia, key = { "o" + it.id }) {
-                        OfertaItem(it, custoKmCentavos = ofertas.custoKmCentavos)
+                    items(doDia, key = { "o" + it.id }) { oferta ->
+                        OfertaItem(
+                            oferta,
+                            custoKmCentavos = ofertas.custoKmCentavos,
+                            onExcluir = { excluirOferta = oferta }
+                        )
                     }
                 }
                 return@LazyColumn
@@ -181,6 +187,14 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
             inicial = editando,
             onDismiss = { nova = false; editando = null },
             onSalvar = { vm.salvar(it); nova = false; editando = null }
+        )
+    }
+    excluirOferta?.let { alvo ->
+        ConfirmarExclusao(
+            texto = "Excluir a leitura de ${alvo.valorCentavos.emReais()} (${alvo.plataforma})?" +
+                if (alvo.leituraSuspeita) "\n\nEsta leitura está marcada como erro do leitor." else "",
+            onDismiss = { excluirOferta = null },
+            onConfirmar = { vm.excluirOferta(alvo.id); excluirOferta = null }
         )
     }
     excluir?.let { alvo ->
@@ -243,7 +257,7 @@ private fun CorridaItem(item: CorridaComPlataforma, cor: Color, onClick: () -> U
 }
 
 @Composable
-private fun ResumoOfertasCard(e: OfertasUiState) {
+private fun ResumoOfertasCard(e: OfertasUiState, onLimparSuspeitas: () -> Unit) {
     val r = e.resumo
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // Linha de cima: quantas o leitor analisou e quanto somavam.
@@ -291,6 +305,10 @@ private fun ResumoOfertasCard(e: OfertasUiState) {
                     "o leitor pegou o número errado da tela do aplicativo.",
                 style = MaterialTheme.typography.bodySmall, color = AmareloAlerta
             )
+            OutlinedButton(onClick = onLimparSuspeitas, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Filled.Delete, contentDescription = null, tint = AmareloAlerta)
+                Text("  Excluir as ${e.qtdSuspeitas} leituras com erro", color = AmareloAlerta)
+            }
         }
     }
 }
@@ -316,7 +334,7 @@ private fun CabecalhoDoDia(dia: LocalDate, totalCentavos: Long, quantas: Int) {
 }
 
 @Composable
-private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long) {
+private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long, onExcluir: () -> Unit) {
     val hora = Instant.ofEpochMilli(o.recebidaEm).atZone(ZoneId.systemDefault()).format(FORMATO_HORA)
     val cor = when (o.classificacao) {
         "BOA" -> Lima
@@ -373,6 +391,15 @@ private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long) {
                         style = MaterialTheme.typography.labelMedium,
                         color = cor,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+                // Leitura torta se apaga daqui: é esta lista que alimenta as
+                // médias e os melhores horários.
+                IconButton(onClick = onExcluir) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Excluir leitura",
+                        tint = if (o.leituraSuspeita) AmareloAlerta else TextoSecundario
                     )
                 }
             }

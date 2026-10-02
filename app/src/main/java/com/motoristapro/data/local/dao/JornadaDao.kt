@@ -7,6 +7,15 @@ import androidx.room.Query
 import com.motoristapro.data.local.entity.Jornada
 import kotlinx.coroutines.flow.Flow
 
+/** Tempo conectado num período — a jornada aberta entra com o tempo até agora. */
+data class TempoConectado(
+    @ColumnInfo(name = "segundos") val segundos: Long,
+    @ColumnInfo(name = "metros") val metros: Long,
+    @ColumnInfo(name = "jornadas") val jornadas: Int
+) {
+    companion object { val VAZIO = TempoConectado(0, 0, 0) }
+}
+
 /** Soma das jornadas já encerradas num período. */
 data class TotaisJornada(
     @ColumnInfo(name = "segundos") val segundos: Long,
@@ -34,41 +43,6 @@ interface JornadaDao {
     @Query("UPDATE jornadas SET pausada_em = :em WHERE id = :id")
     suspend fun pausar(id: Long, em: Long)
 
-    /**
-     * Soma segundos num estado e nos apps que estavam online.
-     *
-     * Tudo numa UPDATE só, somando em cima do que já havia: duas chamadas
-     * concorrentes (o leitor vendo uma tela enquanto a tela da Jornada atualiza)
-     * não se atropelam, porque quem soma é o SQLite.
-     */
-    @Query(
-        """
-        UPDATE jornadas SET
-            seg_offline    = seg_offline    + :offline,
-            seg_aguardando = seg_aguardando + :aguardando,
-            seg_buscando   = seg_buscando   + :buscando,
-            seg_esperando  = seg_esperando  + :esperando,
-            seg_em_viagem  = seg_em_viagem  + :emViagem,
-            seg_uber       = seg_uber       + :uber,
-            seg_99         = seg_99         + :noventaENove,
-            seg_ifood      = seg_ifood      + :ifood,
-            seg_indrive    = seg_indrive    + :indrive
-        WHERE id = :id
-        """
-    )
-    suspend fun somarTempos(
-        id: Long,
-        offline: Long,
-        aguardando: Long,
-        buscando: Long,
-        esperando: Long,
-        emViagem: Long,
-        uber: Long,
-        noventaENove: Long,
-        ifood: Long,
-        indrive: Long
-    )
-
     /** As jornadas de um período, da mais recente para a mais antiga. */
     @Query(
         "SELECT * FROM jornadas WHERE inicio_em >= :inicio AND inicio_em < :fim ORDER BY inicio_em DESC"
@@ -85,4 +59,30 @@ interface JornadaDao {
         """
     )
     fun observarTotaisEncerradas(inicio: Long, fim: Long): Flow<TotaisJornada>
+
+    /**
+     * Tempo conectado no período, CONTANDO a jornada que ainda está aberta.
+     *
+     * É o número do relatório. A versão que só olha jornadas encerradas deixava
+     * o dia de hoje em zero até o motorista encerrar o turno — e aí o relatório
+     * do dia parecia vazio justamente quando ele mais quer olhar.
+     *
+     * O tempo pausado sai da conta: pausou para almoçar, não está conectado.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(
+                   (CASE
+                        WHEN fim_em IS NOT NULL   THEN fim_em
+                        WHEN pausada_em > 0       THEN pausada_em
+                        ELSE :agora
+                    END) - inicio_em
+               ), 0) / 1000                   AS segundos,
+               COALESCE(SUM(metros_gps), 0)   AS metros,
+               COUNT(*)                       AS jornadas
+        FROM jornadas
+        WHERE inicio_em >= :inicio AND inicio_em < :fim
+        """
+    )
+    fun observarTempoConectado(inicio: Long, fim: Long, agora: Long): Flow<TempoConectado>
 }

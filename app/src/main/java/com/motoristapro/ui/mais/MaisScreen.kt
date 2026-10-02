@@ -263,11 +263,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.APARENCIA }
                     ),
                     Ferramenta(
-                        titulo = "Jornada",
-                        estado = "onde foi o tempo do seu turno",
-                        onClick = { sub = SubTela.JORNADA }
-                    ),
-                    Ferramenta(
                         titulo = "Melhores horários",
                         estado = "em que hora rola corrida boa",
                         onClick = { sub = SubTela.HORARIOS }
@@ -643,7 +638,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     }
                     SubTela.ESTILO -> EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
                     SubTela.HORARIOS -> MelhoresHorariosScreen()
-                    SubTela.JORNADA -> JornadaScreen()
                     // Tratada antes, fora desta moldura (ela rola por conta propria).
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
@@ -1237,7 +1231,6 @@ enum class SubTela(val titulo: String) {
     APARENCIA("Aparência do app"),
     HORARIOS("Melhores horários"),
     ASSINATURA("Minha assinatura"),
-    JORNADA("Jornada"),
     NAVEGACAO("App de navegação")
 }
 

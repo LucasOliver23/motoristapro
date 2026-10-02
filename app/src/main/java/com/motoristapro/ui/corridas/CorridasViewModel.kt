@@ -127,6 +127,30 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
         }
     }
 
+    /** Apaga uma oferta lida: é assim que se tira uma leitura torta do relatório. */
+    fun excluirOferta(id: Long) {
+        viewModelScope.launch {
+            runCatching { repo.excluirOferta(id) }
+                .onSuccess { _mensagens.send("Leitura excluída") }
+                .onFailure { _mensagens.send("Erro ao excluir: ${it.message}") }
+        }
+    }
+
+    /** Apaga de uma vez todas as leituras com R$/km impossível do período filtrado. */
+    fun limparSuspeitas() {
+        viewModelScope.launch {
+            val (ini, fim) = filtro.value.intervalo()
+            runCatching { repo.limparOfertasSuspeitas(ini, fim) }
+                .onSuccess { quantas ->
+                    _mensagens.send(
+                        if (quantas > 0) "$quantas leitura(s) com erro excluída(s)"
+                        else "Nenhuma leitura com erro neste período"
+                    )
+                }
+                .onFailure { _mensagens.send("Erro ao limpar: ${it.message}") }
+        }
+    }
+
     fun excluir(id: Long) {
         viewModelScope.launch {
             runCatching { repo.excluirCorrida(id) }
