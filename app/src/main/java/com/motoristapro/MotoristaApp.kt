@@ -9,6 +9,7 @@ import com.motoristapro.data.local.AppDatabase
 import com.motoristapro.data.prefs.PreferenciasApp
 import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.jornada.Notificacoes
+import com.motoristapro.jornada.RelogioJornada
 import com.motoristapro.nuvem.SincronizacaoNuvem
 import com.motoristapro.resumo.ResumoDiarioWorker
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +26,7 @@ class MotoristaApp : Application() {
     val nuvem: SincronizacaoNuvem by lazy { SincronizacaoNuvem(this, database, autenticacao) }
     val atualizacao: AtualizacaoManager by lazy { AtualizacaoManager(this) }
     val assinatura: AssinaturaManager by lazy { AssinaturaManager(this, autenticacao) }
+    val relogio: RelogioJornada by lazy { RelogioJornada(this, repository) }
 
     /** Escopo para tarefas curtas de manutenção (vive enquanto o processo viver). */
     val escopoApp = CoroutineScope(SupervisorJob() + Dispatchers.IO)

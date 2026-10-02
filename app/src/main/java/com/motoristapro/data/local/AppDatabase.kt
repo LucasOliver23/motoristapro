@@ -28,7 +28,7 @@ import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Versão atual do esquema do banco (constante de topo: pode ser usada na anotação). */
-const val VERSAO_BANCO = 10
+const val VERSAO_BANCO = 11
 
 /**
  * Banco local do MotoristaPro.
@@ -89,7 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun construir(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NOME_BANCO)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .addCallback(SEED)
                 // NÃO use fallbackToDestructiveMigration(): apagaria o histórico do motorista.
                 .build()
@@ -161,6 +161,23 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN nome_motorista TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN telefone TEXT")
                 db.execSQL("ALTER TABLE configuracoes ADD COLUMN cidade TEXT")
+            }
+        }
+
+        /**
+         * v10 -> v11: a Jornada passou a dividir o turno por estado (offline,
+         * aguardando, buscando, esperando, em viagem) e a contar quanto tempo
+         * cada aplicativo ficou online.
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "seg_offline", "seg_aguardando", "seg_buscando", "seg_esperando",
+                    "seg_em_viagem", "seg_uber", "seg_99", "seg_ifood", "seg_indrive",
+                    "pausada_em"
+                ).forEach { coluna ->
+                    db.execSQL("ALTER TABLE jornadas ADD COLUMN $coluna INTEGER NOT NULL DEFAULT 0")
+                }
             }
         }
 

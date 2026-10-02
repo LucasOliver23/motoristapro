@@ -263,6 +263,11 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.APARENCIA }
                     ),
                     Ferramenta(
+                        titulo = "Jornada",
+                        estado = "onde foi o tempo do seu turno",
+                        onClick = { sub = SubTela.JORNADA }
+                    ),
+                    Ferramenta(
                         titulo = "Melhores horários",
                         estado = "em que hora rola corrida boa",
                         onClick = { sub = SubTela.HORARIOS }
@@ -414,6 +419,23 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
         // para fora da tela quando pede o inset do teclado, e era por isso que o
         // botao do rodape caia abaixo da borda do celular.
         BackHandler { sub = null }
+
+        // A tela de assinatura rola sozinha e ocupa a tela inteira. Dentro do
+        // SubTelaHost — que tambem rola — ela recebia altura infinita e o app
+        // FECHAVA na hora de abrir. Por isso ela vem antes, sem a moldura.
+        if (aberta == SubTela.ASSINATURA) {
+            CamadaTelaCheia {
+                AssinaturaScreen(
+                    acesso = acesso,
+                    precos = precos,
+                    gerente = assinaturaManager,
+                    onFechar = { sub = null },
+                    onSair = { confirmarSair = true }
+                )
+            }
+            return@let
+        }
+
         CamadaTelaCheia {
             SubTelaHost(titulo = aberta.titulo, onFechar = { sub = null }) {
                 when (aberta) {
@@ -621,13 +643,9 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     }
                     SubTela.ESTILO -> EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
                     SubTela.HORARIOS -> MelhoresHorariosScreen()
-                    SubTela.ASSINATURA -> AssinaturaScreen(
-                        acesso = acesso,
-                        precos = precos,
-                        gerente = assinaturaManager,
-                        onFechar = { sub = null },
-                        onSair = { confirmarSair = true }
-                    )
+                    SubTela.JORNADA -> JornadaScreen()
+                    // Tratada antes, fora desta moldura (ela rola por conta propria).
+                    SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
                     SubTela.APARENCIA -> AparenciaScreen()
                     SubTela.VERSAO ->
@@ -1211,6 +1229,7 @@ enum class SubTela(val titulo: String) {
     APARENCIA("Aparência do app"),
     HORARIOS("Melhores horários"),
     ASSINATURA("Minha assinatura"),
+    JORNADA("Jornada"),
     NAVEGACAO("App de navegação")
 }
 

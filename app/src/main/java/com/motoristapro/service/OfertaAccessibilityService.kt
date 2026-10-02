@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.motoristapro.MotoristaApp
+import com.motoristapro.jornada.RelogioJornada
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.repository.nomePlataforma
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +42,7 @@ class OfertaAccessibilityService : AccessibilityService() {
 
     private var overlay: OverlayOferta? = null
     private var limites: LimitesOferta? = null
+    private var relogio: RelogioJornada? = null
     private var bolha: BolhaFlutuante? = null
 
     /** Id no histórico da oferta exibida (para marcar como registrada). */
@@ -88,6 +90,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         _conectado.value = true
 
         limites = LimitesOferta(this)
+        relogio = (application as MotoristaApp).relogio
         risco = EnderecosDeRisco(this)
         voz = AvisoVoz(this).apply { preparar() }
         val app = application as MotoristaApp
@@ -211,6 +214,12 @@ class OfertaAccessibilityService : AccessibilityService() {
         ) {
             solicitarOcr(leituras.first().pacote)
             return
+        }
+
+        // A Jornada aproveita a mesma leitura: cada tela de app de corrida diz se
+        // ele esta Online ou Offline, e e isso que separa "parado" de "esperando".
+        leituras.forEach { l ->
+            if (l.textos.isNotEmpty()) relogio?.aoVerTelaDeApp(l.pacote, l.textos)
         }
 
         registrarDiagnostico(leituras.flatMap { it.textos }, leituras.map { it.pacote }, leituras.size,
