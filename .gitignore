@@ -20,3 +20,10 @@ captures/
 .idea/
 *.iml
 .DS_Store
+
+# Servidor da assinatura (Firebase Functions)
+servidor/functions/node_modules/
+servidor/functions/package-lock.json
+servidor/.firebase/
+servidor/**/.env
+servidor/**/*service-account*.json

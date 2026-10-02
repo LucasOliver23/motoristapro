@@ -1,0 +1,11 @@
+{
+  "name": "motoristapro-servidor",
+  "description": "Assinatura do MotoristaPro: cria a cobranca no Mercado Pago e libera a conta quando o pagamento entra.",
+  "main": "index.js",
+  "engines": { "node": "20" },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.1.0"
+  },
+  "private": true
+}

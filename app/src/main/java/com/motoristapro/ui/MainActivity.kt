@@ -44,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.motoristapro.MotoristaApp
 import com.motoristapro.auth.LoginScreen
 import com.motoristapro.service.leitorOfertasAtivo
+import com.motoristapro.ui.assinatura.AssinaturaScreen
 import com.motoristapro.ui.theme.MotoristaTema
 import com.motoristapro.ui.theme.PreferenciaTema
 import com.motoristapro.ui.theme.temaEscuro
@@ -119,6 +120,21 @@ private fun AppComLogin() {
     // Logou: acerta os dados com a nuvem uma vez por sessão.
     LaunchedEffect(usuario?.uid) {
         app.nuvem.sincronizarAoEntrar()
+    }
+
+    // Teste gratis e assinatura. Enquanto o Firestore nao respondeu, o acesso
+    // fica "liberado": travar o app por causa de internet lenta seria pior do
+    // que deixar passar alguns segundos de quem nao pagou.
+    val acesso by app.assinatura.acesso.collectAsStateWithLifecycle()
+    val precos by app.assinatura.precos.collectAsStateWithLifecycle()
+    if (!acesso.liberado) {
+        AssinaturaScreen(
+            acesso = acesso,
+            precos = precos,
+            gerente = app.assinatura,
+            onSair = { autenticacao.sair() }
+        )
+        return
     }
     AppComPermissoes()
 }

@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// Regras do MotoristaPro.
+//
+// A ideia central: o motorista manda nos DADOS dele e não manda em NADA que
+// decida se ele pagou. Por isso `assinaturaAte` e `plano` só existem para
+// leitura aqui — quem escreve é a função do servidor, que usa a chave de
+// administrador e não passa por estas regras.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Backup dos dados do app (o blob gzip). É do dono e só dele.
+    match /usuarios/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Assinatura e teste grátis.
+    match /assinaturas/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // CRIAR: só o próprio, só uma vez, e o início do teste tem que ser o
+      // carimbo do servidor — não uma data que o celular inventou.
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.trialInicio == request.time
+        && !('assinaturaAte' in request.resource.data)
+        && !('plano' in request.resource.data);
+
+      // ATUALIZAR: o app só pode carimbar que abriu hoje. Mais nada.
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['ultimoAcesso', 'email'])
+        && request.resource.data.ultimoAcesso == request.time;
+
+      allow delete: if false;
+    }
+
+    // Preços e links de checkout: todo mundo logado lê, ninguém escreve pelo app.
+    match /config/{documento} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Recibos de pagamento, só para auditoria. Escritos pela função.
+    match /pagamentos/{id} {
+      allow read, write: if false;
+    }
+  }
+}

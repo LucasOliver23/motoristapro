@@ -2,6 +2,7 @@ package com.motoristapro
 
 import android.app.Application
 import android.util.Log
+import com.motoristapro.assinatura.AssinaturaManager
 import com.motoristapro.atualizacao.AtualizacaoManager
 import com.motoristapro.auth.AutenticacaoManager
 import com.motoristapro.data.local.AppDatabase
@@ -23,6 +24,7 @@ class MotoristaApp : Application() {
     val autenticacao: AutenticacaoManager by lazy { AutenticacaoManager(this) }
     val nuvem: SincronizacaoNuvem by lazy { SincronizacaoNuvem(this, database, autenticacao) }
     val atualizacao: AtualizacaoManager by lazy { AtualizacaoManager(this) }
+    val assinatura: AssinaturaManager by lazy { AssinaturaManager(this, autenticacao) }
 
     /** Escopo para tarefas curtas de manutenção (vive enquanto o processo viver). */
     val escopoApp = CoroutineScope(SupervisorJob() + Dispatchers.IO)

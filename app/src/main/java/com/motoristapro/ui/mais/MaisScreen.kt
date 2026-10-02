@@ -82,6 +82,9 @@ import com.motoristapro.ui.paraCentavosOuZero
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.TextoSecundario
 import com.motoristapro.ui.theme.VermelhoPrejuizo
+import com.motoristapro.MotoristaApp
+import com.motoristapro.assinatura.SituacaoAcesso
+import com.motoristapro.ui.assinatura.AssinaturaScreen
 import com.motoristapro.service.AppNavegacao
 import com.motoristapro.service.EstiloCartao
 import com.motoristapro.ui.theme.PreferenciaTema
@@ -164,6 +167,10 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
 
     // Estado do cartao da oferta, so para o quadradinho da grade mostrar o resumo.
     // Relido quando a sub-tela fecha: e la que ele muda.
+    val assinaturaManager = remember { (context.applicationContext as MotoristaApp).assinatura }
+    val acesso by assinaturaManager.acesso.collectAsStateWithLifecycle()
+    val precos by assinaturaManager.precos.collectAsStateWithLifecycle()
+
     val estiloCartao = remember { EstiloCartao(context) }
     var estilo by remember { mutableStateOf(estiloCartao.ler()) }
     var navegacao by remember { mutableStateOf(AppNavegacao.lida(context)) }
@@ -296,6 +303,21 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         aceso = leitorOk,
                         alerta = !leitorOk,
                         onClick = { sub = SubTela.LEITOR }
+                    ),
+                    Ferramenta(
+                        titulo = "Minha assinatura",
+                        estado = when (acesso.situacao) {
+                            SituacaoAcesso.TESTE_ATIVO -> "teste: ${acesso.diasDeTeste} dia(s)"
+                            SituacaoAcesso.ASSINATURA_ATIVA ->
+                                "${acesso.plano?.rotulo?.lowercase(PT) ?: "ativa"} · ${acesso.diasDeAssinatura} dia(s)"
+                            SituacaoAcesso.TESTE_ACABOU -> "teste acabou"
+                            SituacaoAcesso.ASSINATURA_VENCIDA -> "vencida"
+                            else -> "ver planos"
+                        },
+                        aceso = acesso.situacao == SituacaoAcesso.ASSINATURA_ATIVA,
+                        alerta = acesso.situacao == SituacaoAcesso.TESTE_ACABOU ||
+                            acesso.situacao == SituacaoAcesso.ASSINATURA_VENCIDA,
+                        onClick = { sub = SubTela.ASSINATURA }
                     ),
                     Ferramenta(
                         titulo = "Conta e nuvem",
@@ -599,6 +621,13 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     }
                     SubTela.ESTILO -> EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
                     SubTela.HORARIOS -> MelhoresHorariosScreen()
+                    SubTela.ASSINATURA -> AssinaturaScreen(
+                        acesso = acesso,
+                        precos = precos,
+                        gerente = assinaturaManager,
+                        onFechar = { sub = null },
+                        onSair = { confirmarSair = true }
+                    )
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
                     SubTela.APARENCIA -> AparenciaScreen()
                     SubTela.VERSAO ->
@@ -1181,6 +1210,7 @@ enum class SubTela(val titulo: String) {
     ESTILO("Estilo do cartão"),
     APARENCIA("Aparência do app"),
     HORARIOS("Melhores horários"),
+    ASSINATURA("Minha assinatura"),
     NAVEGACAO("App de navegação")
 }
 

@@ -206,6 +206,15 @@ e o backup automático em `usuarios/{uid}` no Firestore.
 
 Passo a passo completo: **`docs/firebase.md`**.
 
+### Teste grátis e assinatura
+
+14 dias de teste a partir do primeiro login; depois, R$ 14,90/mês ou R$ 39,90/trimestre.
+Como o app é instalado por APK (e não pela Play Store), a cobrança do Google não se
+aplica: o pagamento é feito no Mercado Pago e liberado por uma função do Firebase.
+
+O código do servidor fica em `servidor/` (funções + regras do Firestore) e o passo a
+passo para ligar tudo está em **`docs/assinatura.md`**.
+
 ```
 auth/
   AutenticacaoManager.kt   email/senha, Google (Credential Manager), mensagens de erro em português
