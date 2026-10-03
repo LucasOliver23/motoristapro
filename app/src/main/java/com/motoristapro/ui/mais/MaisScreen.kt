@@ -110,6 +110,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextAlign
+import com.motoristapro.ui.theme.SuperficieAlta
+import com.motoristapro.ui.theme.ModoTema
 
 private val PT = Locale("pt", "BR")
 
@@ -235,7 +238,23 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                 )
             )
 
-            PerfilLinha(cfg = cfg, email = usuario?.email ?: usuario?.nome) { sub = SubTela.PERFIL }
+            PerfilLinha(
+                cfg = cfg,
+                email = usuario?.email ?: usuario?.nome,
+                selo = when (acesso.situacao) {
+                    SituacaoAcesso.ASSINATURA_ATIVA -> "ASSINANTE\n${acesso.diasDeAssinatura} dias"
+                    SituacaoAcesso.TESTE_ATIVO -> "TESTE\n${acesso.diasDeTeste} dias"
+                    SituacaoAcesso.TESTE_ACABOU -> "TESTE\nacabou"
+                    SituacaoAcesso.ASSINATURA_VENCIDA -> "ASSINATURA\nvencida"
+                    else -> null
+                },
+                seloAceso = acesso.situacao == SituacaoAcesso.ASSINATURA_ATIVA ||
+                    acesso.situacao == SituacaoAcesso.TESTE_ATIVO
+            ) { sub = SubTela.PERFIL }
+
+            // Aparência direto aqui, sem entrar em tela nenhuma: é a primeira
+            // coisa que todo mundo procura e estava escondida a dois toques.
+            SeletorDeTema(context)
 
             GradeFerramentas(
                 titulo = "MEU TRABALHO",
@@ -1301,9 +1320,51 @@ private fun SubTelaHost(
     }
 }
 
+/**
+ * Escuro, Claro ou Do sistema, em três botões.
+ *
+ * Fica no alto do Menu, antes de qualquer ajuste: foi a opção que mais custou
+ * para o motorista achar, e a que mais muda a cara do app.
+ */
+@Composable
+private fun SeletorDeTema(context: android.content.Context) {
+    var modo by remember { mutableStateOf(PreferenciaTema.modo) }
+    CardSecao(titulo = "APARÊNCIA") {
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                .background(SuperficieAlta).padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            ModoTema.entries.forEach { m ->
+                val ativo = m == modo
+                Box(
+                    Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
+                        .background(if (ativo) MaterialTheme.colorScheme.background else Color.Transparent)
+                        .clickable { PreferenciaTema.definir(context, m); modo = m }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        m.rotulo,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = if (ativo) FontWeight.Bold else FontWeight.Normal,
+                        color = if (ativo) Lima else TextoSecundario
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** Cabeçalho do "Mais": avatar, nome e um resumo de uma linha. */
 @Composable
-private fun PerfilLinha(cfg: Configuracao, email: String?, onClick: () -> Unit) {
+private fun PerfilLinha(
+    cfg: Configuracao,
+    email: String?,
+    selo: String? = null,
+    seloAceso: Boolean = false,
+    onClick: () -> Unit
+) {
     val nome = cfg.nomeMotorista?.takeIf { it.isNotBlank() } ?: "Motorista"
     Card(
         shape = RoundedCornerShape(18.dp),
@@ -1333,6 +1394,23 @@ private fun PerfilLinha(cfg: Configuracao, email: String?, onClick: () -> Unit) 
                     style = MaterialTheme.typography.bodySmall,
                     color = TextoSecundario
                 )
+            }
+            if (selo != null) {
+                val cor = if (seloAceso) Lima else AmareloAlerta
+                Box(
+                    Modifier.clip(RoundedCornerShape(12.dp))
+                        .background(cor.copy(alpha = 0.16f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        selo,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = cor,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 12.sp
+                    )
+                }
             }
             Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
         }

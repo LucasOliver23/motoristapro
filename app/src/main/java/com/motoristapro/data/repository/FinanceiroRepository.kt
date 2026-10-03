@@ -1,6 +1,7 @@
 package com.motoristapro.data.repository
 
 import com.motoristapro.data.local.AppDatabase
+import com.motoristapro.data.local.dao.CasaDoMapa
 import com.motoristapro.data.local.dao.FaixaHoraria
 import com.motoristapro.data.local.dao.ResumoOfertas
 import com.motoristapro.data.local.dao.ResumoPeriodo
@@ -303,6 +304,10 @@ class FinanceiroRepository(private val db: AppDatabase) {
         minimoOfertas: Int = 1
     ): Flow<List<FaixaHoraria>> =
         ofertaDao.observarFaixasPorDiaDaSemana(inicio, fim, diaSemana, minimoOfertas)
+
+    /** O mapa de calor dia da semana x faixa de 2 h, para a aba Atividade. */
+    fun mapaDeCalor(inicio: Long, fim: Long): Flow<List<CasaDoMapa>> =
+        ofertaDao.observarMapaDeCalor(inicio, fim)
 
     /** Mantém só os últimos [dias] dias de ofertas. */
     suspend fun limparOfertasAntigas(dias: Int = 180): Int =

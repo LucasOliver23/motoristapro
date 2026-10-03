@@ -27,12 +27,20 @@ import com.motoristapro.ui.componentes.LinhaValor
 import com.motoristapro.ui.componentes.Metrica
 import com.motoristapro.ui.componentes.TelaAba
 import com.motoristapro.ui.formatarDuracao
-import com.motoristapro.ui.mais.MelhoresHorariosScreen
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.TextoSecundario
 import com.motoristapro.ui.theme.VermelhoPrejuizo
 import java.util.Locale
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.Box
+import com.motoristapro.ui.theme.Contorno
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
 
 private val PT = Locale("pt", "BR")
 
@@ -43,6 +51,83 @@ private val PT = Locale("pt", "BR")
  * "R$/h em corrida" ignora o tempo parado esperando oferta, então sempre parece
  * melhor do que a vida real.
  */
+/**
+ * O mapa de calor: dia da semana nas linhas, faixa de 2 h nas colunas.
+ *
+ * Verde mais claro = mais R$/km naquele pedaço da semana. É a pergunta que o
+ * motorista faz todo dia ("vale a pena sair agora?") respondida de uma olhada,
+ * e sai de dado que o app já tem: toda oferta que o leitor viu, aceita ou não.
+ *
+ * Casa sem oferta nenhuma fica apagada, não verde-escuro: vazio não é "ruim",
+ * é "não sei" — e misturar os dois mentiria para quem está começando.
+ */
+@Composable
+private fun MapaDeCalor(e: RelatoriosUiState) {
+    CardSecao(titulo = "MELHORES HORÁRIOS") {
+        if (e.mapa.isEmpty()) {
+            Text(
+                "Com o leitor ligado, aqui aparece em que dia e hora o mercado paga " +
+                    "melhor por km — contando até as corridas que você recusou.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+            return@CardSecao
+        }
+
+        val porCasa = e.mapa.associateBy { it.diaSemana to it.faixa }
+        val teto = e.mapa.maxOf { it.reaisKmCentavos }.coerceAtLeast(1)
+        val piso = e.mapa.minOf { it.reaisKmCentavos }
+        // Faixas de 3 em 3 (6h, 9h, 12h...) para caber na largura do celular.
+        val colunas = listOf(3, 4, 6, 7, 9, 10, 0, 1)
+
+        Row(Modifier.fillMaxWidth()) {
+            Spacer(Modifier.width(30.dp))
+            colunas.forEach { f ->
+                Text(
+                    "${f * 2}h",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextoSecundario,
+                    fontSize = 8.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        DIAS_DA_SEMANA.forEachIndexed { indice, sigla ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    sigla,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextoSecundario,
+                    fontSize = 8.sp,
+                    modifier = Modifier.width(30.dp)
+                )
+                colunas.forEach { f ->
+                    val casa = porCasa[indice to f]
+                    val forca = if (casa == null || teto == piso) 0f
+                    else ((casa.reaisKmCentavos - piso).toFloat() / (teto - piso)).coerceIn(0f, 1f)
+                    Box(
+                        Modifier.weight(1f).padding(1.dp).height(20.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                if (casa == null) Contorno
+                                else Lima.copy(alpha = 0.25f + 0.75f * forca)
+                            )
+                    )
+                }
+            }
+        }
+        e.melhorCasa?.let { melhor ->
+            Text(
+                "Melhor: ${DIAS_DA_SEMANA[melhor.diaSemana]} às ${melhor.faixa * 2}h • " +
+                    "${melhor.reaisKmCentavos.emReais()}/km em ${melhor.ofertas} oferta(s)",
+                style = MaterialTheme.typography.bodySmall, color = Lima
+            )
+        }
+    }
+}
+
+private val DIAS_DA_SEMANA = listOf("DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB")
+
 @Composable
 private fun QuadroDoPeriodo(e: RelatoriosUiState) {
     val r = e.resumo
@@ -207,38 +292,8 @@ fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosView
                 }
             }
 
-            // ---------------- melhores horários
-            CardSecao(titulo = "Melhores horários (corridas registradas)") {
-                val porHora = LongArray(24)
-                e.porHora.forEach { if (it.hora in 0..23) porHora[it.hora] = it.ganhoPorHoraCentavos }
-                val melhor = e.melhorHora
-                GraficoBarras(
-                    valores = porHora.map { it / 100f },
-                    rotulos = (0..23).map { if (it % 3 == 0) "${it}h" else "" },
-                    altura = 120.dp,
-                    destaque = melhor?.hora ?: -1
-                )
-                if (melhor != null) {
-                    Text(
-                        "Melhor faixa: ${melhor.hora}h–${melhor.hora + 1}h • ${melhor.ganhoPorHoraCentavos.emReais()}/h em corrida (${melhor.qtdCorridas} corridas)",
-                        style = MaterialTheme.typography.bodySmall, color = Lima
-                    )
-                } else {
-                    Text("Registre corridas para descobrir seus melhores horários.", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-                }
-
-            }
-
-            // A tela completa de Melhores Horários, que antes vivia em Mais. É a
-            // mesma informação, então ficar nos dois lugares só dava a chance de
-            // um mostrar um número e o outro mostrar outro. Aqui ela tem o filtro
-            // por dia da semana e o "paga melhor × mais movimento", que o card
-            // resumido não tinha.
-            Text(
-                "Melhores horários (o que apareceu na sua tela)",
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
-            )
-            MelhoresHorariosScreen()
+            // ---------------- mapa de calor
+            MapaDeCalor(e)
 
             // ---------------- custos
             CardSecao(titulo = "Custo real medido (no período)") {

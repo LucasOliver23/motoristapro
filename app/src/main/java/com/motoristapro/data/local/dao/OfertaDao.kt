@@ -29,6 +29,23 @@ data class ResumoOfertas(
 }
 
 /**
+ * Uma casinha do mapa de calor: um dia da semana cruzado com uma faixa de 2 h.
+ */
+data class CasaDoMapa(
+    @ColumnInfo(name = "dia_semana") val diaSemana: Int,
+    @ColumnInfo(name = "faixa") val faixa: Int,
+    @ColumnInfo(name = "ofertas") val ofertas: Int,
+    @ColumnInfo(name = "reais_km_centavos") val reaisKmCentavos: Long
+)
+
+/**
+ * O mapa inteiro de uma vez: dia da semana x faixa de 2 h.
+ *
+ * Uma consulta só em vez de sete (uma por dia). O mapa tem 7 x 12 = 84 casas e
+ * a tela precisa das 84 juntas para saber qual é a mais clara — fazendo dia a
+ * dia, cada linha teria a própria escala e a comparação entre dias se perderia.
+ */
+/**
  * Uma faixa de 2 horas do dia (0 = 00h–02h, 1 = 02h–04h ... 11 = 22h–00h),
  * com tudo que o leitor viu nela. Serve para responder "a que horas vale a pena rodar".
  */
@@ -107,6 +124,22 @@ interface OfertaDao {
         """
     )
     fun observarFaixasHorarias(inicio: Long, fim: Long, minimoOfertas: Int = 3): Flow<List<FaixaHoraria>>
+
+    @Query(
+        """
+        SELECT
+            CAST(strftime('%w', recebida_em / 1000, 'unixepoch', 'localtime') AS INTEGER) AS dia_semana,
+            CAST(strftime('%H', recebida_em / 1000, 'unixepoch', 'localtime') AS INTEGER) / 2 AS faixa,
+            COUNT(*) AS ofertas,
+            COALESCE(SUM(valor_centavos), 0) * 1000 / NULLIF(SUM(metros), 0) AS reais_km_centavos
+        FROM ofertas
+        WHERE recebida_em >= :inicio AND recebida_em < :fim AND metros > 0
+          AND valor_centavos * 1000 / metros <= 5000
+        GROUP BY dia_semana, faixa
+        ORDER BY dia_semana, faixa
+        """
+    )
+    fun observarMapaDeCalor(inicio: Long, fim: Long): Flow<List<CasaDoMapa>>
 
     /**
      * O mesmo, podendo olhar um dia da semana só — "como costuma ser a minha

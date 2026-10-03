@@ -1,10 +1,9 @@
-NADA PARA APAGAR NESTA VERSAO (3.0.0)
+NADA PARA APAGAR NESTA VERSAO (3.1.0)
 =====================================
 
-Nenhum arquivo removido. O banco continua na versao 12.
+Nenhum arquivo removido. Banco continua na versao 12.
 
-Arquivos alterados:
-  ui/theme/Tema.kt                 paleta exata (FundoApp, FundoCard, VerdeNeon...)
-  ui/componentes/Componentes.kt    CardPro, BotaoPro, BotaoProEscuro
-  ui/AppRaiz.kt                    barra de abas sem a pilula do Material
-  ui/dashboard/DashboardScreen.kt  lucro em 40.sp e os botoes novos
+O que mudou:
+  Corridas abre no HISTORICO (era a lista antiga; o historico ficava escondido)
+  Atividade ganhou o MAPA DE CALOR dia x hora
+  Menu ganhou o selo da assinatura no perfil e o seletor de tema no topo

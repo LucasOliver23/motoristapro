@@ -41,7 +41,7 @@ enum class FiltroPeriodo(val rotulo: String) {
 }
 
 /** O que a aba mostra: corridas registradas ou todas as ofertas recebidas. */
-enum class ModoLista(val rotulo: String) { CORRIDAS("Corridas"), OFERTAS("Ofertas recebidas") }
+enum class ModoLista(val rotulo: String) { OFERTAS("Histórico"), CORRIDAS("Registradas") }
 
 /** Aceitas, recusadas ou tudo. "Aceita" = a oferta virou corrida registrada. */
 enum class FiltroAceite(val rotulo: String) { TODAS("Todas"), ACEITAS("Aceitas"), RECUSADAS("Recusadas") }
@@ -128,7 +128,9 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
     private val _mensagens = Channel<String>(Channel.BUFFERED)
     val mensagens: Flow<String> = _mensagens.receiveAsFlow()
 
-    private val _modo = MutableStateFlow(ModoLista.CORRIDAS)
+    // Abre no HISTÓRICO: é a tela que o motorista olha o dia inteiro. A lista
+    // de corridas registradas continua a um toque, no chip de cima.
+    private val _modo = MutableStateFlow(ModoLista.OFERTAS)
     val modo: StateFlow<ModoLista> = _modo
 
     private val filtroPlataforma = MutableStateFlow<String?>(null)

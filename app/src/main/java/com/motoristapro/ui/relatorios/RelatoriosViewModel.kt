@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.motoristapro.MotoristaApp
+import com.motoristapro.data.local.dao.CasaDoMapa
 import com.motoristapro.data.local.dao.ResumoOfertas
 import com.motoristapro.data.local.dao.TempoConectado
 import com.motoristapro.data.local.dao.ResumoPeriodo
@@ -74,8 +75,14 @@ data class RelatoriosUiState(
     /** Custo/km que o assistente de custos calculou (para comparar com o real). */
     val custoKmConfigurado: Long = 0,
     /** Tempo de app ligado no período (jornadas, já contando a que está aberta). */
-    val conectado: TempoConectado = TempoConectado.VAZIO
+    val conectado: TempoConectado = TempoConectado.VAZIO,
+    /** Mapa de calor dia da semana x faixa de 2 h. */
+    val mapa: List<CasaDoMapa> = emptyList()
 ) {
+    /** A casa mais clara do mapa — "o seu melhor horário da semana". */
+    val melhorCasa: CasaDoMapa? get() = mapa.filter { it.ofertas >= 2 }.maxByOrNull { it.reaisKmCentavos }
+        ?: mapa.maxByOrNull { it.reaisKmCentavos }
+
     /** Tempo conectado em segundos. */
     val segundosConectado: Long get() = conectado.segundos
 
@@ -177,6 +184,7 @@ class RelatoriosViewModel(private val repo: FinanceiroRepository) : ViewModel() 
                 }
                 .combine(repo.faixasHorarias(ini, fim)) { estado, fx -> estado.copy(faixas = fx) }
                 .combine(tempoConectadoAoVivo(ini, fim)) { estado, t -> estado.copy(conectado = t) }
+                .combine(repo.mapaDeCalor(ini, fim)) { estado, m -> estado.copy(mapa = m) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RelatoriosUiState())
 
