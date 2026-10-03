@@ -13,6 +13,7 @@ import com.motoristapro.data.local.dao.CustoFixoDao
 import com.motoristapro.data.local.dao.CorridaDao
 import com.motoristapro.data.local.dao.DespesaDao
 import com.motoristapro.data.local.dao.JornadaDao
+import com.motoristapro.data.local.dao.ManutencaoDao
 import com.motoristapro.data.local.dao.OfertaDao
 import com.motoristapro.data.local.dao.PlataformaDao
 import com.motoristapro.data.local.dao.PerfilCustoDao
@@ -23,12 +24,13 @@ import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.entity.CustoFixo
 import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.local.entity.Despesa
+import com.motoristapro.data.local.entity.ItemManutencao
 import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Versão atual do esquema do banco (constante de topo: pode ser usada na anotação). */
-const val VERSAO_BANCO = 12
+const val VERSAO_BANCO = 13
 
 /**
  * Banco local do MotoristaPro.
@@ -54,7 +56,8 @@ const val VERSAO_BANCO = 12
         Jornada::class,
         OfertaRecebida::class,
         CustoFixo::class,
-        PerfilCusto::class
+        PerfilCusto::class,
+        ItemManutencao::class
     ],
     version = VERSAO_BANCO,
     exportSchema = true
@@ -72,6 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun custoFixoDao(): CustoFixoDao
     abstract fun sincronizacaoDao(): SincronizacaoDao
     abstract fun perfilCustoDao(): PerfilCustoDao
+    abstract fun manutencaoDao(): ManutencaoDao
 
     companion object {
         /** Versão atual do esquema (usada também para validar backups). */
@@ -89,7 +93,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun construir(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NOME_BANCO)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .addCallback(SEED)
                 // NÃO use fallbackToDestructiveMigration(): apagaria o histórico do motorista.
                 .build()
@@ -176,6 +180,26 @@ abstract class AppDatabase : RoomDatabase() {
          * cronômetro passou a descontar isso, senão a hora do almoço entrava
          * como hora trabalhada e estragava o R$/hora.
          */
+        /**
+         * v12 -> v13: controle de manutenção por quilometragem.
+         *
+         * Tabela nova e vazia: nada é inventado para quem já usa o app. O
+         * motorista cadastra o item, de quantos em quantos km se faz e o
+         * hodômetro da última troca — sem esses três números o aviso mentiria.
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `manutencoes` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`nome` TEXT NOT NULL, " +
+                        "`intervalo_km` INTEGER NOT NULL, " +
+                        "`odometro_ultima_km` INTEGER NOT NULL, " +
+                        "`atualizado_em` INTEGER NOT NULL)"
+                )
+            }
+        }
+
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE jornadas ADD COLUMN seg_pausados INTEGER NOT NULL DEFAULT 0")

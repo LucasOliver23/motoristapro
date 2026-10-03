@@ -114,6 +114,9 @@ import androidx.compose.ui.text.style.TextAlign
 import com.motoristapro.ui.theme.SuperficieAlta
 import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.theme.ModoTema
+import com.motoristapro.ui.manutencao.ManutencaoConteudo
+import com.motoristapro.ui.manutencao.maisUrgente
+import com.motoristapro.ui.manutencao.textoDaManutencao
 
 private val PT = Locale("pt", "BR")
 
@@ -143,6 +146,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val riscoMercados by vm.riscoMercados.collectAsStateWithLifecycle()
     val palavrasRisco by vm.riscoPalavras.collectAsStateWithLifecycle()
     val faixas by vm.faixas.collectAsStateWithLifecycle()
+    val manutencoes by vm.manutencoes.collectAsStateWithLifecycle()
+    val odometro by vm.odometroAtual.collectAsStateWithLifecycle()
     var assistenteAberto by remember { mutableStateOf(false) }
     var sub by remember { mutableStateOf<SubTela?>(null) }
     var novoCusto by remember { mutableStateOf(false) }
@@ -183,6 +188,9 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             estilo = estiloCartao.ler()
             navegacao = AppNavegacao.lida(context)
         }
+        // O hodômetro vem de um abastecimento, que pode ter sido lançado em
+        // Finanças desde a última vez que esta aba foi aberta.
+        vm.conferirOdometro()
     }
 
     var notificacoesOk by remember { mutableStateOf(Notificacoes.podeNotificar(context)) }
@@ -274,6 +282,22 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         estado = "boa acima de ${"%.2f".format(PT, faixas.kmBoa)}/km",
                         semaforo = true,
                         onClick = { sub = SubTela.FAIXAS }
+                    ),
+                    Ferramenta(
+                        titulo = "Manutenção",
+                        icone = "🔧",
+                        estado = when {
+                            manutencoes.isEmpty() -> "nenhum item cadastrado"
+                            odometro <= 0L -> "informe o km ao abastecer"
+                            else -> maisUrgente(manutencoes)!!.let { item ->
+                                "${item.nome.lowercase(PT)} ${textoDaManutencao(item, odometro)}"
+                            }
+                        },
+                        aceso = manutencoes.isNotEmpty() && odometro > 0 &&
+                            maisUrgente(manutencoes)!!.faltamKm(odometro) > 500,
+                        alerta = manutencoes.isNotEmpty() && odometro > 0 &&
+                            maisUrgente(manutencoes)!!.faltamKm(odometro) <= 500,
+                        onClick = { sub = SubTela.MANUTENCAO }
                     ),
                     Ferramenta(
                         titulo = "Resumo do dia às 22h",
@@ -682,6 +706,12 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     // Tratada antes, fora desta moldura (ela rola por conta propria).
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
+                    SubTela.MANUTENCAO -> ManutencaoConteudo(
+                        itens = manutencoes,
+                        odometroAtual = odometro,
+                        onSalvar = vm::salvarManutencao,
+                        onExcluir = vm::excluirManutencao
+                    )
                     SubTela.APARENCIA -> AparenciaScreen()
                     SubTela.VERSAO ->
                     AtualizacaoCard(
@@ -1271,7 +1301,8 @@ enum class SubTela(val titulo: String) {
     ESTILO("Estilo do cartão"),
     APARENCIA("Aparência do app"),
     ASSINATURA("Minha assinatura"),
-    NAVEGACAO("App de navegação")
+    NAVEGACAO("App de navegação"),
+    MANUTENCAO("Manutenção")
 }
 
 /**

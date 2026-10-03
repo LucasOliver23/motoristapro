@@ -1,11 +1,20 @@
-NADA PARA APAGAR NESTA VERSAO (3.2.0)
+NADA PARA APAGAR NESTA VERSAO (3.3.0)
 =====================================
 
-Nenhum arquivo foi removido. Banco continua na versao 12.
+Nenhum arquivo foi removido. O banco SOBE para a versao 13 (tabela
+"manutencoes"). A migracao 12 -> 13 roda sozinha e nao apaga nada.
 
-Arquivos alterados nesta versao (so sobrescrever):
+Arquivos NOVOS nesta versao:
+  app/src/main/java/com/motoristapro/data/local/entity/ItemManutencao.kt
+  app/src/main/java/com/motoristapro/data/local/dao/ManutencaoDao.kt
+  app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt
+
+Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt
-  app/src/main/java/com/motoristapro/ui/financas/FinancasScreen.kt
+  app/src/main/java/com/motoristapro/ui/AppRaiz.kt
   app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt
+  app/src/main/java/com/motoristapro/ui/financas/FinancasScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt
+  app/src/main/java/com/motoristapro/data/local/AppDatabase.kt
+  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt

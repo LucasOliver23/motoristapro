@@ -13,6 +13,7 @@ import com.motoristapro.auth.Usuario
 import com.motoristapro.data.backup.BackupManager
 import com.motoristapro.data.local.entity.CustoFixo
 import com.motoristapro.data.local.entity.Configuracao
+import com.motoristapro.data.local.entity.ItemManutencao
 import com.motoristapro.service.Diagnostico
 import com.motoristapro.service.AvisoVoz
 import com.motoristapro.service.EnderecosDeRisco
@@ -76,6 +77,42 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
 
     val custosFixos: StateFlow<List<CustoFixo>> = repo.custosFixos()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // ================================================================== manutenção
+
+    val manutencoes: StateFlow<List<ItemManutencao>> = repo.manutencoes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * O hodômetro de hoje, tirado do último abastecimento com km informado.
+     *
+     * É o número que o motorista já digita quando abastece — pedir de novo só
+     * para a manutenção seria obrigá-lo a manter dois hodômetros na cabeça.
+     * Zero = ainda não informou km em nenhum abastecimento.
+     */
+    private val _odometroAtual = MutableStateFlow(0L)
+    val odometroAtual: StateFlow<Long> = _odometroAtual.asStateFlow()
+
+    fun conferirOdometro() {
+        viewModelScope.launch {
+            _odometroAtual.value = runCatching { repo.ultimoOdometro() }.getOrNull() ?: 0L
+        }
+    }
+
+    fun salvarManutencao(item: ItemManutencao) {
+        viewModelScope.launch {
+            runCatching { repo.salvarManutencao(item) }
+                .onSuccess { _mensagens.send("Manutenção salva"); conferirOdometro() }
+                .onFailure { _mensagens.send(it.message ?: "Erro ao salvar") }
+        }
+    }
+
+    fun excluirManutencao(id: Long) {
+        viewModelScope.launch {
+            runCatching { repo.excluirManutencao(id) }
+                .onFailure { _mensagens.send("Erro ao excluir: ${it.message}") }
+        }
+    }
 
     private val backup = BackupManager(app)
 

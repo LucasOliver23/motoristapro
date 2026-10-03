@@ -66,7 +66,6 @@ import com.motoristapro.ui.theme.SuperficieAlta
 import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.componentes.CardSecao
 import com.motoristapro.ui.componentes.LogoPlataforma
-import com.motoristapro.data.repository.nomePlataforma
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -74,6 +73,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.border
+import androidx.compose.ui.draw.alpha
 
 private val PT = Locale("pt", "BR")
 private val FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm", PT)
@@ -152,6 +152,7 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
                     FilaDePlataformas(
                         plataformas = ofertas.plataformasVistas,
                         escolhida = ofertas.plataforma,
+                        quantidadeTotal = ofertas.todas.size,
                         onEscolher = vm::filtrarPlataforma
                     )
                 }
@@ -352,21 +353,32 @@ private fun FitaDeDias(todas: List<OfertaRecebida>) {
     }
 }
 
+/** Os quatro aplicativos que o leitor conhece, na ordem em que aparecem no desenho. */
+private val PACOTES_CONHECIDOS = listOf(
+    "com.ubercab.driver",
+    "com.app99.driver",
+    "sinet.startup.inDriver",
+    "br.com.ifood.driver.app"
+)
+
 /**
  * A fila de selos das plataformas.
  *
- * Só aparecem as que de fato apareceram no período — fila com selo apagado de
- * app que o motorista nem usa é ruído. O primeiro círculo é o "todas".
+ * Os quatro aplicativos aparecem SEMPRE, como no desenho — quem não teve oferta
+ * no período fica apagado em vez de sumir. Fila que muda de tamanho conforme o
+ * dia obriga a reaprender onde fica cada selo toda vez que se abre a aba.
+ * Qualquer outro pacote que o leitor tenha visto entra no fim.
  */
 @Composable
 private fun FilaDePlataformas(
     plataformas: List<String>,
     escolhida: String?,
+    quantidadeTotal: Int,
     onEscolher: (String?) -> Unit
 ) {
-    if (plataformas.size < 2) return
+    val fila = PACOTES_CONHECIDOS + plataformas.filterNot { it in PACOTES_CONHECIDOS }
     Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -383,16 +395,36 @@ private fun FilaDePlataformas(
                 style = MaterialTheme.typography.labelLarge
             )
         }
-        plataformas.forEach { pacote ->
-            val ativa = escolhida == pacote
-            Box(
-                Modifier.size(38.dp).clip(CircleShape)
-                    .background(if (ativa) Lima else SuperficieAlta)
-                    .clickable { onEscolher(pacote) },
-                contentAlignment = Alignment.Center
-            ) {
-                LogoPlataforma(nomePlataforma(pacote), tamanho = if (ativa) 28.dp else 30.dp)
+        Row(
+            Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            fila.forEach { pacote ->
+                val ativa = escolhida == pacote
+                val teveOferta = pacote in plataformas
+                Box(
+                    Modifier.size(38.dp).clip(CircleShape)
+                        .background(if (ativa) Lima else SuperficieAlta)
+                        .alpha(if (teveOferta || ativa) 1f else 0.4f)
+                        .clickable { onEscolher(pacote) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    LogoPlataforma(pacote, tamanho = if (ativa) 28.dp else 30.dp)
+                }
             }
+        }
+        // O total do período, do lado direito, como no desenho.
+        Box(
+            Modifier.clip(RoundedCornerShape(99.dp)).background(SuperficieAlta)
+                .padding(horizontal = 12.dp, vertical = 9.dp)
+        ) {
+            Text(
+                "$quantidadeTotal ›",
+                style = MaterialTheme.typography.labelMedium,
+                color = TextoSecundario,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -540,7 +572,9 @@ private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long, onExcluir: () -
 
             // ---- linha de cima: app, valor, hora e a cor do semaforo
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LogoPlataforma(nomePlataforma(o.plataforma), tamanho = 36.dp)
+                // O pacote cru, não o nome bonito: um app novo que o leitor
+                // ainda não conhece perde o apelido, mas não perde o logo.
+                LogoPlataforma(o.plataforma, tamanho = 36.dp)
                 Column(Modifier.weight(1f).padding(start = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(

@@ -14,6 +14,7 @@ import com.motoristapro.data.local.entity.Configuracao
 import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.entity.CustoFixo
 import com.motoristapro.data.local.entity.Despesa
+import com.motoristapro.data.local.entity.ItemManutencao
 import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
@@ -94,6 +95,7 @@ class FinanceiroRepository(private val db: AppDatabase) {
     private val ofertaDao = db.ofertaDao()
     private val perfilCustoDao = db.perfilCustoDao()
     private val custoFixoDao = db.custoFixoDao()
+    private val manutencaoDao = db.manutencaoDao()
 
     // ================================================================== corridas
 
@@ -312,6 +314,19 @@ class FinanceiroRepository(private val db: AppDatabase) {
     /** Mantém só os últimos [dias] dias de ofertas. */
     suspend fun limparOfertasAntigas(dias: Int = 180): Int =
         ofertaDao.apagarAntesDe(System.currentTimeMillis() - dias * 24L * 60 * 60 * 1000)
+
+    // ================================================================== manutencao
+
+    fun manutencoes(): Flow<List<ItemManutencao>> = manutencaoDao.observarTodos()
+
+    suspend fun salvarManutencao(item: ItemManutencao) {
+        require(item.nome.isNotBlank()) { "Informe o que é" }
+        require(item.intervaloKm > 0) { "Informe de quantos em quantos km" }
+        require(item.odometroUltimaKm >= 0) { "Hodômetro inválido" }
+        if (item.id == 0L) manutencaoDao.inserir(item) else manutencaoDao.atualizar(item)
+    }
+
+    suspend fun excluirManutencao(id: Long) = manutencaoDao.excluirPorId(id)
 
     // ================================================================== custos fixos
 

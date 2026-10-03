@@ -5,13 +5,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -23,7 +16,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.unit.sp
 import com.motoristapro.ui.corridas.CorridasRoute
 import com.motoristapro.ui.dashboard.DashboardRoute
 import com.motoristapro.ui.financas.FinancasRoute
@@ -34,14 +28,22 @@ import com.motoristapro.ui.theme.TextoSecundario
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
-enum class Aba(val rotulo: String, val icone: ImageVector) {
-    INICIO("Início", Icons.Filled.Home),
-    CORRIDAS("Corridas", Icons.Filled.List),
-    FINANCAS("Finanças", Icons.Filled.ShoppingCart),
+/**
+ * As cinco abas, com o selo que aparece na barra de baixo.
+ *
+ * Selo desenhado (emoji) e não ícone do Material de propósito: o conjunto do
+ * Material que vem no app não tem bomba de combustível nem gráfico de barras, e
+ * os parecidos que tem — carrinho de compras, calendário — dizem outra coisa.
+ * Casa de verdade, relógio, dinheiro e gráfico são o que está no desenho.
+ */
+enum class Aba(val rotulo: String, val icone: String) {
+    INICIO("Início", "🏠"),
+    CORRIDAS("Corridas", "🕓"),
+    FINANCAS("Finanças", "💰"),
     // "Atividade" em vez de "Relatórios": a aba responde "como foi meu período",
     // e relatório é palavra de escritório, não de quem está dirigindo.
-    RELATORIOS("Atividade", Icons.Filled.DateRange),
-    MAIS("Menu", Icons.Filled.Menu)
+    RELATORIOS("Atividade", "📊"),
+    MAIS("Menu", "☰")
 }
 
 /** Estrutura principal: barra de abas embaixo e o conteúdo da aba selecionada. */
@@ -62,7 +64,15 @@ fun AppRaiz() {
                     NavigationBarItem(
                         selected = item == aba,
                         onClick = { abaIndice = item.ordinal },
-                        icon = { Icon(item.icone, contentDescription = item.rotulo) },
+                        // O emoji tem cor própria, então a aba fechada se apaga
+                        // pela transparência — é o que o desenho faz.
+                        icon = {
+                            Text(
+                                item.icone,
+                                fontSize = 17.sp,
+                                modifier = Modifier.alpha(if (item == aba) 1f else 0.45f)
+                            )
+                        },
                         label = { Text(item.rotulo) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Lima,

@@ -64,6 +64,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.sp
 import com.motoristapro.data.local.entity.CategoriaDespesa
+import com.motoristapro.ui.componentes.LogoPlataforma
 import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.theme.SuperficieAlta
@@ -297,7 +298,9 @@ private fun EntradaItem(item: CorridaComPlataforma) {
         colors = CardDefaults.cardColors(containerColor = Superficie)
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Selo("🚗", Modifier.padding(end = 12.dp))
+            // O logo do app, não um carrinho genérico: é por ele que o motorista
+            // reconhece a entrada sem ler o nome.
+            LogoPlataforma(item.plataformaNome, tamanho = 34.dp, modifier = Modifier.padding(end = 12.dp))
             Column(Modifier.weight(1f)) {
                 Text(item.plataformaNome, fontWeight = FontWeight.SemiBold)
                 Text(
