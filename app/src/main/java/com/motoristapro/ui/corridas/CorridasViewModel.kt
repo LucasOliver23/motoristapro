@@ -43,12 +43,38 @@ enum class FiltroPeriodo(val rotulo: String) {
 /** O que a aba mostra: corridas registradas ou todas as ofertas recebidas. */
 enum class ModoLista(val rotulo: String) { CORRIDAS("Corridas"), OFERTAS("Ofertas recebidas") }
 
+/** Aceitas, recusadas ou tudo. "Aceita" = a oferta virou corrida registrada. */
+enum class FiltroAceite(val rotulo: String) { TODAS("Todas"), ACEITAS("Aceitas"), RECUSADAS("Recusadas") }
+
 data class OfertasUiState(
-    val ofertas: List<OfertaRecebida> = emptyList(),
+    /** Tudo que o leitor viu no período, sem filtro — a base das contagens. */
+    val todas: List<OfertaRecebida> = emptyList(),
     val resumo: ResumoOfertas = ResumoOfertas.VAZIO,
     /** Custo/km do motorista, para o histórico mostrar o lucro de cada oferta. */
-    val custoKmCentavos: Long = 0
+    val custoKmCentavos: Long = 0,
+    /** null = todas as plataformas. Guarda o pacote, não o nome. */
+    val plataforma: String? = null,
+    val aceite: FiltroAceite = FiltroAceite.TODAS
 ) {
+    /** As plataformas que apareceram no período, para a fila de selos. */
+    val plataformasVistas: List<String>
+        get() = todas.map { it.plataforma }.distinct().sorted()
+
+    /** A lista já filtrada, que é o que a tela mostra. */
+    val ofertas: List<OfertaRecebida>
+        get() = todas
+            .filter { plataforma == null || it.plataforma == plataforma }
+            .filter {
+                when (aceite) {
+                    FiltroAceite.TODAS -> true
+                    FiltroAceite.ACEITAS -> it.registrada
+                    FiltroAceite.RECUSADAS -> !it.registrada
+                }
+            }
+
+    val qtdAceitas: Int get() = todas.count { it.registrada }
+    val qtdRecusadas: Int get() = todas.size - qtdAceitas
+
     /** Só o que não é leitura absurda entra nas médias do topo. */
     private val validas: List<OfertaRecebida> get() = ofertas.filterNot { it.leituraSuspeita }
 
@@ -70,6 +96,9 @@ data class OfertasUiState(
         }
 
     val qtdSuspeitas: Int get() = ofertas.count { it.leituraSuspeita }
+
+    /** Quantas ofertas a lista está mostrando agora (depois dos filtros). */
+    val qtdNaLista: Int get() = ofertas.size
 }
 
 data class CorridasUiState(
@@ -102,6 +131,16 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
     private val _modo = MutableStateFlow(ModoLista.CORRIDAS)
     val modo: StateFlow<ModoLista> = _modo
 
+    private val filtroPlataforma = MutableStateFlow<String?>(null)
+    private val filtroAceite = MutableStateFlow(FiltroAceite.TODAS)
+
+    fun filtrarPlataforma(pacote: String?) {
+        // Tocar de novo no selo já escolhido volta para "todas".
+        filtroPlataforma.value = if (filtroPlataforma.value == pacote) null else pacote
+    }
+
+    fun filtrarAceite(f: FiltroAceite) { filtroAceite.value = f }
+
     val ofertasState: StateFlow<OfertasUiState> = filtro
         .flatMapLatest { f ->
             val (ini, fim) = f.intervalo()
@@ -113,6 +152,8 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
                 OfertasUiState(lista, resumo, cfg.custoKmCentavos)
             }
         }
+        .combine(filtroPlataforma) { estado, p -> estado.copy(plataforma = p) }
+        .combine(filtroAceite) { estado, a -> estado.copy(aceite = a) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OfertasUiState())
 
     fun selecionar(f: FiltroPeriodo) { filtro.value = f }

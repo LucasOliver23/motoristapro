@@ -51,7 +51,6 @@ import com.motoristapro.ui.componentes.Metrica
 import com.motoristapro.ui.componentes.TelaAba
 import com.motoristapro.ui.componentes.Vazio
 import com.motoristapro.ui.theme.AmareloAlerta
-import com.motoristapro.ui.theme.corDaPlataforma
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.VermelhoPrejuizo
 import com.motoristapro.ui.theme.TextoSecundario
@@ -62,6 +61,18 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.motoristapro.ui.theme.Contorno
+import com.motoristapro.ui.theme.SuperficieAlta
+import com.motoristapro.ui.componentes.CardSecao
+import com.motoristapro.ui.componentes.LogoPlataforma
+import com.motoristapro.data.repository.nomePlataforma
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.border
 
 private val PT = Locale("pt", "BR")
 private val FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm", PT)
@@ -133,9 +144,34 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
                 )
             }
             if (modo == ModoLista.OFERTAS) {
+                // A fita de dias primeiro: o motorista procura por DIA ("quanto
+                // rolou na quinta?") antes de procurar por plataforma.
+                item { FitaDeDias(ofertas.todas) }
+                item {
+                    FilaDePlataformas(
+                        plataformas = ofertas.plataformasVistas,
+                        escolhida = ofertas.plataforma,
+                        onEscolher = vm::filtrarPlataforma
+                    )
+                }
+                item {
+                    SegmentoAceite(
+                        atual = ofertas.aceite,
+                        todas = ofertas.todas.size,
+                        aceitas = ofertas.qtdAceitas,
+                        recusadas = ofertas.qtdRecusadas,
+                        onEscolher = vm::filtrarAceite
+                    )
+                }
                 item { ResumoOfertasCard(ofertas, onLimparSuspeitas = { vm.limparSuspeitas() }) }
                 if (ofertas.ofertas.isEmpty()) {
-                    item { Vazio("Nenhuma oferta lida neste período.\nAs ofertas aparecem aqui assim que o leitor mostra a janela.") }
+                    item {
+                        Vazio(
+                            if (ofertas.todas.isEmpty())
+                                "Nenhuma oferta lida neste período.\nAs ofertas aparecem aqui assim que o leitor mostra a janela."
+                            else "Nenhuma oferta com esses filtros.\nToque no selo da plataforma de novo para ver todas."
+                        )
+                    }
                 }
                 // Agrupado por dia, com o total do dia no cabecalho: e assim que
                 // o motorista procura ("quanto rolou na quinta?").
@@ -256,49 +292,179 @@ private fun CorridaItem(item: CorridaComPlataforma, cor: Color, onClick: () -> U
     }
 }
 
+/**
+ * A fita dos últimos 7 dias: quanto o leitor viu passar em cada dia.
+ *
+ * Serve de mapa, não de gráfico de precisão — por isso sem eixo e sem número.
+ * A barra mais alta é a do melhor dia, e é ela que o olho procura.
+ */
 @Composable
-private fun ResumoOfertasCard(e: OfertasUiState, onLimparSuspeitas: () -> Unit) {
-    val r = e.resumo
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Linha de cima: quantas o leitor analisou e quanto somavam.
-        Card(
+private fun FitaDeDias(todas: List<OfertaRecebida>) {
+    val hoje = LocalDate.now()
+    val dias = (6 downTo 0).map { hoje.minusDays(it.toLong()) }
+    val porDia = todas.filterNot { it.leituraSuspeita }
+        .groupBy { diaDa(it.recebidaEm) }
+        .mapValues { (_, l) -> l.sumOf { it.valorCentavos } }
+    val teto = (porDia.values.maxOrNull() ?: 0L).coerceAtLeast(1)
+
+    CardSecao {
+        Text(
+            "${dias.first().format(FORMATO_FITA)} — ${dias.last().format(FORMATO_FITA)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = TextoSecundario,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+            textAlign = TextAlign.Center
+        )
+        Row(
+            Modifier.fillMaxWidth().height(52.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.Bottom
         ) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("${r.total}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text("Ofertas analisadas", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        e.totalAnalisadoCentavos.emReais(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("Total analisado", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-                }
+            dias.forEach { d ->
+                val valor = porDia[d] ?: 0L
+                val fracao = (valor.toFloat() / teto).coerceIn(0.06f, 1f)
+                val ehHoje = d == hoje
+                Box(
+                    Modifier.weight(1f).fillMaxHeight(fracao)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            when {
+                                valor == 0L -> Contorno
+                                ehHoje || valor == teto -> Lima
+                                else -> Lima.copy(alpha = 0.45f)
+                            }
+                        )
+                )
             }
         }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Metrica("Média por corrida", e.mediaPorCorridaCentavos.emReais(), Modifier.weight(1f))
-            Metrica("Média por hora", e.mediaPorHoraCentavos.emReais(), Modifier.weight(1f))
-            Metrica("Média por km", e.mediaPorKmCentavos.emReais(), Modifier.weight(1f), cor = Lima)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            dias.forEach { d ->
+                Text(
+                    "${d.dayOfMonth}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextoSecundario,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
+    }
+}
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Metrica(
-                "Aceitas", "${r.registradas}", Modifier.weight(1f),
-                detalhe = if (r.total > 0) "${r.registradas * 100 / r.total}% das ofertas" else null
-            )
-            Metrica(
-                "Semáforo", "${r.boas} boas", Modifier.weight(1f),
-                detalhe = "${r.medias} atenção • ${r.ruins} ruins"
+/**
+ * A fila de selos das plataformas.
+ *
+ * Só aparecem as que de fato apareceram no período — fila com selo apagado de
+ * app que o motorista nem usa é ruído. O primeiro círculo é o "todas".
+ */
+@Composable
+private fun FilaDePlataformas(
+    plataformas: List<String>,
+    escolhida: String?,
+    onEscolher: (String?) -> Unit
+) {
+    if (plataformas.size < 2) return
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(38.dp).clip(CircleShape)
+                .background(if (escolhida == null) Lima else SuperficieAlta)
+                .clickable { onEscolher(null) },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "T",
+                color = if (escolhida == null) Color(0xFF0A0D0B) else TextoSecundario,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge
             )
         }
+        plataformas.forEach { pacote ->
+            val ativa = escolhida == pacote
+            Box(
+                Modifier.size(38.dp).clip(CircleShape)
+                    .background(if (ativa) Lima else SuperficieAlta)
+                    .clickable { onEscolher(pacote) },
+                contentAlignment = Alignment.Center
+            ) {
+                LogoPlataforma(nomePlataforma(pacote), tamanho = if (ativa) 28.dp else 30.dp)
+            }
+        }
+    }
+}
 
+/** Todas / Aceitas / Recusadas, com a contagem de cada uma. */
+@Composable
+private fun SegmentoAceite(
+    atual: FiltroAceite,
+    todas: Int,
+    aceitas: Int,
+    recusadas: Int,
+    onEscolher: (FiltroAceite) -> Unit
+) {
+    val contagem = mapOf(
+        FiltroAceite.TODAS to todas,
+        FiltroAceite.ACEITAS to aceitas,
+        FiltroAceite.RECUSADAS to recusadas
+    )
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(SuperficieAlta).padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        FiltroAceite.entries.forEach { f ->
+            val ativo = f == atual
+            Row(
+                Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
+                    .background(if (ativo) MaterialTheme.colorScheme.background else Color.Transparent)
+                    .clickable { onEscolher(f) }
+                    .padding(vertical = 9.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    f.rotulo,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (ativo) FontWeight.Bold else FontWeight.Normal,
+                    color = if (ativo) MaterialTheme.colorScheme.onSurface else TextoSecundario
+                )
+                Text(
+                    "  ${contagem[f] ?: 0}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextoSecundario
+                )
+            }
+        }
+    }
+}
+
+/** Período da fita de dias: "28 set". */
+private val FORMATO_FITA = DateTimeFormatter.ofPattern("d MMM", PT)
+
+@Composable
+private fun ResumoOfertasCard(e: OfertasUiState, onLimparSuspeitas: () -> Unit) {
+    CardSecao {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "${e.qtdNaLista} oferta(s) analisada(s)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                e.totalAnalisadoCentavos.emReais(),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = TextoSecundario
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            NumeroDaLista("por corrida", e.mediaPorCorridaCentavos.emReais(), null, Modifier.weight(1f))
+            NumeroDaLista("por hora", e.mediaPorHoraCentavos.emReais(), null, Modifier.weight(1f))
+            NumeroDaLista("por km", e.mediaPorKmCentavos.emReais(), Lima, Modifier.weight(1f))
+        }
         if (e.qtdSuspeitas > 0) {
             Text(
                 "⚠ ${e.qtdSuspeitas} leitura(s) acima de R$ 50/km ficaram de fora das médias — " +
@@ -310,6 +476,29 @@ private fun ResumoOfertasCard(e: OfertasUiState, onLimparSuspeitas: () -> Unit) 
                 Text("  Excluir as ${e.qtdSuspeitas} leituras com erro", color = AmareloAlerta)
             }
         }
+    }
+}
+
+/**
+ * Um número dentro de uma caixinha, repetido no resumo e em cada oferta.
+ *
+ * São sempre os mesmos três — por km, por hora e a nota — e sempre na mesma
+ * ordem, para o olho achar sem ler o rótulo depois do terceiro dia de uso.
+ */
+@Composable
+private fun NumeroDaLista(rotulo: String, valor: String, cor: Color?, modifier: Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(12.dp)).background(SuperficieAlta).padding(vertical = 9.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            valor,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = cor ?: MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
+        Text(rotulo, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
     }
 }
 
@@ -342,26 +531,15 @@ private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long, onExcluir: () -
         else -> VermelhoPrejuizo
     }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().border(1.dp, Contorno, RoundedCornerShape(18.dp)),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        colors = CardDefaults.cardColors(containerColor = Superficie)
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
             // ---- linha de cima: app, valor, hora e a cor do semaforo
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(38.dp).clip(RoundedCornerShape(10.dp))
-                        .background(corDaPlataforma(o.plataforma)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        o.plataforma.take(2).uppercase(PT),
-                        color = Color(0xFF0A0D0B),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                LogoPlataforma(nomePlataforma(o.plataforma), tamanho = 36.dp)
                 Column(Modifier.weight(1f).padding(start = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -413,12 +591,23 @@ private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long, onExcluir: () -
             }
 
             // ---- os tres numeros que decidem a corrida
+            // Sempre os tres, mesmo sem dado: lugar fixo e o que deixa comparar
+            // duas ofertas de relance, sem reler os rotulos.
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Mini("por km", o.reaisPorKmCentavos.emReais(), Modifier.weight(1f))
-                if (o.minutos > 0) {
-                    Mini("por hora", o.reaisPorHoraCentavos.emReais(), Modifier.weight(1f))
-                }
-                o.nota?.let { Mini("nota", String.format(PT, "★ %.2f", it), Modifier.weight(1f)) }
+                NumeroDaLista(
+                    "por km", o.reaisPorKmCentavos.emReais(),
+                    if (o.leituraSuspeita) AmareloAlerta else cor, Modifier.weight(1f)
+                )
+                NumeroDaLista(
+                    "por hora",
+                    if (o.minutos > 0) o.reaisPorHoraCentavos.emReais() else "—",
+                    null, Modifier.weight(1f)
+                )
+                NumeroDaLista(
+                    "nota",
+                    o.nota?.let { String.format(PT, "★ %.2f", it) } ?: "—",
+                    o.nota?.let { AmareloAlerta }, Modifier.weight(1f)
+                )
             }
 
             // ---- lucro: so faz sentido com o custo por km cadastrado
@@ -459,20 +648,6 @@ private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long, onExcluir: () -
         }
     }
 }
-
-/** Quadradinho de um número do cartão: rótulo pequeno em cima, valor embaixo. */
-@Composable
-private fun Mini(rotulo: String, valor: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier.clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .padding(vertical = 8.dp, horizontal = 10.dp)
-    ) {
-        Text(valor, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-        Text(rotulo, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
-    }
-}
-
 @Composable
 private fun LinhaEndereco(marca: String, texto: String, cor: Color) {
     Row(verticalAlignment = Alignment.Top) {

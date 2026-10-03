@@ -112,10 +112,14 @@ fun DashboardRoute(
         vm.iniciarJornada(comGps = resultado[Manifest.permission.ACCESS_FINE_LOCATION] == true)
     }
 
+    // O cabeçalho fala com a pessoa, não com o app: "Olá, Lucas" e, do lado, o
+    // único aviso que importa estar sempre visível — se o leitor está lendo.
+    val primeiroNome = estado.config.nomeMotorista?.trim()?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() }
     TelaAba(
-        titulo = "MotoristaPro",
+        titulo = if (primeiroNome != null) "Olá, $primeiroNome" else "Olá, motorista",
         subtitulo = estado.dia.format(FORMATO_DIA).replaceFirstChar { it.uppercase() },
-        snackbar = snackbar
+        snackbar = snackbar,
+        acoes = { PastilhaLeitor(leitorOk, onTestar = vm::testarLeitor) }
     ) { padding ->
         when {
             estado.carregando -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
@@ -129,8 +133,6 @@ fun DashboardRoute(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                StatusLeitor(leitorOk, onTestar = vm::testarLeitor)
-
                 // A ORDEM da tela é a ordem da pergunta do motorista: quanto
                 // sobrou hoje, de onde veio, registrar o que acabou de rolar e,
                 // por último, o relógio — que é para olhar, não para tocar.
@@ -188,7 +190,11 @@ fun DashboardRoute(
 private fun LucroDoDia(e: DashboardUiState, onVerFinancas: () -> Unit) {
     val lucro = e.resumo.lucroLiquidoCentavos
     val cor = if (lucro >= 0) Lima else VermelhoPrejuizo
-    CardSecao(titulo = "LUCRO LÍQUIDO DE HOJE", modifier = Modifier.clickable { onVerFinancas() }) {
+    CardSecao(
+        titulo = "LUCRO LÍQUIDO DE HOJE",
+        centralizado = true,
+        modifier = Modifier.clickable { onVerFinancas() }
+    ) {
         Text(
             lucro.emReais(),
             style = MaterialTheme.typography.displaySmall,
@@ -237,11 +243,11 @@ private fun QuatroNumeros(e: DashboardUiState) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Metrica(
                 "Faturamento", r.faturamentoCentavos.emReais(), Modifier.weight(1f),
-                detalhe = "${r.qtdCorridas} corrida(s)"
+                detalhe = "${r.qtdCorridas} corrida(s)", centralizado = true
             )
             Metrica(
                 "Despesas", r.despesasCentavos.emReais(), Modifier.weight(1f),
-                cor = VermelhoPrejuizo, detalhe = "lançadas hoje"
+                cor = VermelhoPrejuizo, detalhe = "lançadas hoje", centralizado = true
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -250,7 +256,8 @@ private fun QuatroNumeros(e: DashboardUiState) {
                 if (r.metrosRodados > 0) r.ganhoPorKmCentavos.emReais() else "—",
                 Modifier.weight(1f),
                 cor = if (r.metrosRodados > 0) Lima else TextoSecundario,
-                detalhe = e.config.custoKmCentavos.takeIf { it > 0 }?.let { "custo ${it.emReais()}/km" }
+                detalhe = e.config.custoKmCentavos.takeIf { it > 0 }?.let { "custo ${it.emReais()}/km" },
+                centralizado = true
             )
             Metrica(
                 "Taxa de aceite",
@@ -258,7 +265,8 @@ private fun QuatroNumeros(e: DashboardUiState) {
                 Modifier.weight(1f),
                 detalhe = if (e.ofertas.total > 0)
                     "${e.ofertas.registradas} de ${e.ofertas.total} ofertas"
-                else "o leitor ainda não viu oferta"
+                else "o leitor ainda não viu oferta",
+                centralizado = true
             )
         }
     }
@@ -288,25 +296,33 @@ private fun BotaoRegistrar(
     }
 }
 
+/**
+ * A pastilha do leitor, no alto da tela.
+ *
+ * Fica no cabeçalho e não no corpo porque é informação de estado, não de
+ * conteúdo: o motorista precisa ver num relance se o app está lendo as ofertas,
+ * sem que isso ocupe uma faixa inteira acima do número do dia.
+ */
 @Composable
-private fun StatusLeitor(conectado: Boolean, onTestar: () -> Unit) {
+private fun PastilhaLeitor(conectado: Boolean, onTestar: () -> Unit) {
+    val cor = if (conectado) Lima else AmareloAlerta
     Surface(
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(99.dp),
+        color = cor.copy(alpha = 0.16f),
+        modifier = Modifier.padding(end = 10.dp).clickable { onTestar() }
     ) {
         Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Surface(shape = CircleShape, color = if (conectado) Lima else AmareloAlerta, modifier = Modifier.size(10.dp)) {}
+            Surface(shape = CircleShape, color = cor, modifier = Modifier.size(8.dp)) {}
             Text(
-                if (conectado) "Leitor de ofertas ativo • Uber, 99 e iFood" else "Leitor desligado pelo Android • veja em Mais",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f)
+                if (conectado) "LEITOR ON" else "LEITOR OFF",
+                style = MaterialTheme.typography.labelSmall,
+                color = cor,
+                fontWeight = FontWeight.Bold
             )
-            if (conectado) TextButton(onClick = onTestar) { Text("Testar", color = Lima) }
         }
     }
 }

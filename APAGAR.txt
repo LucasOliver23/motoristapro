@@ -1,9 +1,15 @@
-NADA PARA APAGAR NESTA VERSAO (2.13.0)
+NADA PARA APAGAR NESTA VERSAO (2.14.0)
 ======================================
 
-Esta versao so mexe em arquivos que ja existem:
+Arquivos NOVOS (entram sozinhos ao descompactar):
 
-  ui/dashboard/DashboardScreen.kt    tela Inicio refeita
-  ui/dashboard/DashboardViewModel.kt ofertas do dia entram no estado
+  app/src/main/java/com/motoristapro/ui/componentes/LogoPlataforma.kt
+  app/src/main/res/drawable-nodpi/logo_uber.png
+  app/src/main/res/drawable-nodpi/logo_99.png
+  app/src/main/res/drawable-nodpi/logo_ifood.png
+  app/src/main/res/drawable-nodpi/logo_indrive.png
+
+Os PNGs sao os arquivos que voce me mandou, recortados em quadrado 128x128.
+Para trocar por um logo oficial melhor, e so substituir o PNG com o mesmo nome.
 
 Nenhum arquivo foi removido. Pode apagar este aviso.

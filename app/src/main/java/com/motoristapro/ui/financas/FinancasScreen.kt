@@ -77,7 +77,7 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
 
     TelaAba(
         titulo = "Finanças",
-        subtitulo = "Ganhos, despesas e metas",
+        subtitulo = "Entradas, saídas e metas",
         snackbar = snackbar,
         fab = {
             ExtendedFloatingActionButton(
@@ -98,7 +98,7 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
 
             item {
                 val r = mes.resumo
-                CardSecao(titulo = "Resultado do mês", destaque = true) {
+                CardSecao(titulo = "RESULTADO DO MÊS", centralizado = true) {
                     Text(
                         r.lucroLiquidoCentavos.emReais(),
                         style = MaterialTheme.typography.displaySmall,
@@ -121,7 +121,7 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
 
             item {
                 val cfg = metas.config
-                CardSecao(titulo = "Metas de lucro") {
+                CardSecao(titulo = "METAS DE LUCRO") {
                     ProgressoMeta("Hoje", metas.hoje, cfg.metaLucroDiarioCentavos, metas.hoje.emReais(), cfg.metaLucroDiarioCentavos.emReais())
                     ProgressoMeta("Esta semana", metas.semana, cfg.metaLucroSemanalCentavos, metas.semana.emReais(), cfg.metaLucroSemanalCentavos.emReais())
                     ProgressoMeta("Este mês", metas.mes, cfg.metaLucroMensalCentavos, metas.mes.emReais(), cfg.metaLucroMensalCentavos.emReais())
@@ -139,7 +139,7 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
             }
 
             item {
-                CardSecao(titulo = "Despesas por categoria") {
+                CardSecao(titulo = "DESPESAS POR CATEGORIA") {
                     if (mes.porCategoria.isEmpty()) {
                         Text("Sem despesas neste mês.", color = TextoSecundario)
                     } else {

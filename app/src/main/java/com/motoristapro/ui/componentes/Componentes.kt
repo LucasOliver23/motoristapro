@@ -92,6 +92,7 @@ fun CardSecao(
     modifier: Modifier = Modifier,
     titulo: String? = null,
     destaque: Boolean = false,
+    centralizado: Boolean = false,
     conteudo: @Composable ColumnScope.() -> Unit
 ) {
     // Contorno fino em vez de sombra: no escuro a sombra some e os cartoes
@@ -104,7 +105,11 @@ fun CardSecao(
             else Superficie
         )
     ) {
-        Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            Modifier.fillMaxWidth().padding(15.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = if (centralizado) Alignment.CenterHorizontally else Alignment.Start
+        ) {
             if (titulo != null) {
                 Text(
                     titulo,
@@ -126,14 +131,19 @@ fun Metrica(
     valor: String,
     modifier: Modifier = Modifier,
     detalhe: String? = null,
-    cor: Color = MaterialTheme.colorScheme.onSurface
+    cor: Color = MaterialTheme.colorScheme.onSurface,
+    centralizado: Boolean = false
 ) {
     Card(
         modifier = modifier.border(1.dp, Contorno, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Superficie)
     ) {
-        Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            Modifier.fillMaxWidth().padding(13.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalAlignment = if (centralizado) Alignment.CenterHorizontally else Alignment.Start
+        ) {
             Text(rotulo, style = MaterialTheme.typography.labelMedium, color = TextoSecundario)
             Text(
                 valor,
