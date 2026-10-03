@@ -33,6 +33,25 @@ import com.motoristapro.R
  */
 private data class Marca(val arte: Int?, val fundo: Color, val tinta: Color, val sigla: String)
 
+/**
+ * A marca por trás de um nome ou pacote: "uber", "99", "ifood", "indrive".
+ *
+ * Existe porque o mesmo aplicativo chega com mais de um nome — o pacote do
+ * motorista, o do passageiro, o apelido na tela — e sem reduzir todos à mesma
+ * chave a lista de plataformas mostrava o inDrive duas vezes, um selo para cada
+ * grafia. O que não é nenhum dos quatro fica com o próprio texto em minúscula.
+ */
+fun chaveDaMarca(nomeOuPacote: String?): String {
+    val chave = (nomeOuPacote ?: "").lowercase()
+    return when {
+        chave.contains("uber") -> "uber"
+        chave.contains("99") -> "99"
+        chave.contains("ifood") -> "ifood"
+        chave.contains("indrive") || chave.contains("indriver") -> "indrive"
+        else -> chave
+    }
+}
+
 private fun marcaDe(nomeOuPacote: String?): Marca {
     val chave = (nomeOuPacote ?: "").lowercase()
     return when {

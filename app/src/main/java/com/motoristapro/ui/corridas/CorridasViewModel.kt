@@ -15,6 +15,7 @@ import com.motoristapro.data.local.model.CorridaComPlataforma
 import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.data.repository.Periodo
 import com.motoristapro.data.repository.emReais
+import com.motoristapro.ui.componentes.chaveDaMarca
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -52,18 +53,24 @@ data class OfertasUiState(
     val resumo: ResumoOfertas = ResumoOfertas.VAZIO,
     /** Custo/km do motorista, para o histórico mostrar o lucro de cada oferta. */
     val custoKmCentavos: Long = 0,
-    /** null = todas as plataformas. Guarda o pacote, não o nome. */
+    /** null = todas. Guarda a MARCA ("uber", "99", "ifood", "indrive"), não o pacote. */
     val plataforma: String? = null,
     val aceite: FiltroAceite = FiltroAceite.TODAS
 ) {
-    /** As plataformas que apareceram no período, para a fila de selos. */
+    /**
+     * As marcas que apareceram no período, para a fila de selos.
+     *
+     * Por marca e não por pacote: o mesmo aplicativo chega com grafias
+     * diferentes conforme a tela que o leitor pegou, e por pacote a fila
+     * mostrava dois selos do mesmo app.
+     */
     val plataformasVistas: List<String>
-        get() = todas.map { it.plataforma }.distinct().sorted()
+        get() = todas.map { chaveDaMarca(it.plataforma) }.distinct().sorted()
 
     /** A lista já filtrada, que é o que a tela mostra. */
     val ofertas: List<OfertaRecebida>
         get() = todas
-            .filter { plataforma == null || it.plataforma == plataforma }
+            .filter { plataforma == null || chaveDaMarca(it.plataforma) == plataforma }
             .filter {
                 when (aceite) {
                     FiltroAceite.TODAS -> true

@@ -353,13 +353,8 @@ private fun FitaDeDias(todas: List<OfertaRecebida>) {
     }
 }
 
-/** Os quatro aplicativos que o leitor conhece, na ordem em que aparecem no desenho. */
-private val PACOTES_CONHECIDOS = listOf(
-    "com.ubercab.driver",
-    "com.app99.driver",
-    "sinet.startup.inDriver",
-    "br.com.ifood.driver.app"
-)
+/** As quatro marcas que o leitor conhece, na ordem em que aparecem no desenho. */
+private val MARCAS_CONHECIDAS = listOf("uber", "99", "indrive", "ifood")
 
 /**
  * A fila de selos das plataformas.
@@ -376,7 +371,7 @@ private fun FilaDePlataformas(
     quantidadeTotal: Int,
     onEscolher: (String?) -> Unit
 ) {
-    val fila = PACOTES_CONHECIDOS + plataformas.filterNot { it in PACOTES_CONHECIDOS }
+    val fila = MARCAS_CONHECIDAS + plataformas.filterNot { it in MARCAS_CONHECIDAS }
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
