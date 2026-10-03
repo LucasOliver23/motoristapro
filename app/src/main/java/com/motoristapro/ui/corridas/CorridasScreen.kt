@@ -63,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.SuperficieAlta
+import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.componentes.CardSecao
 import com.motoristapro.ui.componentes.LogoPlataforma
 import com.motoristapro.data.repository.nomePlataforma

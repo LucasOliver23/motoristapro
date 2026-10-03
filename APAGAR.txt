@@ -1,15 +1,6 @@
-NADA PARA APAGAR NESTA VERSAO (2.14.0)
+NADA PARA APAGAR NESTA VERSAO (2.14.1)
 ======================================
 
-Arquivos NOVOS (entram sozinhos ao descompactar):
+So corrige um import que faltou em CorridasScreen.kt (Superficie).
 
-  app/src/main/java/com/motoristapro/ui/componentes/LogoPlataforma.kt
-  app/src/main/res/drawable-nodpi/logo_uber.png
-  app/src/main/res/drawable-nodpi/logo_99.png
-  app/src/main/res/drawable-nodpi/logo_ifood.png
-  app/src/main/res/drawable-nodpi/logo_indrive.png
-
-Os PNGs sao os arquivos que voce me mandou, recortados em quadrado 128x128.
-Para trocar por um logo oficial melhor, e so substituir o PNG com o mesmo nome.
-
-Nenhum arquivo foi removido. Pode apagar este aviso.
+Nenhum arquivo foi removido nem adicionado. Pode apagar este aviso.
