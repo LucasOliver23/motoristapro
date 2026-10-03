@@ -1,6 +1,11 @@
-NADA PARA APAGAR NESTA VERSAO (3.1.1)
+NADA PARA APAGAR NESTA VERSAO (3.2.0)
 =====================================
 
-So corrige um import que faltou em RelatoriosScreen.kt (fillMaxWidth).
+Nenhum arquivo foi removido. Banco continua na versao 12.
 
-Nenhum arquivo removido. Banco continua na versao 12.
+Arquivos alterados nesta versao (so sobrescrever):
+  app/build.gradle.kts
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt
+  app/src/main/java/com/motoristapro/ui/financas/FinancasScreen.kt
+  app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt

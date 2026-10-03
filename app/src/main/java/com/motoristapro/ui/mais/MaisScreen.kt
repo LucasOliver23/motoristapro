@@ -112,6 +112,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
 import com.motoristapro.ui.theme.SuperficieAlta
+import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.theme.ModoTema
 
 private val PT = Locale("pt", "BR")
@@ -256,11 +257,12 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             // coisa que todo mundo procura e estava escondida a dois toques.
             SeletorDeTema(context)
 
-            GradeFerramentas(
+            ListaFerramentas(
                 titulo = "MEU TRABALHO",
                 itens = listOf(
                     Ferramenta(
                         titulo = "Meu veículo e custos",
+                        icone = "💰",
                         estado = if (cfg.custoKmCentavos > 0) "${cfg.custoKmCentavos.campo()}/km de custo"
                         else "toque para calcular",
                         aceso = cfg.custoKmCentavos > 0,
@@ -268,12 +270,14 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     ),
                     Ferramenta(
                         titulo = "Suas faixas",
+                        icone = "🚦",
                         estado = "boa acima de ${"%.2f".format(PT, faixas.kmBoa)}/km",
                         semaforo = true,
                         onClick = { sub = SubTela.FAIXAS }
                     ),
                     Ferramenta(
                         titulo = "Resumo do dia às 22h",
+                        icone = "🔔",
                         estado = "faturamento, despesas e lucro",
                         ligado = resumo,
                         onClick = { vm.definirResumo(!resumo) }
@@ -281,53 +285,60 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                 )
             )
 
-            GradeFerramentas(
+            ListaFerramentas(
                 titulo = "LEITOR DE OFERTAS",
                 itens = listOf(
                     Ferramenta(
-                        titulo = "Leitor de ofertas",
-                        estado = if (leitorOk) "lendo Uber · 99 · iFood" else "desconectado — religue",
+                        titulo = "Ler ofertas na tela",
+                        icone = "👁",
+                        estado = if (leitorOk) "lendo Uber · 99 · iFood · inDrive" else "desconectado — religue",
                         aceso = leitorOk,
                         alerta = !leitorOk,
                         onClick = { sub = SubTela.LEITOR }
                     ),
                     Ferramenta(
-                        titulo = "Estilo do cartão",
-                        estado = "${estilo.campos.size} números · ${estilo.tema.rotulo.lowercase(PT)}",
-                        onClick = { sub = SubTela.ESTILO }
-                    ),
-                    Ferramenta(
                         titulo = "Aviso por voz",
+                        icone = "🔊",
                         estado = "fala a decisão e o R$/km",
                         ligado = voz,
                         onClick = { vm.definirVoz(!voz) }
                     ),
                     Ferramenta(
                         titulo = "Bolha flutuante",
+                        icone = "⚪",
                         estado = "lucro do dia sempre à vista",
                         ligado = bolha,
                         onClick = { vm.definirBolha(!bolha) }
                     ),
                     Ferramenta(
                         titulo = "Endereços de risco",
+                        icone = "⚠",
                         estado = if (palavrasRisco.isEmpty()) "nenhuma palavra"
                         else "${palavrasRisco.size} palavra(s)",
                         aceso = palavrasRisco.isNotEmpty() && riscoLigado,
                         onClick = { sub = SubTela.RISCO }
                     ),
                     Ferramenta(
+                        titulo = "Estilo do cartão",
+                        icone = "🎨",
+                        estado = "${estilo.campos.size} números · ${estilo.tema.rotulo.lowercase(PT)}",
+                        onClick = { sub = SubTela.ESTILO }
+                    ),
+                    Ferramenta(
                         titulo = "App de navegação",
+                        icone = "🧭",
                         estado = navegacao.rotulo.lowercase(PT),
                         onClick = { sub = SubTela.NAVEGACAO }
                     ),
                 )
             )
 
-            GradeFerramentas(
+            ListaFerramentas(
                 titulo = "O APP",
                 itens = listOf(
                     Ferramenta(
                         titulo = "Minha assinatura",
+                        icone = "⭐",
                         estado = when (acesso.situacao) {
                             SituacaoAcesso.TESTE_ATIVO -> "teste: ${acesso.diasDeTeste} dia(s)"
                             SituacaoAcesso.ASSINATURA_ATIVA ->
@@ -343,22 +354,26 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     ),
                     Ferramenta(
                         titulo = "Conta e nuvem",
+                        icone = "☁",
                         estado = if (!vm.loginDisponivel) "indisponível"
                         else usuario?.email ?: "entrar para salvar",
                         onClick = { if (vm.loginDisponivel) sub = SubTela.NUVEM }
                     ),
                     Ferramenta(
                         titulo = "Backup e planilhas",
+                        icone = "📦",
                         estado = "arquivo de backup e CSV",
                         onClick = { sub = SubTela.BACKUP }
                     ),
                     Ferramenta(
                         titulo = "Aparência do app",
+                        icone = "🌓",
                         estado = PreferenciaTema.modo.rotulo.lowercase(PT),
                         onClick = { sub = SubTela.APARENCIA }
                     ),
                     Ferramenta(
                         titulo = "Versão do app",
+                        icone = "⚙",
                         estado = "${vm.versaoInstalada} (build ${vm.codigoInstalado})",
                         onClick = { sub = SubTela.VERSAO }
                     ),
@@ -1367,8 +1382,9 @@ private fun PerfilLinha(
 ) {
     val nome = cfg.nomeMotorista?.takeIf { it.isNotBlank() } ?: "Motorista"
     Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = Superficie),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -1376,21 +1392,26 @@ private fun PerfilLinha(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                Modifier.size(42.dp).clip(RoundedCornerShape(21.dp)).background(Lima),
+                Modifier.size(46.dp).clip(CircleShape).background(SuperficieAlta),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     nome.first().uppercase(),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = Lima,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             }
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(nome, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                // Duas linhas, como no desenho: o e-mail identifica a conta, o
+                // veículo identifica a conta de custo. São coisas diferentes.
+                if (!email.isNullOrBlank()) {
+                    Text(email, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                }
                 Text(
-                    listOfNotNull(cfg.veiculoNome?.takeIf { it.isNotBlank() }, email)
-                        .joinToString(" · ").ifBlank { "Toque para completar seus dados" },
+                    cfg.veiculoNome?.takeIf { it.isNotBlank() }
+                        ?: if (email.isNullOrBlank()) "Toque para completar seus dados" else "veículo não informado",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextoSecundario
                 )
@@ -1420,16 +1441,18 @@ private fun PerfilLinha(
 // ------------------------------------------------------------------ FERRAMENTAS
 
 /**
- * Um quadradinho da grade FERRAMENTAS.
+ * Uma linha da lista de ajustes.
  *
- * Duas naturezas no mesmo formato: quem tem [ligado] é interruptor (o toque liga
- * e desliga ali mesmo, sem abrir tela); quem não tem abre a sua tela. O rodapé
- * sempre diz como a função está AGORA — é o que faz a grade valer mais que um menu.
+ * Duas naturezas na mesma linha: quem tem [ligado] é interruptor (o toque liga
+ * e desliga ali mesmo, sem abrir tela); quem não tem abre a sua tela. O subtítulo
+ * sempre diz como a função está AGORA — é o que faz a lista valer mais que um menu.
  */
 class Ferramenta(
     val titulo: String,
     val estado: String,
     val onClick: () -> Unit,
+    /** O selo da esquerda. Um caractere, para o olho achar a linha sem ler. */
+    val icone: String = "•",
     /** Interruptor: true/false. null = abre uma tela. */
     val ligado: Boolean? = null,
     /** Pinta o estado de verde (configurado / funcionando). */
@@ -1440,9 +1463,15 @@ class Ferramenta(
     val semaforo: Boolean = false
 )
 
-/** Grade de dois por linha. Column simples (e não LazyVerticalGrid): está dentro de um scroll. */
+/**
+ * A lista de ajustes de um grupo, dentro de um cartão só.
+ *
+ * Lista e não grade: o nome e o estado de cada função cabem inteiros na linha,
+ * o interruptor fica onde o polegar já procura (na direita) e o olho desce a
+ * coluna de selos em vez de pular em zigue-zague entre quadrados.
+ */
 @Composable
-private fun GradeFerramentas(titulo: String = "FERRAMENTAS", itens: List<Ferramenta>) {
+private fun ListaFerramentas(titulo: String = "AJUSTES", itens: List<Ferramenta>) {
     Column(Modifier.fillMaxWidth()) {
         Text(
             titulo,
@@ -1451,67 +1480,76 @@ private fun GradeFerramentas(titulo: String = "FERRAMENTAS", itens: List<Ferrame
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
         )
-        itens.chunked(2).forEach { linha ->
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                linha.forEach { f -> Quadro(f, Modifier.weight(1f)) }
-                // Linha ímpar: o buraco mantém o último quadro do tamanho dos outros.
-                if (linha.size == 1) Spacer(Modifier.weight(1f))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            colors = CardDefaults.cardColors(containerColor = Superficie)
+        ) {
+            Column(Modifier.fillMaxWidth()) {
+                itens.forEachIndexed { indice, f ->
+                    if (indice > 0) {
+                        HorizontalDivider(
+                            Modifier.padding(start = 60.dp),
+                            thickness = 1.dp,
+                            color = Contorno
+                        )
+                    }
+                    LinhaFerramenta(f)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun Quadro(f: Ferramenta, modifier: Modifier) {
+private fun LinhaFerramenta(f: Ferramenta) {
     val ligadoAgora = f.ligado == true
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (ligadoAgora) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        modifier = modifier.height(104.dp)
+    Row(
+        Modifier.fillMaxWidth().clickable { f.onClick() }.padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            Modifier.fillMaxSize().clickable { f.onClick() }.padding(12.dp)
+        Box(
+            Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(SuperficieAlta),
+            contentAlignment = Alignment.Center
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                Text(
-                    f.titulo,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                when {
-                    f.ligado != null -> Box(
-                        Modifier.size(10.dp).clip(CircleShape)
-                            .background(if (ligadoAgora) Lima else Contorno)
-                    )
-                    f.semaforo -> Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        listOf(VermelhoPrejuizo, AmareloAlerta, Lima).forEach { cor ->
-                            Box(Modifier.size(6.dp).clip(CircleShape).background(cor))
-                        }
-                    }
-                    else -> Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
-                }
-            }
-            Spacer(Modifier.weight(1f))
+            Text(f.icone, fontSize = 15.sp)
+        }
+        Column(Modifier.weight(1f).padding(start = 12.dp, end = 10.dp)) {
             Text(
-                if (f.ligado != null) (if (ligadoAgora) "Ligado" else "Desligado") else f.estado,
+                f.titulo,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                f.estado,
                 style = MaterialTheme.typography.labelSmall,
                 color = when {
                     f.alerta -> VermelhoPrejuizo
                     f.aceso || ligadoAgora -> Lima
                     else -> TextoSecundario
-                },
-                fontWeight = if (f.ligado != null) FontWeight.Bold else FontWeight.Normal
+                }
             )
-            if (f.ligado != null) {
-                Text(f.estado, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+        }
+        when {
+            f.ligado != null -> Switch(
+                checked = ligadoAgora,
+                onCheckedChange = { f.onClick() },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFF0D1117),
+                    checkedTrackColor = Lima,
+                    checkedBorderColor = Lima,
+                    uncheckedThumbColor = TextoSecundario,
+                    uncheckedTrackColor = SuperficieAlta,
+                    uncheckedBorderColor = Contorno
+                )
+            )
+            f.semaforo -> Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                listOf(VermelhoPrejuizo, AmareloAlerta, Lima).forEach { cor ->
+                    Box(Modifier.size(6.dp).clip(CircleShape).background(cor))
+                }
             }
+            else -> Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
         }
     }
 }

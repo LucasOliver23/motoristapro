@@ -58,9 +58,38 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
+import com.motoristapro.data.local.entity.CategoriaDespesa
+import com.motoristapro.ui.theme.Contorno
+import com.motoristapro.ui.theme.Superficie
+import com.motoristapro.ui.theme.SuperficieAlta
+
+/** O selo de cada categoria de despesa. Um caractere, para achar a linha sem ler. */
+private fun iconeDe(c: CategoriaDespesa): String = when (c) {
+    CategoriaDespesa.COMBUSTIVEL -> "⛽"
+    CategoriaDespesa.MANUTENCAO -> "🔧"
+    CategoriaDespesa.SEGURO -> "🛡"
+    CategoriaDespesa.OUTROS -> "📌"
+}
+
+/** O quadradinho do selo, do mesmo tamanho em toda a aba. */
+@Composable
+private fun Selo(texto: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(SuperficieAlta),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(texto, fontSize = 15.sp)
+    }
+}
 
 private val PT = Locale("pt", "BR")
 private val FORMATO_MES = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", PT)
+private val FORMATO_SO_MES = DateTimeFormatter.ofPattern("MMMM", PT)
 private val FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM HH:mm", PT)
 
 @Composable
@@ -98,7 +127,8 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
 
             item {
                 val r = mes.resumo
-                CardSecao(titulo = "RESULTADO DO MÊS", centralizado = true) {
+                val nomeDoMes = mes.mes.format(FORMATO_SO_MES).uppercase(PT)
+                CardSecao(titulo = "RESULTADO DE $nomeDoMes", centralizado = true) {
                     Text(
                         r.lucroLiquidoCentavos.emReais(),
                         style = MaterialTheme.typography.displaySmall,
@@ -106,7 +136,7 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
                         color = if (r.lucroLiquidoCentavos >= 0) Lima else VermelhoPrejuizo
                     )
                     LinhaValor("Faturamento", r.faturamentoCentavos.emReais())
-                    LinhaValor("Despesas", "- " + r.despesasCentavos.emReais(), cor = VermelhoPrejuizo)
+                    LinhaValor("Despesas lançadas", "- " + r.despesasCentavos.emReais(), cor = VermelhoPrejuizo)
                     if (mes.custoFixoMensal > 0) {
                         LinhaValor("Custos fixos do mês", "- " + mes.custoFixoMensal.emReais(), cor = VermelhoPrejuizo)
                         LinhaValor(
@@ -143,15 +173,29 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
                     if (mes.porCategoria.isEmpty()) {
                         Text("Sem despesas neste mês.", color = TextoSecundario)
                     } else {
+                        // Linha com selo, nome e fatia — sem barra. A barra ocupava
+                        // meia tela para dizer o que o "%" já diz em dois dígitos.
                         val total = mes.porCategoria.sumOf { it.totalCentavos }.coerceAtLeast(1)
                         mes.porCategoria.forEach { c ->
-                            BarraHorizontal(
-                                rotulo = c.categoria.rotulo,
-                                valorTexto = c.totalCentavos.emReais(),
-                                fracao = c.totalCentavos.toFloat() / total,
-                                detalhe = "${c.totalCentavos * 100 / total}% das despesas",
-                                cor = VermelhoPrejuizo
-                            )
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Selo(iconeDe(c.categoria))
+                                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                                    Text(c.categoria.rotulo, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        "${c.totalCentavos * 100 / total}% das despesas",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextoSecundario
+                                    )
+                                }
+                                Text(
+                                    c.totalCentavos.emReais(),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -248,10 +292,12 @@ private fun EntradaItem(item: CorridaComPlataforma) {
     val data = Instant.ofEpochMilli(c.inicioEm).atZone(ZoneId.systemDefault()).format(FORMATO_DATA)
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = Superficie)
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Selo("🚗", Modifier.padding(end = 12.dp))
             Column(Modifier.weight(1f)) {
                 Text(item.plataformaNome, fontWeight = FontWeight.SemiBold)
                 Text(
@@ -289,10 +335,12 @@ private fun DespesaItem(d: Despesa, onClick: () -> Unit, onExcluir: () -> Unit) 
     val data = Instant.ofEpochMilli(d.dataEm).atZone(ZoneId.systemDefault()).format(FORMATO_DATA)
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = Superficie)
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Selo(iconeDe(d.categoria), Modifier.padding(end = 12.dp))
             Column(Modifier.weight(1f)) {
                 Text(d.categoria.rotulo, fontWeight = FontWeight.SemiBold)
                 val extra = buildList {
@@ -302,7 +350,7 @@ private fun DespesaItem(d: Despesa, onClick: () -> Unit, onExcluir: () -> Unit) 
                 }.joinToString(" • ")
                 Text(extra, style = MaterialTheme.typography.bodySmall, color = TextoSecundario, maxLines = 1)
             }
-            Text(d.valorCentavos.emReais(), color = VermelhoPrejuizo, fontWeight = FontWeight.Bold)
+            Text("- " + d.valorCentavos.emReais(), color = VermelhoPrejuizo, fontWeight = FontWeight.Bold)
             IconButton(onClick = onExcluir) {
                 Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario)
             }

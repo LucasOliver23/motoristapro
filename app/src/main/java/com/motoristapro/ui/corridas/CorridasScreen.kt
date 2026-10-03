@@ -109,7 +109,7 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
     val coresPorId = remember(plataformas) { plataformas.associate { it.id to corPlataforma(it.corHex) } }
 
     TelaAba(
-        titulo = "Corridas",
+        titulo = if (modo == ModoLista.OFERTAS) "Histórico" else "Corridas",
         subtitulo = if (modo == ModoLista.CORRIDAS) "${estado.resumo.qtdCorridas} no período"
         else "${ofertas.resumo.total} ofertas no período",
         snackbar = snackbar,
