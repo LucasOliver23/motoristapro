@@ -6,6 +6,8 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.android.gms.tasks.Task
+import com.google.firebase.functions.FirebaseFunctions
 import com.motoristapro.auth.AutenticacaoManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +17,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Teste grátis e assinatura, com a verdade no servidor.
@@ -46,6 +51,20 @@ class AssinaturaManager(
         if (FirebaseApp.getApps(context).isEmpty()) null else FirebaseFirestore.getInstance()
     } catch (e: Exception) {
         Log.w(TAG, "Firestore indisponível; app segue liberado", e)
+        null
+    }
+
+    /**
+     * As funções do servidor, na mesma região em que foram publicadas.
+     *
+     * Região errada aqui dá erro de "função não encontrada", e só em produção —
+     * por isso o nome da região fica numa constante única, ao lado do servidor.
+     */
+    private val funcoes: FirebaseFunctions? = try {
+        if (FirebaseApp.getApps(context).isEmpty()) null
+        else FirebaseFunctions.getInstance(REGIAO)
+    } catch (e: Exception) {
+        Log.w(TAG, "Functions indisponível", e)
         null
     }
 
@@ -187,6 +206,68 @@ class AssinaturaManager(
             ?.let { chave -> Plano.entries.firstOrNull { it.chave == chave } }
     )
 
+    /**
+     * Espera uma Task do Firebase sem trazer dependência nova.
+     *
+     * O projeto não usa `kotlinx-coroutines-play-services` em nenhum outro
+     * lugar — tudo o mais aqui é ouvinte. Dez linhas resolvem e o build não
+     * ganha mais uma biblioteca para dar conflito de versão.
+     */
+    private suspend fun <T> aguardar(tarefa: Task<T>): T =
+        suspendCancellableCoroutine { continuacao ->
+            tarefa.addOnSuccessListener { resultado -> continuacao.resume(resultado) }
+                .addOnFailureListener { erro -> continuacao.resumeWithException(erro) }
+        }
+
+    /**
+     * Pede ao servidor o link de pagamento do plano.
+     *
+     * O link NÃO é fixo de propósito: quem o cria é a função do servidor, que
+     * gruda o id da conta no pagamento (`external_reference`). Com link fixo o
+     * Mercado Pago não garante que o id posto na URL chegue junto, e um
+     * pagamento sem id é um pagamento que o servidor não sabe de quem é.
+     *
+     * Devolve null quando não deu — aí a tela mostra o aviso em vez de abrir o
+     * navegador num link quebrado.
+     */
+    suspend fun criarCheckout(plano: Plano): String? {
+        val funcoes = this.funcoes ?: return null
+        return try {
+            val resposta = aguardar(
+                funcoes.getHttpsCallable("criarCheckout").call(mapOf("plano" to plano.chave))
+            )
+            @Suppress("UNCHECKED_CAST")
+            val dados = resposta.data as? Map<String, Any?>
+            (dados?.get("link") as? String)?.takeIf { it.isNotBlank() }
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha ao criar o checkout", e)
+            null
+        }
+    }
+
+    /**
+     * "Já paguei": pergunta ao SERVIDOR, que procura o pagamento na API do
+     * Mercado Pago e libera na hora.
+     *
+     * Antes este botão só relia o Firestore — o que não resolvia nada quando o
+     * aviso do Mercado Pago falhava, que é justamente quando o motorista aperta
+     * o botão. Depois da conferência, relê o documento de qualquer forma.
+     */
+    suspend fun conferirNoServidor(): Boolean {
+        val funcoes = this.funcoes
+        val liberado = if (funcoes == null) false else try {
+            val resposta = aguardar(funcoes.getHttpsCallable("conferirAssinatura").call())
+            @Suppress("UNCHECKED_CAST")
+            val dados = resposta.data as? Map<String, Any?>
+            dados?.get("liberado") == true
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha ao conferir no servidor", e)
+            false
+        }
+        reconferir()
+        return liberado
+    }
+
     /** Chamado quando o motorista volta do navegador: força uma releitura. */
     fun reconferir() {
         autenticacao.usuario.value?.uid?.let { uid ->
@@ -209,6 +290,8 @@ class AssinaturaManager(
     private companion object {
         const val TAG = "MotoristaPro"
         const val COLECAO = "assinaturas"
+        /** A mesma região do `region:` das funções em servidor/functions/index.js. */
+        const val REGIAO = "southamerica-east1"
         const val KEY_TRIAL = "trial_inicio"
         const val KEY_ATE = "assinatura_ate"
         const val KEY_SERVIDOR = "servidor_visto"

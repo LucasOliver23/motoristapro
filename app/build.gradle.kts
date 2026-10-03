@@ -26,8 +26,8 @@ android {
         applicationId = "com.motoristapro"
         minSdk = 26                              // java.time nativo, sem desugaring
         targetSdk = 35
-        versionCode = 35
-        versionName = "2.10.0"
+        versionCode = 37
+        versionName = "2.12.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -121,6 +121,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    // Funcoes do servidor: cria o link de pagamento e reconfere a assinatura
+    implementation("com.google.firebase:firebase-functions")
 
     // Seletor de contas do Google (API atual, substitui o GoogleSignIn antigo)
     implementation("androidx.credentials:credentials:1.3.0")

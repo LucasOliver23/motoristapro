@@ -195,7 +195,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     }
     LaunchedEffect(Unit) { vm.mensagens.collect { snackbar.showSnackbar(it) } }
 
-    TelaAba(titulo = "Mais", subtitulo = "Veículo, metas e leitor de ofertas", snackbar = snackbar) { padding ->
+    TelaAba(titulo = "Menu", subtitulo = "Veículo, leitor de ofertas e conta", snackbar = snackbar) { padding ->
         val cfg = config
         if (cfg == null) {
             Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) { CircularProgressIndicator(color = Lima) }

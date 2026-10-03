@@ -38,8 +38,10 @@ enum class Aba(val rotulo: String, val icone: ImageVector) {
     INICIO("Início", Icons.Filled.Home),
     CORRIDAS("Corridas", Icons.Filled.List),
     FINANCAS("Finanças", Icons.Filled.ShoppingCart),
-    RELATORIOS("Relatórios", Icons.Filled.DateRange),
-    MAIS("Mais", Icons.Filled.Menu)
+    // "Atividade" em vez de "Relatórios": a aba responde "como foi meu período",
+    // e relatório é palavra de escritório, não de quem está dirigindo.
+    RELATORIOS("Atividade", Icons.Filled.DateRange),
+    MAIS("Menu", Icons.Filled.Menu)
 }
 
 /** Estrutura principal: barra de abas embaixo e o conteúdo da aba selecionada. */

@@ -52,6 +52,7 @@ import com.motoristapro.data.local.entity.CategoriaDespesa
 import com.motoristapro.data.repository.emReais
 import com.motoristapro.ui.Aba
 import com.motoristapro.ui.componentes.CardSecao
+import com.motoristapro.ui.componentes.CartaoJornada
 import com.motoristapro.ui.componentes.CorridaDialog
 import com.motoristapro.ui.componentes.DespesaDialog
 import com.motoristapro.ui.componentes.TelaAba
@@ -62,6 +63,8 @@ import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.TextoSecundario
 import com.motoristapro.ui.theme.VermelhoPrejuizo
 import kotlinx.coroutines.delay
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.foundation.background
@@ -205,8 +208,8 @@ private fun JornadaCard(
     onRetomarGps: () -> Unit
 ) {
     val jornada = estado.jornada
-    CardSecao(titulo = "Jornada") {
-        if (jornada == null) {
+    if (jornada == null) {
+        CardSecao(titulo = "JORNADA") {
             val trabalhadoHoje = estado.segundosTrabalhados(agora)
             Text(
                 if (trabalhadoHoje > 0) "Hoje: ${trabalhadoHoje.formatarDuracao()} trabalhadas" else "Turno parado",
@@ -221,52 +224,76 @@ private fun JornadaCard(
                 Spacer(Modifier.size(6.dp))
                 Text("Iniciar jornada", fontWeight = FontWeight.Bold)
             }
-        } else {
-            val segundosTurno = ((agora - jornada.inicioEm) / 1000).coerceAtLeast(0)
-            Text(
-                segundosTurno.formatarCronometro(),
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = Lima
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(Modifier.weight(1f)) {
-                    Text("Km (GPS)", style = MaterialTheme.typography.labelMedium, color = TextoSecundario)
-                    Text(
-                        String.format(Locale("pt", "BR"), "%.1f km", jornada.metrosGps / 1000.0),
-                        style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold
-                    )
-                }
-                Column(Modifier.weight(1f)) {
-                    Text("Combustível", style = MaterialTheme.typography.labelMedium, color = TextoSecundario)
-                    val gasto = estado.config.custoCombustivelKmCentavos
-                        ?.let { Math.round(jornada.metrosGps / 1000.0 * it) }
-                    Text(
-                        gasto?.emReais() ?: "configure o veículo",
-                        style = if (gasto != null) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (gasto != null) VermelhoPrejuizo else TextoSecundario
-                    )
-                }
+        }
+        return
+    }
+
+    val segundosTurno = ((agora - jornada.inicioEm) / 1000).coerceAtLeast(0)
+    val inicio = Instant.ofEpochMilli(jornada.inicioEm).atZone(ZoneId.systemDefault())
+        .format(FORMATO_INICIO)
+
+    // O anel enche em relação a um turno de 8 h. É escala, não meta: o número
+    // que vale é a hora no meio, e a cor avisa quando o dia está esticando.
+    val referencia = TURNO_DE_REFERENCIA_SEG
+
+    CartaoJornada(
+        segundos = segundosTurno,
+        segundosDeReferencia = referencia,
+        segundosEmCorrida = estado.resumo.segundosEmCorrida,
+        faturamentoCentavos = estado.resumo.faturamentoCentavos,
+        inicioTexto = "começou $inicio",
+        pausada = false
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text("Km (GPS)", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+                Text(
+                    String.format(Locale("pt", "BR"), "%.1f km", jornada.metrosGps / 1000.0),
+                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
+                )
             }
-            if (!gpsRodando) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.LocationOn, contentDescription = null, tint = AmareloAlerta)
-                    Text(
-                        "GPS pausado",
-                        color = AmareloAlerta,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.weight(1f).padding(start = 4.dp)
-                    )
-                    TextButton(onClick = onRetomarGps) { Text("Retomar GPS", color = Lima) }
-                }
+            Column(Modifier.weight(1f)) {
+                Text("Combustível", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+                val gasto = estado.config.custoCombustivelKmCentavos
+                    ?.let { Math.round(jornada.metrosGps / 1000.0 * it) }
+                Text(
+                    gasto?.emReais() ?: "configure o veículo",
+                    style = if (gasto != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (gasto != null) VermelhoPrejuizo else TextoSecundario
+                )
             }
-            OutlinedButton(onClick = onEncerrar, modifier = Modifier.fillMaxWidth()) {
-                Text("Encerrar jornada", color = VermelhoPrejuizo)
+        }
+        if (!gpsRodando) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.LocationOn, contentDescription = null, tint = AmareloAlerta)
+                Text(
+                    "GPS pausado",
+                    color = AmareloAlerta,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f).padding(start = 4.dp)
+                )
+                TextButton(onClick = onRetomarGps) { Text("Retomar GPS", color = Lima) }
             }
+        }
+        OutlinedButton(onClick = onEncerrar, modifier = Modifier.fillMaxWidth()) {
+            Text("Encerrar jornada", color = VermelhoPrejuizo)
         }
     }
 }
+
+/** Hora de início do turno, para a linha de baixo do anel. */
+private val FORMATO_INICIO = DateTimeFormatter.ofPattern("HH:mm")
+
+/**
+ * O turno de referência do anel: 8 horas.
+ *
+ * O app ainda não pergunta quantas horas o motorista pretende rodar — só a meta
+ * de dinheiro. Oito horas é a jornada comum e serve de escala; passando disso o
+ * anel fica âmbar, que é o aviso de dia esticado. No dia em que o assistente de
+ * custos perguntar as horas, troca-se só esta constante por aquele valor.
+ */
+private const val TURNO_DE_REFERENCIA_SEG = 8L * 3600
 
 @Composable
 private fun LucroCard(e: DashboardUiState, onVerFinancas: () -> Unit) {

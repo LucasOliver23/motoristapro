@@ -104,7 +104,7 @@ private fun QuadroDoPeriodo(e: RelatoriosUiState) {
 fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosViewModel.Factory)) {
     val e by vm.uiState.collectAsStateWithLifecycle()
 
-    TelaAba(titulo = "Relatórios", subtitulo = "Desempenho ${e.periodo.detalhe}") { padding ->
+    TelaAba(titulo = "Atividade", subtitulo = "Desempenho ${e.periodo.detalhe}") { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),

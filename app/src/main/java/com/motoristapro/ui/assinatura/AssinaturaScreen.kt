@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import kotlinx.coroutines.launch
 import com.motoristapro.assinatura.Acesso
 import com.motoristapro.assinatura.AssinaturaManager
 import com.motoristapro.assinatura.Plano
@@ -84,8 +86,12 @@ fun AssinaturaScreen(
     onSair: () -> Unit
 ) {
     val context = LocalContext.current
+    val escopo = rememberCoroutineScope()
     var escolhido by remember { mutableStateOf(Plano.TRIMESTRAL) }
     var semLink by remember { mutableStateOf(false) }
+    var ocupado by remember { mutableStateOf(false) }
+    var conferindo by remember { mutableStateOf(false) }
+    var recado by remember { mutableStateOf<String?>(null) }
 
     // Voltou do navegador depois de pagar: relê o documento em vez de esperar.
     LifecycleResumeEffect(Unit) {
@@ -122,41 +128,69 @@ fun AssinaturaScreen(
             )
         }
 
-        val link = precos.firstOrNull { it.plano == escolhido }?.linkCheckout
+        // O link vem do SERVIDOR a cada toque, com o id da conta grudado no
+        // pagamento. Link fixo guardado na nuvem não serve: o Mercado Pago não
+        // garante que um parâmetro posto na URL chegue no pagamento, e pagamento
+        // sem id da conta é pagamento que ninguém sabe de quem é.
         Button(
             onClick = {
-                val referencia = gerente.referencia
-                if (link.isNullOrBlank() || referencia == null) {
-                    semLink = true
-                } else {
-                    semLink = false
-                    // external_reference leva o id da conta: é por ele que o
-                    // servidor sabe QUEM pagou quando o Mercado Pago avisa.
-                    context.abrirNoNavegador("$link?external_reference=$referencia")
+                if (ocupado) return@Button
+                ocupado = true
+                semLink = false
+                escopo.launch {
+                    val link = gerente.criarCheckout(escolhido)
+                    ocupado = false
+                    if (link.isNullOrBlank()) semLink = true
+                    else context.abrirNoNavegador(link)
                 }
             },
+            enabled = !ocupado,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Fundo)
         ) {
-            Text("Assinar ${escolhido.rotulo.lowercase()}", fontWeight = FontWeight.Bold)
+            Text(
+                if (ocupado) "Abrindo o pagamento..." else "Assinar ${escolhido.rotulo.lowercase()}",
+                fontWeight = FontWeight.Bold
+            )
         }
 
         if (semLink) {
             Text(
-                "O link de pagamento ainda não está configurado nesta conta. " +
-                    "Fale com o suporte do app.",
+                "Não consegui abrir o pagamento agora. Confira sua internet e tente de novo — " +
+                    "se continuar, fale com o suporte do app.",
                 style = MaterialTheme.typography.bodySmall, color = VermelhoPrejuizo
             )
         }
 
         Text(
-            "O pagamento é feito no site do Mercado Pago, fora do app. Assim que ele confirmar, " +
-                "esta tela libera sozinha — pode levar um ou dois minutos.",
+            "O pagamento é feito no site do Mercado Pago, fora do app — dá para pagar por Pix, " +
+                "cartão ou boleto. Assim que ele confirmar, esta tela libera sozinha; " +
+                "pelo Pix costuma ser na hora.",
             style = MaterialTheme.typography.bodySmall, color = TextoSecundario
         )
 
-        OutlinedButton(onClick = { gerente.reconferir() }, modifier = Modifier.fillMaxWidth()) {
-            Text("Já paguei — conferir agora")
+        OutlinedButton(
+            onClick = {
+                if (conferindo) return@OutlinedButton
+                conferindo = true
+                recado = null
+                escopo.launch {
+                    val liberado = gerente.conferirNoServidor()
+                    conferindo = false
+                    // Só avisa quando NÃO achou: quando acha, a tela destrava
+                    // sozinha e o aviso seria conversa fiada em cima do óbvio.
+                    if (!liberado) recado = "Ainda não achei seu pagamento. " +
+                        "Se acabou de pagar por boleto, pode levar até 2 dias úteis."
+                }
+            },
+            enabled = !conferindo,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (conferindo) "Conferindo..." else "Já paguei — conferir agora")
+        }
+
+        recado?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = AmareloAlerta)
         }
 
         if (onFechar != null) {

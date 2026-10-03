@@ -1,0 +1,25 @@
+APAGUE ESTES ARQUIVOS ANTES DE COMMITAR
+=======================================
+
+Descompactar o zip por cima da pasta substitui os arquivos que mudaram, mas
+NAO apaga os que eu removi. Eles ficam para tras e quebram a compilacao, porque
+continuam chamando codigo que nao existe mais.
+
+Esta versao (2.12.0) removeu:
+
+  app/src/main/java/com/motoristapro/jornada/RelogioJornada.kt
+  app/src/main/java/com/motoristapro/ui/mais/JornadaScreen.kt
+  app/src/main/java/com/motoristapro/service/StatusApps.kt
+
+Sao os tres arquivos da Jornada que saiu do Menu no 2.9.0 — foi o que quebrou
+o build do 2.10.0 e do 2.11.0.
+
+No PowerShell, dentro da pasta do projeto:
+
+  del app\src\main\java\com\motoristapro\jornada\RelogioJornada.kt
+  del app\src\main\java\com\motoristapro\ui\mais\JornadaScreen.kt
+  del app\src\main\java\com\motoristapro\service\StatusApps.kt
+
+Depois o GitHub Desktop mostra as tres linhas como "deleted". Commit e push.
+
+Este arquivo pode ser apagado junto.

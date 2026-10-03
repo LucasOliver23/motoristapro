@@ -40,41 +40,42 @@ private class Paleta(
 )
 
 private val ESCURA = Paleta(
-    lucro = Color(0xFF9EE64B),
-    lucroEscuro = Color(0xFF6FA82F),
-    prejuizo = Color(0xFFF2777C),
-    alerta = Color(0xFFF6B93B),
-    info = Color(0xFF7AA7F0),
-    turquesa = Color(0xFF2DD4BF),
-    roxo = Color(0xFFC89BF0),
-    fundo = Color(0xFF0B0F14),
-    superficie = Color(0xFF141A21),
-    superficieAlta = Color(0xFF1C242D),
-    superficieMaisAlta = Color(0xFF253040),
-    textoPrincipal = Color(0xFFECF2F6),
-    textoSecundario = Color(0xFF8A97A6),
-    contorno = Color(0xFF1E2630),
-    uber = Color(0xFFECF2F6)
+    // Verde mais limpo e azul-ardósia no fundo: o dinheiro salta e o resto recua.
+    lucro = Color(0xFF4ADE80),
+    lucroEscuro = Color(0xFF22C55E),
+    prejuizo = Color(0xFFF87171),
+    alerta = Color(0xFFFBBF24),
+    info = Color(0xFF60A5FA),
+    turquesa = Color(0xFF22D3EE),
+    roxo = Color(0xFFC4B5FD),
+    fundo = Color(0xFF0B1220),
+    superficie = Color(0xFF111C2E),
+    superficieAlta = Color(0xFF18233A),
+    superficieMaisAlta = Color(0xFF223049),
+    textoPrincipal = Color(0xFFE2E8F0),
+    textoSecundario = Color(0xFF7C8BA1),
+    contorno = Color(0xFF1E2A40),
+    uber = Color(0xFFE2E8F0)
 )
 
 // No claro as cores de significado precisam ESCURECER: lima sobre branco não se lê.
 // O tom muda, o significado não — verde continua lucro, vermelho continua prejuízo.
 private val CLARA = Paleta(
-    lucro = Color(0xFF3C8C14),
-    lucroEscuro = Color(0xFF2B6A0C),
-    prejuizo = Color(0xFFC62828),
-    alerta = Color(0xFF9A6400),
-    info = Color(0xFF2456B8),
+    lucro = Color(0xFF16A34A),
+    lucroEscuro = Color(0xFF15803D),
+    prejuizo = Color(0xFFDC2626),
+    alerta = Color(0xFFB45309),
+    info = Color(0xFF2563EB),
     turquesa = Color(0xFF0F8276),
     roxo = Color(0xFF6A32B0),
-    fundo = Color(0xFFF3F6F9),
+    fundo = Color(0xFFF1F5F9),
     superficie = Color(0xFFFFFFFF),
     superficieAlta = Color(0xFFFFFFFF),
-    superficieMaisAlta = Color(0xFFE6ECF2),
-    textoPrincipal = Color(0xFF101720),
-    textoSecundario = Color(0xFF5B6978),
-    contorno = Color(0xFFDCE3EA),
-    uber = Color(0xFF22303B)
+    superficieMaisAlta = Color(0xFFE2E8F0),
+    textoPrincipal = Color(0xFF0F172A),
+    textoSecundario = Color(0xFF64748B),
+    contorno = Color(0xFFE2E8F0),
+    uber = Color(0xFF0F172A)
 )
 
 private val paletaAtual = mutableStateOf(ESCURA)

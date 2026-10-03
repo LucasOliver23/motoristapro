@@ -1,5 +1,6 @@
 package com.motoristapro.ui.componentes
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,7 +43,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.Lima
+import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.theme.TextoSecundario
 
 /**
@@ -90,21 +94,24 @@ fun CardSecao(
     destaque: Boolean = false,
     conteudo: @Composable ColumnScope.() -> Unit
 ) {
+    // Contorno fino em vez de sombra: no escuro a sombra some e os cartoes
+    // viram uma mancha so. O contorno separa sem pesar, nos dois temas.
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.fillMaxWidth().border(1.dp, Contorno, RoundedCornerShape(18.dp)),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (destaque) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceContainerHigh
+            else Superficie
         )
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (titulo != null) {
                 Text(
                     titulo,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = if (destaque) Lima else TextoSecundario,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.7.sp
                 )
             }
             conteudo()
@@ -122,11 +129,11 @@ fun Metrica(
     cor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        modifier = modifier.border(1.dp, Contorno, RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Superficie)
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(rotulo, style = MaterialTheme.typography.labelMedium, color = TextoSecundario)
             Text(
                 valor,

@@ -187,6 +187,107 @@ exports.webhookMercadoPago = onRequest(
   }
 );
 
+// ---------------------------------------------------------------- criar o link
+
+/** Preco de cada plano, em centavos. Le do Firestore; o padrao e a rede de seguranca. */
+async function precoDoPlano(plano) {
+  const padrao = { mensal: 1490, trimestral: 3990 };
+  try {
+    const doc = await db.collection("config").doc("precos").get();
+    const centavos = doc.exists ? doc.get(`${plano}_centavos`) : null;
+    if (typeof centavos === "number" && centavos > 0) return centavos;
+  } catch (erro) {
+    logger.warn("nao li config/precos, usando o padrao", erro);
+  }
+  return padrao[plano];
+}
+
+/** O endereco deste proprio webhook, para o aviso chegar sem depender do painel. */
+function urlDoWebhook() {
+  const projeto = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+  if (!projeto) return undefined;
+  return `https://southamerica-east1-${projeto}.cloudfunctions.net/webhookMercadoPago`;
+}
+
+/**
+ * Cria o link de pagamento do plano escolhido e devolve o endereco para o app
+ * abrir no navegador.
+ *
+ * Por que o SERVIDOR cria o link, em vez de o app abrir um link fixo: e aqui
+ * que o `external_reference` entra grudado no pagamento, carregando o uid de
+ * quem esta pagando. Com link fixo, o Mercado Pago nao garante que um parametro
+ * posto na URL chegue no pagamento — e sem o uid o dinheiro entra e o servidor
+ * nao sabe de quem e (ia cair em `pagamentos/SEM_DONO` para voce liberar a mao).
+ *
+ * Pagamento avulso, de proposito: o Pix e a forma que o motorista brasileiro
+ * usa, e assinatura recorrente no Mercado Pago exigiria formulario de cartao
+ * dentro do app. Quem paga ganha 1 ou 3 meses e o app avisa antes de vencer.
+ */
+exports.criarCheckout = onCall(
+  { secrets: [TOKEN_MP], region: "southamerica-east1" },
+  async (req) => {
+    const uid = req.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Entre na sua conta");
+
+    const plano = String(req.data?.plano || "mensal").toLowerCase();
+    if (!MESES_POR_PLANO[plano]) {
+      throw new HttpsError("invalid-argument", "Plano desconhecido");
+    }
+
+    const centavos = await precoDoPlano(plano);
+    const meses = MESES_POR_PLANO[plano];
+    const token = TOKEN_MP.value();
+    const email = req.auth?.token?.email || undefined;
+
+    // 24 h para pagar: link velho que ainda abre e confusao garantida.
+    const expiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const corpo = {
+      items: [
+        {
+          id: `motoristapro-${plano}`,
+          title: `MotoristaPro ${plano === "trimestral" ? "Trimestral" : "Mensal"}`,
+          description: `${meses} ${meses > 1 ? "meses" : "mes"} de acesso ao MotoristaPro`,
+          quantity: 1,
+          currency_id: "BRL",
+          unit_price: centavos / 100,
+        },
+      ],
+      // O uid vai nos DOIS lugares: o webhook le o external_reference e a
+      // conferencia manual ("Ja paguei") procura por ele na API.
+      external_reference: uid,
+      metadata: { uid, plano },
+      payer: email ? { email } : undefined,
+      statement_descriptor: "MOTORISTAPRO",
+      notification_url: urlDoWebhook(),
+      expires: true,
+      expiration_date_to: expiraEm.toISOString(),
+      back_urls: { success: "https://motoristapro.app/pago", pending: "https://motoristapro.app/pago" },
+    };
+
+    const resposta = await fetch(`${API}/checkout/preferences`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        // Repetir o toque no botao nao cria duas cobrancas na mesma hora.
+        "X-Idempotency-Key": `${uid}:${plano}:${Math.floor(Date.now() / 60000)}`,
+      },
+      body: JSON.stringify(corpo),
+    });
+
+    if (!resposta.ok) {
+      const detalhe = await resposta.text();
+      logger.error("Mercado Pago recusou a preferencia", { status: resposta.status, detalhe });
+      throw new HttpsError("internal", "Nao consegui criar o pagamento agora");
+    }
+
+    const pref = await resposta.json();
+    logger.info("checkout criado", { uid, plano, preferencia: pref.id });
+    return { link: pref.init_point, plano, centavos };
+  }
+);
+
 // ---------------------------------------------------------------- "Ja paguei"
 
 /**
