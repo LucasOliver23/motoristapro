@@ -1,16 +1,9 @@
-NADA PARA APAGAR NESTA VERSAO (2.12.1)
+NADA PARA APAGAR NESTA VERSAO (2.13.0)
 ======================================
 
-Os tres arquivos da Jornada ja saíram no commit anterior — obrigado, foi isso
-que destravou o build.
+Esta versao so mexe em arquivos que ja existem:
 
-Esta versao so corrige uma linha do codigo da assinatura:
-`resposta.data` virou `resposta.getData()`.
+  ui/dashboard/DashboardScreen.kt    tela Inicio refeita
+  ui/dashboard/DashboardViewModel.kt ofertas do dia entram no estado
 
-Por que isso quebrava: a classe HttpsCallableResult, do Firebase, tem um campo
-PRIVADO chamado `data` e um metodo publico `getData()`. Em Kotlin, escrever
-`resposta.data` casa com o campo privado, nao com o metodo — e o compilador
-recusa. Em Java o mesmo codigo nunca compilaria tambem; o atalho de propriedade
-do Kotlin so disfarça o erro ate a hora de compilar.
-
-Pode apagar este arquivo.
+Nenhum arquivo foi removido. Pode apagar este aviso.

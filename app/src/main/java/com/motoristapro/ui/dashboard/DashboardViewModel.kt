@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.motoristapro.MotoristaApp
+import com.motoristapro.data.local.dao.ResumoOfertas
 import com.motoristapro.data.local.dao.ResumoPeriodo
 import com.motoristapro.data.local.dao.TotaisJornada
 import com.motoristapro.data.local.entity.Configuracao
@@ -44,8 +45,14 @@ data class DashboardUiState(
     val jornada: Jornada? = null,
     val jornadasEncerradas: TotaisJornada = TotaisJornada(0, 0),
     /** Soma mensal dos custos fixos ativos (centavos). */
-    val custoFixoMensalCentavos: Long = 0
+    val custoFixoMensalCentavos: Long = 0,
+    /** Ofertas que o leitor analisou hoje — base da taxa de aceite. */
+    val ofertas: ResumoOfertas = ResumoOfertas.VAZIO
 ) {
+    /** Quantas das ofertas lidas hoje viraram corrida (0..100), null sem oferta. */
+    val taxaDeAceite: Int?
+        get() = if (ofertas.total > 0) ofertas.registradas * 100 / ofertas.total else null
+
     /** Parte dos custos fixos que cabe a um dia trabalhado. */
     val custoFixoDiaCentavos: Long get() = custoFixoDiario(custoFixoMensalCentavos, config.diasTrabalhoMes)
 
@@ -99,6 +106,7 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
                     jornadasEncerradas = totais
                 )
             }.combine(repo.custoFixoMensal()) { estado, fixo -> estado.copy(custoFixoMensalCentavos = fixo) }
+                .combine(repo.resumoOfertas(inicio, fim)) { estado, of -> estado.copy(ofertas = of) }
         }
         .catch { e -> emit(DashboardUiState(carregando = false, erro = "Erro ao ler o banco: ${e.message}")) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())

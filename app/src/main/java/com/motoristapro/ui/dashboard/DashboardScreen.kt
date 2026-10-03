@@ -19,13 +19,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +54,6 @@ import com.motoristapro.ui.componentes.CartaoJornada
 import com.motoristapro.ui.componentes.CorridaDialog
 import com.motoristapro.ui.componentes.DespesaDialog
 import com.motoristapro.ui.componentes.TelaAba
-import com.motoristapro.ui.formatarCronometro
 import com.motoristapro.ui.formatarDuracao
 import com.motoristapro.ui.theme.AmareloAlerta
 import com.motoristapro.ui.theme.Lima
@@ -67,12 +64,12 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
-import com.motoristapro.ui.theme.Turquesa
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import com.motoristapro.ui.centavosEmReais
+import com.motoristapro.ui.theme.Contorno
+import com.motoristapro.ui.componentes.Metrica
+import androidx.compose.foundation.clickable
 
 private val FORMATO_DIA = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
 
@@ -134,6 +131,22 @@ fun DashboardRoute(
             ) {
                 StatusLeitor(leitorOk, onTestar = vm::testarLeitor)
 
+                // A ORDEM da tela é a ordem da pergunta do motorista: quanto
+                // sobrou hoje, de onde veio, registrar o que acabou de rolar e,
+                // por último, o relógio — que é para olhar, não para tocar.
+                LucroDoDia(estado, onVerFinancas = { irPara(Aba.FINANCAS) })
+
+                QuatroNumeros(estado)
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    BotaoRegistrar("+ Corrida", principal = true, modifier = Modifier.weight(1f)) {
+                        dialogCorrida = true
+                    }
+                    BotaoRegistrar("+ Despesa", principal = false, modifier = Modifier.weight(1f)) {
+                        dialogDespesa = CategoriaDespesa.COMBUSTIVEL
+                    }
+                }
+
                 JornadaCard(
                     estado = estado,
                     agora = agora,
@@ -143,17 +156,6 @@ fun DashboardRoute(
                     onRetomarGps = vm::retomarGps
                 )
 
-                LucroCard(estado, onVerFinancas = { irPara(Aba.FINANCAS) })
-
-                EficienciaDoDia(estado, agora)
-
-                CardSecao(titulo = "Registrar") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AtalhoBotao("Abastecer", Modifier.weight(1f)) { dialogDespesa = CategoriaDespesa.COMBUSTIVEL }
-                        AtalhoBotao("Corrida", Modifier.weight(1f)) { dialogCorrida = true }
-                        AtalhoBotao("Despesa", Modifier.weight(1f)) { dialogDespesa = CategoriaDespesa.MANUTENCAO }
-                    }
-                }
                 Spacer(Modifier.height(8.dp))
             }
         }
@@ -172,6 +174,117 @@ fun DashboardRoute(
             onDismiss = { dialogCorrida = false },
             onSalvar = { vm.salvarCorrida(it); dialogCorrida = false }
         )
+    }
+}
+
+/**
+ * O número do dia: lucro líquido, com a meta logo abaixo.
+ *
+ * Lucro e não faturamento, de propósito. Faturamento é o número que a
+ * plataforma mostra; lucro é o que fica depois do combustível e do desgaste —
+ * é essa a conta que o app existe para fazer.
+ */
+@Composable
+private fun LucroDoDia(e: DashboardUiState, onVerFinancas: () -> Unit) {
+    val lucro = e.resumo.lucroLiquidoCentavos
+    val cor = if (lucro >= 0) Lima else VermelhoPrejuizo
+    CardSecao(titulo = "LUCRO LÍQUIDO DE HOJE", modifier = Modifier.clickable { onVerFinancas() }) {
+        Text(
+            lucro.emReais(),
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Bold,
+            color = cor
+        )
+        if (e.config.metaLucroDiarioCentavos > 0) {
+            LinearProgressIndicator(
+                progress = { e.progressoMeta },
+                modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(99.dp)),
+                color = Lima,
+                trackColor = Contorno,
+                drawStopIndicator = {}
+            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Meta do dia: ${e.config.metaLucroDiarioCentavos.emReais()}",
+                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                )
+                Box(Modifier.weight(1f))
+                Text(
+                    "${(e.progressoMeta * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold, color = Lima
+                )
+            }
+        } else {
+            Text(
+                "Defina sua meta em Menu ▸ Meu veículo e custos.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        }
+    }
+}
+
+/**
+ * Os quatro números que respondem "como está o dia" sem rolar a tela.
+ *
+ * Taxa de aceite entra aqui porque é o único deles que o motorista não
+ * consegue ver em lugar nenhum: as plataformas mostram a delas, não a dele.
+ */
+@Composable
+private fun QuatroNumeros(e: DashboardUiState) {
+    val r = e.resumo
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Metrica(
+                "Faturamento", r.faturamentoCentavos.emReais(), Modifier.weight(1f),
+                detalhe = "${r.qtdCorridas} corrida(s)"
+            )
+            Metrica(
+                "Despesas", r.despesasCentavos.emReais(), Modifier.weight(1f),
+                cor = VermelhoPrejuizo, detalhe = "lançadas hoje"
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Metrica(
+                "R$ por km",
+                if (r.metrosRodados > 0) r.ganhoPorKmCentavos.emReais() else "—",
+                Modifier.weight(1f),
+                cor = if (r.metrosRodados > 0) Lima else TextoSecundario,
+                detalhe = e.config.custoKmCentavos.takeIf { it > 0 }?.let { "custo ${it.emReais()}/km" }
+            )
+            Metrica(
+                "Taxa de aceite",
+                e.taxaDeAceite?.let { "$it%" } ?: "—",
+                Modifier.weight(1f),
+                detalhe = if (e.ofertas.total > 0)
+                    "${e.ofertas.registradas} de ${e.ofertas.total} ofertas"
+                else "o leitor ainda não viu oferta"
+            )
+        }
+    }
+}
+
+/** Botão de registrar: o verde cheio é o que mais se toca, o outro é secundário. */
+@Composable
+private fun BotaoRegistrar(
+    texto: String,
+    principal: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    if (principal) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
+        ) { Text(texto, fontWeight = FontWeight.Bold) }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier.height(50.dp),
+            shape = RoundedCornerShape(14.dp)
+        ) { Text(texto, fontWeight = FontWeight.Bold) }
     }
 }
 
@@ -290,180 +403,6 @@ private val FORMATO_INICIO = DateTimeFormatter.ofPattern("HH:mm")
  *
  * O app ainda não pergunta quantas horas o motorista pretende rodar — só a meta
  * de dinheiro. Oito horas é a jornada comum e serve de escala; passando disso o
- * anel fica âmbar, que é o aviso de dia esticado. No dia em que o assistente de
- * custos perguntar as horas, troca-se só esta constante por aquele valor.
+ * anel fica âmbar, que é o aviso de dia esticado.
  */
 private const val TURNO_DE_REFERENCIA_SEG = 8L * 3600
-
-@Composable
-private fun LucroCard(e: DashboardUiState, onVerFinancas: () -> Unit) {
-    val cor = if (e.resumo.lucroLiquidoCentavos >= 0) Lima else VermelhoPrejuizo
-    CardSecao(titulo = "Lucro líquido de hoje", destaque = true) {
-        Text(
-            e.resumo.lucroLiquidoCentavos.emReais(),
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            color = cor
-        )
-        if (e.config.metaLucroDiarioCentavos > 0) {
-            LinearProgressIndicator(
-                progress = { e.progressoMeta },
-                modifier = Modifier.fillMaxWidth().height(8.dp),
-                color = cor,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    "Meta ${e.config.metaLucroDiarioCentavos.emReais()} • ${(e.progressoMeta * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                )
-                val falta = e.config.metaLucroDiarioCentavos - e.resumo.lucroLiquidoCentavos
-                Text(
-                    if (falta > 0) "faltam ${falta.emReais()}" else "meta batida!",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (falta > 0) TextoSecundario else Lima,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-        if (e.custoFixoDiaCentavos > 0) {
-            Text(
-                "Custos fixos do dia: −${e.custoFixoDiaCentavos.emReais()}  →  lucro real ${e.lucroRealCentavos.emReais()}",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (e.lucroRealCentavos >= 0) TextoSecundario else VermelhoPrejuizo
-            )
-        }
-
-        // Faturamento e despesas vivem AQUI dentro: são as duas parcelas do
-        // número grande acima. Como cartões soltos, competiam com ele.
-        Row(
-            Modifier.fillMaxWidth().padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            ParcelaDoLucro(
-                "Faturamento",
-                e.resumo.faturamentoCentavos.emReais(),
-                "${e.resumo.qtdCorridas} corridas",
-                MaterialTheme.colorScheme.onSurface,
-                Modifier.weight(1f)
-            )
-            ParcelaDoLucro(
-                "Despesas",
-                e.resumo.despesasCentavos.emReais(),
-                "lançadas hoje",
-                VermelhoPrejuizo,
-                Modifier.weight(1f)
-            )
-        }
-
-        TextButton(onClick = onVerFinancas) { Text("Ver finanças e metas", color = Lima) }
-    }
-}
-
-@Composable
-private fun AtalhoBotao(rotulo: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    FilledTonalButton(onClick = onClick, modifier = modifier) {
-        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.size(4.dp))
-        Text(rotulo, maxLines = 1)
-    }
-}
-
-
-/** Bloco pequeno dentro do card de lucro: uma parcela do número grande. */
-@Composable
-private fun ParcelaDoLucro(
-    rotulo: String,
-    valor: String,
-    detalhe: String,
-    cor: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(horizontal = 13.dp, vertical = 11.dp)
-    ) {
-        Text(rotulo, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-        Text(valor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = cor)
-        Text(detalhe, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-    }
-}
-
-/**
- * Os três números de eficiência do dia, lado a lado, com uma barrinha colorida.
- *
- * A barra não é enfeite: ela compara o número de hoje com a sua faixa "boa",
- * então dá para ler de relance se o turno está rendendo, sem fazer conta.
- */
-@Composable
-private fun EficienciaDoDia(e: DashboardUiState, agora: Long) {
-    val pt = Locale("pt", "BR")
-    val porHora = e.ganhoPorHoraTrabalhadaCentavos(agora)
-    val porKm = if (e.resumo.metrosRodados > 0) e.resumo.ganhoPorKmCentavos else 0L
-    // Tipos diferentes de proposito: o custo real do mes vem como Double
-    // (media calculada) e o configurado como Long (centavos). Formato cada um
-    // com o seu conversor em vez de tentar juntar os dois num '?:'.
-    val custoKmTexto = e.custoKmRealCentavos?.centavosEmReais()
-        ?: e.config.custoKmCentavos.takeIf { it > 0 }?.emReais()
-
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-        MetricaBarra(
-            rotulo = "R$ / km",
-            valor = if (porKm > 0) porKm.emReais() else "—",
-            fracao = if (porKm > 0) (porKm / 300f).coerceIn(0f, 1f) else 0f,
-            cor = Lima,
-            modifier = Modifier.weight(1f)
-        )
-        MetricaBarra(
-            rotulo = "R$ / hora",
-            valor = if (porHora > 0) porHora.emReais() else "—",
-            fracao = if (porHora > 0) (porHora / 6000f).coerceIn(0f, 1f) else 0f,
-            cor = AmareloAlerta,
-            modifier = Modifier.weight(1f)
-        )
-        MetricaBarra(
-            rotulo = "Rodado",
-            valor = String.format(pt, "%.0f km", e.resumo.kmRodados),
-            fracao = (e.resumo.kmRodados / 250f).toFloat().coerceIn(0f, 1f),
-            cor = Turquesa,
-            modifier = Modifier.weight(1f)
-        )
-    }
-
-    if (custoKmTexto != null) {
-        Text(
-            "Seu custo é $custoKmTexto/km — tudo acima disso é lucro.",
-            style = MaterialTheme.typography.bodySmall,
-            color = TextoSecundario,
-            modifier = Modifier.padding(start = 4.dp)
-        )
-    }
-}
-
-@Composable
-private fun MetricaBarra(
-    rotulo: String,
-    valor: String,
-    fracao: Float,
-    cor: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(13.dp)
-    ) {
-        Text(rotulo, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-        Text(valor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Box(
-            Modifier.fillMaxWidth().padding(top = 8.dp).height(3.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-        ) {
-            Box(Modifier.fillMaxWidth(fracao).height(3.dp).clip(RoundedCornerShape(2.dp)).background(cor))
-        }
-    }
-}
