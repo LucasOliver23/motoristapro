@@ -1,13 +1,9 @@
-NADA PARA APAGAR NESTA VERSAO (2.15.0)
+NADA PARA APAGAR NESTA VERSAO (2.15.1)
 ======================================
 
-Nenhum arquivo removido. Mas tem uma novidade no banco:
+So uma mudanca: o app passa a aplicar o tema ESCURO uma vez, para quem tinha
+"Claro" gravado de versoes antigas.
 
-  BANCO DE DADOS: versao 11 -> 12
+Depois dessa vez, vale o que voce escolher em Menu > Aparencia.
 
-A jornada ganhou a coluna `seg_pausados`, para o botao Pausar nao contar o
-tempo parado como hora trabalhada. A migracao e automatica e NAO apaga nada —
-quem atualiza mantem corridas, despesas e historico.
-
-Se por acaso aparecer erro de banco ao abrir (nao deve), me avise antes de
-desinstalar o app: desinstalar apaga os dados do aparelho.
+O banco continua na versao 12 (do 2.15.0). Nada foi removido.

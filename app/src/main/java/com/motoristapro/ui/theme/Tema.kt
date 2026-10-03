@@ -140,9 +140,22 @@ object PreferenciaTema {
     private fun prefs(c: Context): SharedPreferences =
         c.applicationContext.getSharedPreferences("aparencia", Context.MODE_PRIVATE)
 
-    /** Chamado uma vez no onCreate, antes de desenhar. */
+    /**
+     * Chamado uma vez no onCreate, antes de desenhar.
+     *
+     * O app nasceu claro e passou a ser escuro com o visual novo. Quem já usava
+     * tinha "CLARO" gravado de quando era essa a única opção — e ficaria preso
+     * no claro para sempre, sem nunca ver o tema novo. Então o padrão novo é
+     * aplicado UMA vez, e a partir daí o que o motorista escolher manda.
+     */
     fun carregar(c: Context) {
-        val salvo = prefs(c).getString(KEY, null)
+        val p = prefs(c)
+        if (!p.getBoolean(KEY_PADRAO_NOVO, false)) {
+            p.edit().putBoolean(KEY_PADRAO_NOVO, true).remove(KEY).apply()
+            aplicar(c, ModoTema.ESCURO)
+            return
+        }
+        val salvo = p.getString(KEY, null)
         aplicar(c, runCatching { ModoTema.valueOf(salvo ?: "") }.getOrDefault(ModoTema.ESCURO))
     }
 
@@ -167,6 +180,9 @@ object PreferenciaTema {
             Configuration.UI_MODE_NIGHT_YES
 
     private const val KEY = "modo"
+
+    /** Marca que o padrão escuro já foi aplicado uma vez neste aparelho. */
+    private const val KEY_PADRAO_NOVO = "padrao_escuro_aplicado"
 }
 
 // ------------------------------------------------------------------ esquemas
