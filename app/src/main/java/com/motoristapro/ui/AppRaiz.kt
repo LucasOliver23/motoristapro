@@ -54,7 +54,10 @@ fun AppRaiz() {
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+            // A barra usa o MESMO fundo da tela e sem a pílula de seleção do
+            // Material: o que marca a aba aberta é o ícone ficar verde, não uma
+            // cápsula colorida atrás dele.
+            NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 Aba.entries.forEach { item ->
                     NavigationBarItem(
                         selected = item == aba,
@@ -62,9 +65,9 @@ fun AppRaiz() {
                         icon = { Icon(item.icone, contentDescription = item.rotulo) },
                         label = { Text(item.rotulo) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color(0xFF0A0D0B),
+                            selectedIconColor = Lima,
                             selectedTextColor = Lima,
-                            indicatorColor = Lima,
+                            indicatorColor = Color.Transparent,
                             unselectedIconColor = TextoSecundario,
                             unselectedTextColor = TextoSecundario
                         )

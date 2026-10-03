@@ -20,9 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -40,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -70,6 +66,10 @@ import androidx.compose.runtime.setValue
 import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.componentes.Metrica
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.unit.sp
+import com.motoristapro.ui.componentes.BotaoProEscuro
+import com.motoristapro.ui.componentes.BotaoPro
+import com.motoristapro.ui.componentes.CardPro
 
 private val FORMATO_DIA = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
 
@@ -141,10 +141,8 @@ fun DashboardRoute(
                 QuatroNumeros(estado)
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    BotaoRegistrar("+ Corrida", principal = true, modifier = Modifier.weight(1f)) {
-                        dialogCorrida = true
-                    }
-                    BotaoRegistrar("+ Despesa", principal = false, modifier = Modifier.weight(1f)) {
+                    BotaoPro("+ Corrida", Modifier.weight(1f)) { dialogCorrida = true }
+                    BotaoProEscuro("+ Despesa", Modifier.weight(1f), corDoTexto = Lima) {
                         dialogDespesa = CategoriaDespesa.COMBUSTIVEL
                     }
                 }
@@ -191,16 +189,23 @@ fun DashboardRoute(
 private fun LucroDoDia(e: DashboardUiState, onVerFinancas: () -> Unit) {
     val lucro = e.resumo.lucroLiquidoCentavos
     val cor = if (lucro >= 0) Lima else VermelhoPrejuizo
-    CardSecao(
-        titulo = "LUCRO LÍQUIDO DE HOJE",
-        centralizado = true,
-        modifier = Modifier.clickable { onVerFinancas() }
-    ) {
+    CardPro(modifier = Modifier.clickable { onVerFinancas() }) {
+        Text(
+            "LUCRO LÍQUIDO DE HOJE",
+            style = MaterialTheme.typography.labelMedium,
+            color = TextoSecundario,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
         Text(
             lucro.emReais(),
-            style = MaterialTheme.typography.displaySmall,
+            fontSize = 40.sp,
             fontWeight = FontWeight.Bold,
-            color = cor
+            color = cor,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
         )
         if (e.config.metaLucroDiarioCentavos > 0) {
             LinearProgressIndicator(
@@ -273,37 +278,6 @@ private fun QuatroNumeros(e: DashboardUiState) {
     }
 }
 
-/** Botão de registrar: o verde cheio é o que mais se toca, o outro é secundário. */
-@Composable
-private fun BotaoRegistrar(
-    texto: String,
-    principal: Boolean,
-    modifier: Modifier,
-    onClick: () -> Unit
-) {
-    if (principal) {
-        Button(
-            onClick = onClick,
-            modifier = modifier.height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
-        ) { Text(texto, fontWeight = FontWeight.Bold) }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = modifier.height(50.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) { Text(texto, fontWeight = FontWeight.Bold) }
-    }
-}
-
-/**
- * A pastilha do leitor, no alto da tela.
- *
- * Fica no cabeçalho e não no corpo porque é informação de estado, não de
- * conteúdo: o motorista precisa ver num relance se o app está lendo as ofertas,
- * sem que isso ocupe uma faixa inteira acima do número do dia.
- */
 @Composable
 private fun PastilhaLeitor(conectado: Boolean, onTestar: () -> Unit) {
     val cor = if (conectado) Lima else AmareloAlerta
@@ -346,15 +320,7 @@ private fun JornadaCard(
                 if (trabalhadoHoje > 0) "Hoje: ${trabalhadoHoje.formatarDuracao()} trabalhadas" else "Turno parado",
                 style = MaterialTheme.typography.bodyLarge
             )
-            Button(
-                onClick = onIniciar,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
-            ) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                Spacer(Modifier.size(6.dp))
-                Text("Iniciar jornada", fontWeight = FontWeight.Bold)
-            }
+            BotaoPro("▶  Iniciar jornada", Modifier.fillMaxWidth(), onClick = onIniciar)
         }
         return
     }
@@ -382,7 +348,7 @@ private fun JornadaCard(
             OutlinedButton(
                 onClick = onPausar,
                 modifier = Modifier.weight(1f).height(46.dp),
-                shape = RoundedCornerShape(13.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     if (jornada.pausada) "Retomar" else "Pausar",
@@ -393,7 +359,7 @@ private fun JornadaCard(
             OutlinedButton(
                 onClick = onEncerrar,
                 modifier = Modifier.weight(1f).height(46.dp),
-                shape = RoundedCornerShape(13.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Encerrar", fontWeight = FontWeight.Bold, color = VermelhoPrejuizo)
             }

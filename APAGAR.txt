@@ -1,9 +1,10 @@
-NADA PARA APAGAR NESTA VERSAO (2.15.1)
-======================================
+NADA PARA APAGAR NESTA VERSAO (3.0.0)
+=====================================
 
-So uma mudanca: o app passa a aplicar o tema ESCURO uma vez, para quem tinha
-"Claro" gravado de versoes antigas.
+Nenhum arquivo removido. O banco continua na versao 12.
 
-Depois dessa vez, vale o que voce escolher em Menu > Aparencia.
-
-O banco continua na versao 12 (do 2.15.0). Nada foi removido.
+Arquivos alterados:
+  ui/theme/Tema.kt                 paleta exata (FundoApp, FundoCard, VerdeNeon...)
+  ui/componentes/Componentes.kt    CardPro, BotaoPro, BotaoProEscuro
+  ui/AppRaiz.kt                    barra de abas sem a pilula do Material
+  ui/dashboard/DashboardScreen.kt  lucro em 40.sp e os botoes novos

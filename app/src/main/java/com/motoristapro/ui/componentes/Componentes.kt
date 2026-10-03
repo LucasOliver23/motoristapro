@@ -1,6 +1,5 @@
 package com.motoristapro.ui.componentes
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +47,9 @@ import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.theme.TextoSecundario
+import com.motoristapro.ui.theme.SuperficieAlta
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Button
 
 /**
  * Estrutura padrão de cada aba: barra superior + conteúdo + FAB + snackbar.
@@ -86,6 +88,69 @@ fun TelaAba(
     )
 }
 
+/**
+ * O cartão padrão do app: canto 20, sem sombra, fundo do tema.
+ *
+ * Sem elevação de propósito. No fundo preto a sombra do Material vira um borrão
+ * cinza em volta do cartão; o que separa um cartão do outro aqui é o tom do
+ * fundo, não a sombra.
+ */
+@Composable
+fun CardPro(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Superficie),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            content = content
+        )
+    }
+}
+
+/** Botão principal: verde neon com texto preto. É a ação que o dedo procura. */
+@Composable
+fun BotaoPro(
+    texto: String,
+    modifier: Modifier = Modifier,
+    habilitado: Boolean = true,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = habilitado,
+        modifier = modifier.height(52.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Lima,
+            // Preto, não branco: sobre o verde neon o branco não tem contraste.
+            contentColor = Color(0xFF0D1117)
+        )
+    ) { Text(texto, fontWeight = FontWeight.Bold) }
+}
+
+/** Botão secundário: cinza-chumbo com texto branco. */
+@Composable
+fun BotaoProEscuro(
+    texto: String,
+    modifier: Modifier = Modifier,
+    corDoTexto: Color? = null,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(52.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = SuperficieAlta,
+            contentColor = corDoTexto ?: MaterialTheme.colorScheme.onSurface
+        )
+    ) { Text(texto, fontWeight = FontWeight.Bold) }
+}
+
 /** Card de seção com título opcional. */
 @Composable
 fun CardSecao(
@@ -98,15 +163,16 @@ fun CardSecao(
     // Contorno fino em vez de sombra: no escuro a sombra some e os cartoes
     // viram uma mancha so. O contorno separa sem pesar, nos dois temas.
     Card(
-        modifier = modifier.fillMaxWidth().border(1.dp, Contorno, RoundedCornerShape(18.dp)),
-        shape = RoundedCornerShape(18.dp),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (destaque) MaterialTheme.colorScheme.primaryContainer
             else Superficie
         )
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(15.dp),
+            Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = if (centralizado) Alignment.CenterHorizontally else Alignment.Start
         ) {
@@ -135,8 +201,9 @@ fun Metrica(
     centralizado: Boolean = false
 ) {
     Card(
-        modifier = modifier.border(1.dp, Contorno, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = Superficie)
     ) {
         Column(

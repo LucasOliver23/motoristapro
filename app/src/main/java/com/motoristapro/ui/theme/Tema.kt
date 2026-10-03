@@ -21,6 +21,18 @@ import androidx.compose.ui.text.TextStyle
  * passaram a ser lidos de [paletaAtual]. Como é um `mutableStateOf`, qualquer tela
  * que use uma dessas cores se redesenha sozinha quando o modo troca.
  */
+// ------------------------------------------------- a paleta, com nome próprio
+//
+// Definida uma vez aqui. O resto do app usa os nomes de SIGNIFICADO (Lima para
+// lucro, VermelhoPrejuizo para gasto) — assim o tema claro troca a cor sem
+// ninguém mexer em tela nenhuma. Estas constantes são a origem do tema escuro.
+
+val FundoApp = Color(0xFF0D1117)
+val FundoCard = Color(0xFF161C24)
+val VerdeNeon = Color(0xFF39FF14)
+val VermelhoDespesa = Color(0xFFFF5252)
+val FundoBotaoEscuro = Color(0xFF21262D)
+
 private class Paleta(
     val lucro: Color,
     val lucroEscuro: Color,
@@ -40,22 +52,23 @@ private class Paleta(
 )
 
 private val ESCURA = Paleta(
-    // Verde mais limpo e azul-ardósia no fundo: o dinheiro salta e o resto recua.
-    lucro = Color(0xFF4ADE80),
-    lucroEscuro = Color(0xFF22C55E),
-    prejuizo = Color(0xFFF87171),
-    alerta = Color(0xFFFBBF24),
-    info = Color(0xFF60A5FA),
-    turquesa = Color(0xFF22D3EE),
-    roxo = Color(0xFFC4B5FD),
-    fundo = Color(0xFF0B1220),
-    superficie = Color(0xFF111C2E),
-    superficieAlta = Color(0xFF18233A),
-    superficieMaisAlta = Color(0xFF223049),
-    textoPrincipal = Color(0xFFE2E8F0),
-    textoSecundario = Color(0xFF7C8BA1),
-    contorno = Color(0xFF1E2A40),
-    uber = Color(0xFFE2E8F0)
+    // Paleta definida pelo Oliver: preto de painel, verde neon no dinheiro.
+    lucro = VerdeNeon,
+    lucroEscuro = Color(0xFF2ECC0F),
+    prejuizo = VermelhoDespesa,
+    alerta = Color(0xFFFFC94D),
+    info = Color(0xFF58A6FF),
+    turquesa = Color(0xFF2DE2C5),
+    roxo = Color(0xFFBC8CFF),
+    fundo = FundoApp,
+    superficie = FundoCard,
+    superficieAlta = FundoBotaoEscuro,
+    superficieMaisAlta = Color(0xFF2B323B),
+    textoPrincipal = Color(0xFFFFFFFF),
+    textoSecundario = Color(0xFF8B949E),
+    // Contorno quase do tom do cartão: separa sem desenhar moldura.
+    contorno = Color(0xFF21262D),
+    uber = Color(0xFFFFFFFF)
 )
 
 // No claro as cores de significado precisam ESCURECER: lima sobre branco não se lê.
@@ -190,7 +203,7 @@ object PreferenciaTema {
 private val EsquemaEscuro = darkColorScheme(
     primary = ESCURA.lucro,
     onPrimary = ESCURA.fundo,
-    primaryContainer = Color(0xFF16241A),
+    primaryContainer = Color(0xFF14301A),
     onPrimaryContainer = ESCURA.lucro,
     secondary = ESCURA.turquesa,
     onSecondary = ESCURA.fundo,
