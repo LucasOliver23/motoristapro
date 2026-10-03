@@ -1,9 +1,6 @@
-NADA PARA APAGAR NESTA VERSAO (3.1.0)
+NADA PARA APAGAR NESTA VERSAO (3.1.1)
 =====================================
 
-Nenhum arquivo removido. Banco continua na versao 12.
+So corrige um import que faltou em RelatoriosScreen.kt (fillMaxWidth).
 
-O que mudou:
-  Corridas abre no HISTORICO (era a lista antiga; o historico ficava escondido)
-  Atividade ganhou o MAPA DE CALOR dia x hora
-  Menu ganhou o selo da assinatura no perfil e o seletor de tema no topo
+Nenhum arquivo removido. Banco continua na versao 12.
