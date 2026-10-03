@@ -237,7 +237,7 @@ class AssinaturaManager(
                 funcoes.getHttpsCallable("criarCheckout").call(mapOf("plano" to plano.chave))
             )
             @Suppress("UNCHECKED_CAST")
-            val dados = resposta.data as? Map<String, Any?>
+            val dados = resposta.getData() as? Map<String, Any?>
             (dados?.get("link") as? String)?.takeIf { it.isNotBlank() }
         } catch (e: Exception) {
             Log.w(TAG, "Falha ao criar o checkout", e)
@@ -258,7 +258,7 @@ class AssinaturaManager(
         val liberado = if (funcoes == null) false else try {
             val resposta = aguardar(funcoes.getHttpsCallable("conferirAssinatura").call())
             @Suppress("UNCHECKED_CAST")
-            val dados = resposta.data as? Map<String, Any?>
+            val dados = resposta.getData() as? Map<String, Any?>
             dados?.get("liberado") == true
         } catch (e: Exception) {
             Log.w(TAG, "Falha ao conferir no servidor", e)
