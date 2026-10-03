@@ -28,7 +28,7 @@ import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Versão atual do esquema do banco (constante de topo: pode ser usada na anotação). */
-const val VERSAO_BANCO = 11
+const val VERSAO_BANCO = 12
 
 /**
  * Banco local do MotoristaPro.
@@ -89,7 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun construir(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NOME_BANCO)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                 .addCallback(SEED)
                 // NÃO use fallbackToDestructiveMigration(): apagaria o histórico do motorista.
                 .build()
@@ -169,6 +169,19 @@ abstract class AppDatabase : RoomDatabase() {
          * aguardando, buscando, esperando, em viagem) e a contar quanto tempo
          * cada aplicativo ficou online.
          */
+        /**
+         * v11 -> v12: o botão Pausar da jornada.
+         *
+         * Uma coluna só, com o tempo total que o turno ficou pausado. O
+         * cronômetro passou a descontar isso, senão a hora do almoço entrava
+         * como hora trabalhada e estragava o R$/hora.
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE jornadas ADD COLUMN seg_pausados INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 listOf(

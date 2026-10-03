@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.motoristapro.ui.formatarCronometro
+import com.motoristapro.ui.formatarDuracao
 import com.motoristapro.ui.theme.AmareloAlerta
 import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.Lima
@@ -174,8 +175,8 @@ fun CartaoJornada(
             )
 
             Row(Modifier.fillMaxWidth()) {
-                NumeroDoAnel("EM CORRIDA", segundosEmCorrida.formatarCronometro(), Lima, Modifier.weight(1f))
-                NumeroDoAnel("PARADO", parado.formatarCronometro(), AmareloAlerta, Modifier.weight(1f))
+                NumeroDoAnel("EM CORRIDA", segundosEmCorrida.formatarDuracao(), Lima, Modifier.weight(1f))
+                NumeroDoAnel("PARADO", parado.formatarDuracao(), AmareloAlerta, Modifier.weight(1f))
                 NumeroDoAnel("POR HORA", porHora.emReaisCurto(), null, Modifier.weight(1f))
             }
 

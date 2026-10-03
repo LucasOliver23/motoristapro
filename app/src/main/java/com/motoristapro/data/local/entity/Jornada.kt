@@ -68,10 +68,35 @@ data class Jornada(
 
     /** Jornada pausada à mão: o relógio para sem encerrar o turno. 0 = rodando. */
     @ColumnInfo(name = "pausada_em", defaultValue = "0")
-    val pausadaEm: Long = 0
+    val pausadaEm: Long = 0,
+
+    /**
+     * Quanto tempo o turno ficou pausado, em segundos.
+     *
+     * Sem isto, o cronômetro seria "agora menos o início" e contaria o almoço
+     * junto. Cada vez que o motorista retoma, soma-se aqui o tempo que ficou
+     * parado — e o relógio volta a bater com a realidade mesmo depois de três
+     * ou quatro pausas no mesmo turno.
+     */
+    @ColumnInfo(name = "seg_pausados", defaultValue = "0")
+    val segPausados: Long = 0
 ) {
     val ativa: Boolean get() = fimEm == null
     val pausada: Boolean get() = pausadaEm > 0
+
+    /**
+     * O cronômetro do turno, já descontando as pausas.
+     *
+     * Pausada, congela no instante da pausa. Encerrada, vale até o fim.
+     */
+    fun segundosRodando(agora: Long): Long {
+        val ate = when {
+            fimEm != null -> fimEm
+            pausadaEm > 0 -> pausadaEm
+            else -> agora
+        }
+        return ((ate - inicioEm) / 1000 - segPausados).coerceAtLeast(0)
+    }
 
     /** Soma dos cinco estados. É o "Tempo total" da tela. */
     val segundosContados: Long

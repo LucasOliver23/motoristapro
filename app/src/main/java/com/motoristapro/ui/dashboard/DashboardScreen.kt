@@ -154,6 +154,7 @@ fun DashboardRoute(
                     agora = agora,
                     gpsRodando = gpsOk,
                     onIniciar = { pedirPermissoes.launch(permissoes) },
+                    onPausar = vm::alternarPausa,
                     onEncerrar = vm::encerrarJornada,
                     onRetomarGps = vm::retomarGps
                 )
@@ -333,6 +334,7 @@ private fun JornadaCard(
     agora: Long,
     gpsRodando: Boolean,
     onIniciar: () -> Unit,
+    onPausar: () -> Unit,
     onEncerrar: () -> Unit,
     onRetomarGps: () -> Unit
 ) {
@@ -357,7 +359,7 @@ private fun JornadaCard(
         return
     }
 
-    val segundosTurno = ((agora - jornada.inicioEm) / 1000).coerceAtLeast(0)
+    val segundosTurno = jornada.segundosRodando(agora)
     val inicio = Instant.ofEpochMilli(jornada.inicioEm).atZone(ZoneId.systemDefault())
         .format(FORMATO_INICIO)
 
@@ -370,26 +372,46 @@ private fun JornadaCard(
         segundosDeReferencia = referencia,
         segundosEmCorrida = estado.resumo.segundosEmCorrida,
         faturamentoCentavos = estado.resumo.faturamentoCentavos,
-        inicioTexto = "começou $inicio",
-        pausada = false
+        inicioTexto = if (jornada.pausada) "pausada • começou $inicio" else "começou $inicio",
+        pausada = jornada.pausada
     ) {
+        // Os dois botões lado a lado, como no desenho. Encerrar em vermelho
+        // suave: é a ação que não tem volta, e o olho tem que diferenciar dela
+        // na hora de parar dez minutos para almoçar.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(Modifier.weight(1f)) {
-                Text("Km (GPS)", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+            OutlinedButton(
+                onClick = onPausar,
+                modifier = Modifier.weight(1f).height(46.dp),
+                shape = RoundedCornerShape(13.dp)
+            ) {
                 Text(
-                    String.format(Locale("pt", "BR"), "%.1f km", jornada.metrosGps / 1000.0),
-                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold
+                    if (jornada.pausada) "Retomar" else "Pausar",
+                    fontWeight = FontWeight.Bold,
+                    color = if (jornada.pausada) Lima else MaterialTheme.colorScheme.onSurface
                 )
             }
-            Column(Modifier.weight(1f)) {
-                Text("Combustível", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
-                val gasto = estado.config.custoCombustivelKmCentavos
-                    ?.let { Math.round(jornada.metrosGps / 1000.0 * it) }
+            OutlinedButton(
+                onClick = onEncerrar,
+                modifier = Modifier.weight(1f).height(46.dp),
+                shape = RoundedCornerShape(13.dp)
+            ) {
+                Text("Encerrar", fontWeight = FontWeight.Bold, color = VermelhoPrejuizo)
+            }
+        }
+
+        // Km e combustível em uma linha fina, sem roubar o lugar do relógio.
+        val gasto = estado.config.custoCombustivelKmCentavos
+            ?.let { Math.round(jornada.metrosGps / 1000.0 * it) }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                String.format(Locale("pt", "BR"), "%.1f km pelo GPS", jornada.metrosGps / 1000.0),
+                style = MaterialTheme.typography.labelSmall, color = TextoSecundario
+            )
+            Box(Modifier.weight(1f))
+            if (gasto != null) {
                 Text(
-                    gasto?.emReais() ?: "configure o veículo",
-                    style = if (gasto != null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (gasto != null) VermelhoPrejuizo else TextoSecundario
+                    "${gasto.emReais()} de combustível",
+                    style = MaterialTheme.typography.labelSmall, color = TextoSecundario
                 )
             }
         }
@@ -404,9 +426,6 @@ private fun JornadaCard(
                 )
                 TextButton(onClick = onRetomarGps) { Text("Retomar GPS", color = Lima) }
             }
-        }
-        OutlinedButton(onClick = onEncerrar, modifier = Modifier.fillMaxWidth()) {
-            Text("Encerrar jornada", color = VermelhoPrejuizo)
         }
     }
 }

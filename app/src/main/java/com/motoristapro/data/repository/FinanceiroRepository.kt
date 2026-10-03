@@ -248,7 +248,11 @@ class FinanceiroRepository(private val db: AppDatabase) {
 
     suspend fun atualizarMetrosJornada(id: Long, metros: Long) = jornadaDao.atualizarMetros(id, metros)
 
-    suspend fun pausarJornada(id: Long, em: Long) = jornadaDao.pausar(id, em)
+    suspend fun pausarJornada(id: Long, em: Long = System.currentTimeMillis()) =
+        jornadaDao.pausar(id, em)
+
+    suspend fun retomarJornada(id: Long, agora: Long = System.currentTimeMillis()) =
+        jornadaDao.retomar(id, agora)
 
     fun jornadasDoPeriodo(inicio: Long, fim: Long): Flow<List<Jornada>> =
         jornadaDao.observarPorPeriodo(inicio, fim)

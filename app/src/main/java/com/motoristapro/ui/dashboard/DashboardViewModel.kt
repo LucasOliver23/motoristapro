@@ -137,6 +137,16 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
     /** Religa o GPS de um turno que ficou aberto (ex.: o sistema encerrou o serviço). */
     fun retomarGps() = JornadaService.iniciar(app)
 
+    /** Pausar/retomar o turno sem encerrar: o almoço não conta como hora rodada. */
+    fun alternarPausa() {
+        viewModelScope.launch {
+            runCatching {
+                val j = repo.obterJornadaAtiva() ?: return@runCatching
+                if (j.pausada) repo.retomarJornada(j.id) else repo.pausarJornada(j.id)
+            }.onFailure { _mensagens.send("Erro ao pausar: ${it.message}") }
+        }
+    }
+
     fun encerrarJornada() {
         viewModelScope.launch {
             if (JornadaService.rodando.value) {

@@ -43,6 +43,23 @@ interface JornadaDao {
     @Query("UPDATE jornadas SET pausada_em = :em WHERE id = :id")
     suspend fun pausar(id: Long, em: Long)
 
+    /**
+     * Retomar: soma o tempo que ficou parado e zera a marca da pausa.
+     *
+     * Numa UPDATE só, para o cálculo não depender de ler-somar-gravar — se o
+     * Android matasse o app no meio, o turno ficaria com a pausa aberta e o
+     * cronômetro congelado para sempre.
+     */
+    @Query(
+        """
+        UPDATE jornadas
+           SET seg_pausados = seg_pausados + MAX(0, (:agora - pausada_em) / 1000),
+               pausada_em = 0
+         WHERE id = :id AND pausada_em > 0
+        """
+    )
+    suspend fun retomar(id: Long, agora: Long)
+
     /** As jornadas de um período, da mais recente para a mais antiga. */
     @Query(
         "SELECT * FROM jornadas WHERE inicio_em >= :inicio AND inicio_em < :fim ORDER BY inicio_em DESC"
