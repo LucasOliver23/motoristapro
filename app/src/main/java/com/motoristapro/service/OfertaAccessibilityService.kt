@@ -256,10 +256,38 @@ class OfertaAccessibilityService : AccessibilityService() {
             leituras.any { it.pacote == OfertaInDrive.PACOTE } &&
             OfertaInDrive.ehTelaDeDetalhe(leituras.flatMap { it.textos })
 
+        // Janela de app-alvo SEM UMA LINHA DE TEXTO é a assinatura de tela que a
+        // acessibilidade não enxerga (a 99 desenha o card por cima do mapa). Aí
+        // a leitura por imagem não é preferência, é o único caminho: se estiver
+        // desligada, liga sozinha — senão o leitor fica aberto sem ler nada, que
+        // é pior do que gastar um pouco mais de bateria.
+        val telaMuda = leituras.isNotEmpty() && leituras.all { it.textos.isEmpty() }
+        if (telaMuda && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val prefs = (application as MotoristaApp).preferencias
+            if (!prefs.ocrAtivo) {
+                prefs.ocrAtivo = true
+                Log.i(TAG, "Leitura por imagem ligada sozinha: app-alvo sem texto nenhum")
+            }
+        }
+
         if (resultado == null && ocrDisponivel() &&
-            (inDriveIncompleto || (semValorEmTexto && (quaseSemTexto || pacoteOcr)))
+            (inDriveIncompleto || telaMuda || (semValorEmTexto && (quaseSemTexto || pacoteOcr)))
         ) {
             solicitarOcr(leituras.first().pacote)
+            return
+        }
+
+        // Chegou aqui com a tela muda e sem OCR: diz POR QUE, em vez de mostrar
+        // um diagnóstico vazio que não explica nada.
+        if (telaMuda && !ocrDisponivel()) {
+            registrarDiagnostico(
+                emptyList(), leituras.map { it.pacote }, leituras.size, null,
+                origem = "texto",
+                motivo = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R)
+                    "este app não mostra o texto da oferta e o Android deste aparelho é " +
+                        "anterior ao 11, que é onde a leitura por imagem funciona"
+                else "este app não mostra o texto da oferta e a leitura por imagem está desligada"
+            )
             return
         }
 
@@ -368,7 +396,20 @@ class OfertaAccessibilityService : AccessibilityService() {
         }
         ultimoOcrEm = System.currentTimeMillis()
         ocr.ler { linhas ->
-            if (linhas == null) return@ler      // falha na captura: tenta no próximo evento
+            if (linhas == null) {
+                // A captura falhou — quase sempre porque o Android recusa dois
+                // prints muito seguidos. Antes isto era silencioso: o leitor
+                // parecia "não ler nada" e o diagnóstico mostrava a leitura por
+                // texto anterior, que não tinha nada a ver com o problema.
+                registrarDiagnostico(
+                    emptyList(), listOf(pacote), 1, null,
+                    origem = "imagem (OCR)",
+                    motivo = "a captura da tela falhou — tentando de novo em seguida"
+                )
+                handler.removeCallbacks(varrerRunnable)
+                handler.postDelayed(varrerRunnable, INTERVALO_OCR_MS)
+                return@ler
+            }
             val achado = escolher(linhas, pacote)
             val motivo = if (achado == null && pacote == OfertaInDrive.PACOTE) {
                 OfertaInDrive.porQueNaoLeu(linhas, listaInDriveValida())
@@ -649,7 +690,15 @@ class OfertaAccessibilityService : AccessibilityService() {
         private const val MAX_PROFUNDIDADE = 80
         private const val MAX_TEXTOS = 1500
         private const val JANELA_DUPLICADA_MS = 5 * 60 * 1000L
-        private const val INTERVALO_OCR_MS = 800L
+        /**
+         * Intervalo mínimo entre duas capturas de tela.
+         *
+         * O Android recusa prints a menos de 1 segundo um do outro
+         * (ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT). Com os 800 ms de antes, a
+         * segunda captura de cada rajada de eventos batia nesse limite e falhava
+         * calada — e a 99, que só é lida por imagem, simplesmente não aparecia.
+         */
+        private const val INTERVALO_OCR_MS = 1_200L
         private const val VALIDADE_LISTA_MS = 10 * 60 * 1000L
         private const val MAX_CORRIDAS_LISTA = 40
 

@@ -626,7 +626,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             ocr, vm::definirOcr
                         )
                     }
-                    DiagnosticoCard(diagnostico, leitorOk)
+                    DiagnosticoCard(diagnostico, leitorOk, ocr)
                     CardSecao(titulo = "Permissões") {
                         OutlinedButton(onClick = { context.abrirDetalhesDoApp() }, modifier = Modifier.fillMaxWidth()) {
                             Text("Informações do app (localização, bateria)")
@@ -891,7 +891,7 @@ private val FORMATO_HORA_DIAG = DateTimeFormatter.ofPattern("HH:mm:ss")
  * "Copiar" permite mandar os textos para ajustar o reconhecimento sem precisar de computador.
  */
 @Composable
-private fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean) {
+private fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean, ocrLigado: Boolean) {
     val clipboard = LocalClipboardManager.current
     CardSecao(titulo = "Diagnóstico do leitor") {
         if (!leitorOk) {
@@ -941,6 +941,10 @@ private fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean) {
                     appendLine("MotoristaPro - diagnóstico $hora")
                     appendLine("Apps: ${d.pacotes.joinToString()}  Janelas: ${d.janelas}  Leitura: ${d.origem}")
                     appendLine("Reconhecida: ${d.reconhecida ?: "não"}")
+                    appendLine(
+                        "Leitura por imagem: " + (if (ocrLigado) "ligada" else "DESLIGADA") +
+                            "  Android: ${android.os.Build.VERSION.SDK_INT}  Aparelho: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+                    )
                     d.motivo?.let { appendLine("Por quê: $it") }
                     appendLine("Textos:")
                     d.textos.forEach { appendLine(it) }
