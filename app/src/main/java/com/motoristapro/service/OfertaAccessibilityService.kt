@@ -299,9 +299,18 @@ class OfertaAccessibilityService : AccessibilityService() {
                 oferta.reaisPorKm, oferta.reaisPorHora, classe.rotulo
             )
         )
-        // "Peca R$ X e vira BOA": vale em qualquer app como medida do buraco, e no
-        // inDrive vira acao direta — os botoes de contraproposta estao ali embaixo.
-        val sugestao = lim.valorParaFicarBoa(oferta, tarifaMinimaCentavos, custoKmCentavos)
+        // "Peca R$ X e vira BOA" so no inDrive.
+        //
+        // E o unico app em que existe contraproposta: ali o motorista toca em
+        // "Ofereça sua tarifa" e pede o valor. Na 99, na Uber e no iFood o preco
+        // ja vem fechado — a linha so ocupava o cartao com um conselho que nao
+        // da para seguir, e ainda empurrava os numeros que decidem a corrida
+        // para baixo nos 12 segundos que ele tem para responder.
+        val sugestao = if (pacote == OfertaInDrive.PACOTE) {
+            lim.valorParaFicarBoa(oferta, tarifaMinimaCentavos, custoKmCentavos)
+        } else {
+            null
+        }
         ov.mostrar(
             oferta, classe, custoKmCentavos,
             totalNaTela = totalNaTela,

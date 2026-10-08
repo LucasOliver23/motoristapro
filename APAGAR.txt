@@ -1,18 +1,8 @@
-NADA PARA APAGAR NESTA VERSAO (3.4.0)
+NADA PARA APAGAR NESTA VERSAO (3.4.1)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Arquivos NOVOS:
-  app/src/main/java/com/motoristapro/service/AvisoLeitor.kt
-  app/src/main/java/com/motoristapro/service/PainelBolha.kt
-  app/src/main/java/com/motoristapro/ui/NavegacaoRapida.kt
-
-Arquivos alterados (so sobrescrever):
+Arquivo alterado (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/MotoristaApp.kt
-  app/src/main/java/com/motoristapro/service/BolhaFlutuante.kt
   app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
-  app/src/main/java/com/motoristapro/ui/AppRaiz.kt
-  app/src/main/java/com/motoristapro/ui/MainActivity.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
