@@ -173,7 +173,11 @@ class BolhaFlutuante(private val context: Context) {
                             params.x = if (params.x + view.width / 2 < largura / 2) 0 else largura - view.width
                             if (view.isAttachedToWindow) runCatching { wm.updateViewLayout(view, params) }
                         } else {
-                            abrirApp()
+                            // Toque curto abre o MENU, não o app: as ações do
+                            // meio do turno estão todas ali e nenhuma delas vale
+                            // sair da tela da oferta.
+                            val menu = aoTocar
+                            if (menu != null) menu() else abrirApp()
                         }
                         true
                     }
@@ -196,7 +200,10 @@ class BolhaFlutuante(private val context: Context) {
      */
     var aoSegurar: (() -> Unit)? = null
 
-    private fun abrirApp() {
+    /** Toque curto. Quando ninguém assume, a bolha volta a abrir o app direto. */
+    var aoTocar: (() -> Unit)? = null
+
+    fun abrirApp() {
         try {
             context.startActivity(
                 Intent(context, MainActivity::class.java)

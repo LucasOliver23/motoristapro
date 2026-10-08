@@ -12,6 +12,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -51,6 +52,17 @@ enum class Aba(val rotulo: String, val icone: String) {
 fun AppRaiz() {
     var abaIndice by rememberSaveable { mutableIntStateOf(0) }
     val aba = Aba.entries[abaIndice]
+
+    // O menu da bolha pede uma aba ao abrir o app. Zerado depois de atender,
+    // senão o pedido voltaria a valer na próxima recomposição.
+    LaunchedEffect(Unit) {
+        NavegacaoRapida.abaPedida.collect { pedido ->
+            if (pedido != null && pedido in Aba.entries.indices) {
+                abaIndice = pedido
+                NavegacaoRapida.abaPedida.value = null
+            }
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,

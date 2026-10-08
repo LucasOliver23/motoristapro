@@ -10,6 +10,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import com.motoristapro.MotoristaApp
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.repository.nomePlataforma
+import com.motoristapro.ui.NavegacaoRapida
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,6 +43,10 @@ class OfertaAccessibilityService : AccessibilityService() {
     private var overlay: OverlayOferta? = null
     private var limites: LimitesOferta? = null
     private var bolha: BolhaFlutuante? = null
+    private var painel: PainelBolha? = null
+
+    /** Início da jornada de hoje (null = turno parado), para o menu da bolha. */
+    @Volatile private var jornadaComecouEm: Long? = null
 
     /** Id no histórico da oferta exibida (para marcar como registrada). */
     private var ultimaOfertaId: Long? = null
@@ -84,8 +89,22 @@ class OfertaAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        // TUDO aqui dentro protegido: uma exceção na partida (sem permissão de
+        // sobreposição, voz indisponível, banco ocupado) derrubava o serviço, e
+        // o Android desliga sozinho o serviço de acessibilidade que quebra —
+        // é por isso que o leitor "desativava sozinho" sem o motorista mexer.
+        try {
+            conectar()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Falha ao conectar o leitor", e)
+            _conectado.value = true
+        }
+    }
+
+    private fun conectar() {
         instancia = this
         _conectado.value = true
+        AvisoLeitor.marcarLigado(this)
 
         limites = LimitesOferta(this)
         risco = EnderecosDeRisco(this)
@@ -100,10 +119,26 @@ class OfertaAccessibilityService : AccessibilityService() {
                 escopo.launch { AcoesOferta.abrirLocal(this@OfertaAccessibilityService, endereco) }
             }
         }
+        painel = PainelBolha(this).apply {
+            leitorLendo = { _conectado.value }
+            jornadaRodando = { jornadaComecouEm != null }
+            vozLigada = { voz?.ativo == true }
+            aoLerAgora = { lerAgora() }
+            aoAlternarVoz = {
+                voz?.let { it.ativo = !it.ativo }
+                aplicarPreferencias()
+            }
+            aoAbrirAba = { aba ->
+                NavegacaoRapida.pedir(aba)
+                bolha?.abrirApp()
+            }
+        }
         bolha = BolhaFlutuante(this).apply {
             // Plano B do leitor: segurar o dedo na bolha manda ler a tela agora,
             // com imagem inclusive. Serve quando a oferta nao chega sozinha.
             aoSegurar = { lerAgora() }
+            // Toque curto abre o menu com as ações do turno.
+            aoTocar = { painel?.alternar() }
         }
         aplicarPreferencias()
 
@@ -111,7 +146,10 @@ class OfertaAccessibilityService : AccessibilityService() {
         escopo.launch {
             try {
                 combine(repo.resumoHoje(), repo.jornadaAtiva()) { r, j -> r.lucroLiquidoCentavos to j?.inicioEm }
-                    .collect { (lucro, inicio) -> bolha?.atualizar(lucro, inicio) }
+                    .collect { (lucro, inicio) ->
+                        jornadaComecouEm = inicio
+                        bolha?.atualizar(lucro, inicio)
+                    }
             } catch (e: Exception) {
                 Log.e(TAG, "Falha ao observar dados da bolha", e)
             }
@@ -132,16 +170,22 @@ class OfertaAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        val pacote = event?.packageName?.toString() ?: return
-        if (pacote !in PACOTES_ALVO) return
+        // Chamado dezenas de vezes por segundo: uma exceção aqui é o caminho
+        // mais curto para o sistema matar o leitor no meio do turno.
+        try {
+            val pacote = event?.packageName?.toString() ?: return
+            if (pacote !in PACOTES_ALVO) return
 
-        when (event.eventType) {
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
-            AccessibilityEvent.TYPE_WINDOWS_CHANGED -> {
-                handler.removeCallbacks(varrerRunnable)
-                handler.postDelayed(varrerRunnable, DEBOUNCE_MS)
+            when (event.eventType) {
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
+                AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+                AccessibilityEvent.TYPE_WINDOWS_CHANGED -> {
+                    handler.removeCallbacks(varrerRunnable)
+                    handler.postDelayed(varrerRunnable, DEBOUNCE_MS)
+                }
             }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Erro ao tratar evento de acessibilidade", e)
         }
     }
 
@@ -150,11 +194,17 @@ class OfertaAccessibilityService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        // Avisa na barra de notificações que o leitor caiu. Sem isto o motorista
+        // só descobre horas depois, quando vai ver as corridas do dia e não há
+        // nenhuma — que é exatamente o que vinha acontecendo.
+        runCatching { AvisoLeitor.aoCair(this) }
         handler.removeCallbacksAndMessages(null)
         overlay?.liberar()
         overlay = null
         bolha?.liberar()
         bolha = null
+        painel?.liberar()
+        painel = null
         leitorOcr?.fechar()
         leitorOcr = null
         voz?.liberar()

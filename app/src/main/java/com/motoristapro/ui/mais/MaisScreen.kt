@@ -40,8 +40,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -72,6 +74,7 @@ import java.time.LocalDate
 import com.motoristapro.data.repository.emReais
 import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.ui.abrirConfigAcessibilidade
+import com.motoristapro.ui.abrirInicializacaoAutomatica
 import com.motoristapro.ui.abrirDetalhesDoApp
 import com.motoristapro.ui.centavosEmReais
 import com.motoristapro.ui.componentes.CampoFormulario
@@ -319,6 +322,12 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         aceso = leitorOk,
                         alerta = !leitorOk,
                         onClick = { sub = SubTela.LEITOR }
+                    ),
+                    Ferramenta(
+                        titulo = "Impedir que o leitor desligue",
+                        icone = "🔋",
+                        estado = "inicialização automática do fabricante",
+                        onClick = { context.abrirInicializacaoAutomatica() }
                     ),
                     Ferramenta(
                         titulo = "Aviso por voz",
@@ -964,6 +973,17 @@ private fun PerfilCard(
     val mudou = nome != cfg.nomeMotorista.orEmpty() ||
         telefone != cfg.telefone.orEmpty() ||
         cidade != cfg.cidade.orEmpty()
+
+    // Salva sozinho ao sair da tela. Antes, quem digitava o nome e tocava em
+    // voltar perdia tudo: o botão "Salvar perfil" nasce embaixo dos campos e
+    // nem sempre está à vista quando o teclado está aberto.
+    val pendente by rememberUpdatedState(Triple(nome, telefone, cidade) to mudou)
+    DisposableEffect(Unit) {
+        onDispose {
+            val (dados, precisa) = pendente
+            if (precisa) onSalvar(dados.first, dados.second, dados.third)
+        }
+    }
 
     CardSecao(titulo = "Meu perfil", destaque = true) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

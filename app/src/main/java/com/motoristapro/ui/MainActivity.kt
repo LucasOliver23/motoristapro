@@ -264,6 +264,35 @@ fun Context.abrirConfigAcessibilidade() {
     abrirComFallback(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), Intent(Settings.ACTION_SETTINGS))
 }
 
+/**
+ * A tela de "inicialização automática" do fabricante.
+ *
+ * É a causa número um do leitor desligar sozinho: Xiaomi, Oppo, vivo, Huawei e
+ * outros matam o processo de qualquer app que não esteja nessa lista, e o
+ * Android então marca o serviço de acessibilidade como desligado. Nenhuma
+ * dessas telas é padrão do Android, então o jeito é tentar a de cada marca e,
+ * não achando nenhuma, cair nas informações do app.
+ */
+fun Context.abrirInicializacaoAutomatica() {
+    val telas = listOf(
+        "com.miui.securitycenter" to "com.miui.permcenter.autostart.AutoStartManagementActivity",
+        "com.coloros.safecenter" to "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+        "com.oppo.safe" to "com.oppo.safe.permission.startup.StartupAppListActivity",
+        "com.vivo.permissionmanager" to "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+        "com.huawei.systemmanager" to "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
+        "com.letv.android.letvsafe" to "com.letv.android.letvsafe.AutobootManageActivity",
+        "com.asus.mobilemanager" to "com.asus.mobilemanager.autostart.AutoStartActivity"
+    )
+    for ((pacote, classe) in telas) {
+        val intent = Intent()
+            .setClassName(pacote, classe)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val deu = runCatching { startActivity(intent) }.isSuccess
+        if (deu) return
+    }
+    abrirDetalhesDoApp()
+}
+
 fun Context.abrirDetalhesDoApp() {
     abrirComFallback(
         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")),
