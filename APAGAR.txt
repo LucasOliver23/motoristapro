@@ -1,8 +1,9 @@
-NADA PARA APAGAR NESTA VERSAO (3.6.2)
+NADA PARA APAGAR NESTA VERSAO (3.7.0)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Arquivo alterado (so sobrescrever):
+Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
   app/src/main/java/com/motoristapro/ui/componentes/Faixas.kt
+  app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt

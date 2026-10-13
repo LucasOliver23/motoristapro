@@ -31,9 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +46,8 @@ import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.model.CorridaComPlataforma
 import com.motoristapro.data.repository.emReais
+import com.motoristapro.service.AcoesOferta
+import kotlinx.coroutines.launch
 import com.motoristapro.ui.componentes.ChipsSelecao
 import com.motoristapro.ui.componentes.ConfirmarExclusao
 import com.motoristapro.ui.componentes.CorridaDialog
@@ -98,6 +102,10 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
     val ofertas by vm.ofertasState.collectAsStateWithLifecycle()
     val plataformas by vm.plataformas.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val contexto = LocalContext.current
+    // Abrir o mapa é suspenso (o Geocoder vai à rede); o escopo da tela segura
+    // isso sem travar a lista enquanto o endereço é convertido em coordenada.
+    val escopo = rememberCoroutineScope()
 
     var editando by remember { mutableStateOf<Corrida?>(null) }
     var nova by remember { mutableStateOf(false) }
@@ -190,7 +198,10 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
                         OfertaItem(
                             oferta,
                             custoKmCentavos = ofertas.custoKmCentavos,
-                            onExcluir = { excluirOferta = oferta }
+                            onExcluir = { excluirOferta = oferta },
+                            onVerNoMapa = { endereco ->
+                                escopo.launch { AcoesOferta.abrirLocal(contexto, endereco) }
+                            }
                         )
                     }
                 }
@@ -551,7 +562,12 @@ private fun CabecalhoDoDia(dia: LocalDate, totalCentavos: Long, quantas: Int) {
 }
 
 @Composable
-private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long, onExcluir: () -> Unit) {
+private fun OfertaItem(
+    o: OfertaRecebida,
+    custoKmCentavos: Long,
+    onExcluir: () -> Unit,
+    onVerNoMapa: (String) -> Unit
+) {
     val hora = Instant.ofEpochMilli(o.recebidaEm).atZone(ZoneId.systemDefault()).format(FORMATO_HORA)
     val cor = when (o.classificacao) {
         "BOA" -> Lima
@@ -665,10 +681,16 @@ private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long, onExcluir: () -
             }
 
             // ---- de onde pra onde, quando a tela mostrou
+            // Endereço é para TOCAR: no histórico o motorista quer rever onde
+            // foi a corrida que ele recusou — e decorar rua pelo nome não é
+            // trabalho dele. Um toque abre no mapa (ou no Street View, conforme
+            // o app de navegação escolhido no Menu).
             if (!o.origem.isNullOrBlank()) {
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    LinhaEndereco("●", o.origem!!, Lima)
-                    o.destino?.takeIf { it.isNotBlank() }?.let { LinhaEndereco("▾", it, TextoSecundario) }
+                    LinhaEndereco("●", o.origem!!, Lima) { onVerNoMapa(o.origem!!) }
+                    o.destino?.takeIf { it.isNotBlank() }?.let { destino ->
+                        LinhaEndereco("▾", destino, TextoSecundario) { onVerNoMapa(destino) }
+                    }
                 }
             }
 
@@ -679,15 +701,28 @@ private fun OfertaItem(o: OfertaRecebida, custoKmCentavos: Long, onExcluir: () -
     }
 }
 @Composable
-private fun LinhaEndereco(marca: String, texto: String, cor: Color) {
-    Row(verticalAlignment = Alignment.Top) {
+private fun LinhaEndereco(marca: String, texto: String, cor: Color, onVerNoMapa: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+            .clickable { onVerNoMapa() }
+            .padding(vertical = 3.dp),
+        verticalAlignment = Alignment.Top
+    ) {
         Text(marca, color = cor, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(end = 8.dp))
         Text(
             texto,
             style = MaterialTheme.typography.bodySmall,
             color = TextoSecundario,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        // A setinha avisa que a linha abre alguma coisa; sem ela o toque é segredo.
+        Text(
+            "\u2197",
+            style = MaterialTheme.typography.labelSmall,
+            color = Lima,
+            modifier = Modifier.padding(start = 6.dp)
         )
     }
 }

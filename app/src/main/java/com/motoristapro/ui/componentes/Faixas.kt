@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -88,29 +90,18 @@ fun FaixaTresCores(
             val corrida = maxWidth - bolinha
             val corridaPx = with(LocalDensity.current) { corrida.toPx() }.coerceAtLeast(1f)
 
-            // A régua de bolinhas começa e termina no CENTRO dos polegares: assim
-            // a cor embaixo do dedo é a cor daquele valor, e não um pedaço
-            // deslocado meia bolinha para o lado.
+            // Barra cheia, em três pedaços, começando e terminando no CENTRO dos
+            // polegares: assim a cor embaixo do dedo é a cor daquele valor, e
+            // não um pedaço deslocado meia bolinha para o lado.
             Row(
                 Modifier.align(Alignment.Center).fillMaxWidth()
-                    .padding(horizontal = bolinha / 2),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = bolinha / 2)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(99.dp))
             ) {
-                repeat(PONTOS) { i ->
-                    val onde = (i + 0.5f) / PONTOS
-                    Box(
-                        Modifier.size(if (onde < fracaoInicio || onde >= fracaoFim) 8.dp else 7.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when {
-                                    onde < fracaoInicio -> VermelhoPrejuizo
-                                    onde < fracaoFim -> AmareloAlerta
-                                    else -> Lima
-                                }
-                            )
-                    )
-                }
+                Pedaco(fracaoInicio, VermelhoPrejuizo)
+                Pedaco(fracaoFim - fracaoInicio, AmareloAlerta)
+                Pedaco(1f - fracaoFim, Lima)
             }
 
             Polegar(
@@ -155,6 +146,17 @@ fun FaixaTresCores(
     }
 }
 
+/**
+ * Um pedaço colorido da barra.
+ *
+ * Peso mínimo de 0,004 em vez de zero: peso zero some do layout, e aí a faixa
+ * inteira desapareceria quando o polegar encostasse na ponta.
+ */
+@Composable
+private fun RowScope.Pedaco(fracao: Float, cor: Color) {
+    Box(Modifier.weight(fracao.coerceAtLeast(0.004f)).fillMaxHeight().background(cor))
+}
+
 /** Encaixa o valor no degrau mais perto (degrau 0 = livre). */
 private fun arredondar(v: Float, degrau: Float): Float =
     if (degrau <= 0f) v else Math.round(v / degrau) * degrau
@@ -189,9 +191,6 @@ private fun Polegar(cor: Color, tamanho: androidx.compose.ui.unit.Dp, modifier: 
         Box(Modifier.size(tamanho / 2.6f).clip(CircleShape).background(cor))
     }
 }
-
-/** Quantas bolinhas formam a régua. Ímpar não ajuda em nada; 21 cabe no celular. */
-private const val PONTOS = 21
 
 /** Uma linha da tabela "Suas faixas". */
 data class LinhaFaixa(
