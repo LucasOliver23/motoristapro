@@ -98,8 +98,17 @@ data class ConfigCartao(
      * sem custo cadastrado) some da lista em vez de aparecer vazio.
      */
     fun valores(o: Oferta, custoKmCentavos: Long): List<String> =
+        camposComValor(o, custoKmCentavos).map { it.second }
+
+    /**
+     * O mesmo que [valores], mas dizendo de qual campo veio cada texto.
+     *
+     * Serve para pintar cada número na cor da sua própria faixa: sem saber o
+     * campo, o cartão só consegue pintar tudo de uma cor só.
+     */
+    fun camposComValor(o: Oferta, custoKmCentavos: Long): List<Pair<CampoCartao, String>> =
         campos.mapNotNull { campo ->
-            when (campo) {
+            val texto = when (campo) {
                 CampoCartao.REAIS_KM -> moeda(o.reaisPorKm) + "/km"
                 CampoCartao.REAIS_HORA -> if (o.minutos > 0) moeda(o.reaisPorHora) + "/h" else null
                 CampoCartao.LUCRO ->
@@ -113,6 +122,7 @@ data class ConfigCartao(
                 CampoCartao.REAIS_MIN -> if (o.minutos > 0) moeda(o.reaisPorMinuto) + "/min" else null
                 CampoCartao.PARADAS -> if (o.paradas > 1) "${o.paradas} paradas" else null
             }
+            texto?.let { campo to it }
         }
 
     private fun moeda(v: Double): String =

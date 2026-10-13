@@ -16,7 +16,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 object NavegacaoRapida {
     val abaPedida = MutableStateFlow<Int?>(null)
 
+    /**
+     * Sub-tela do Menu a abrir assim que a aba Menu aparecer.
+     *
+     * Guardado como texto (o nome do enum) de propósito: assim este objeto não
+     * precisa conhecer a tela do Menu, e os atalhos do Início podem apontar para
+     * lá sem que uma tela passe a depender da outra.
+     */
+    val subTelaPedida = MutableStateFlow<String?>(null)
+
     fun pedir(indice: Int) {
         abaPedida.value = indice
+    }
+
+    /** "Abra o Menu já dentro desta tela" — usado pelos atalhos do Início. */
+    fun pedirSubTela(nome: String, abaDoMenu: Int) {
+        subTelaPedida.value = nome
+        abaPedida.value = abaDoMenu
     }
 }

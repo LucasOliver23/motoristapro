@@ -7,6 +7,9 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
@@ -41,6 +44,12 @@ class OverlayOferta(private val context: Context) {
 
     /** O que o motorista escolheu em Mais > Estilo do cartao (relido a cada oferta). */
     private val estilo = EstiloCartao(context)
+
+    /**
+     * As faixas do motorista, para pintar cada número na sua própria cor.
+     * Entregue pelo serviço; null = cartão de uma cor só, como antes.
+     */
+    var limites: LimitesOferta? = null
     private val handler = Handler(Looper.getMainLooper())
     private val esconderRunnable = Runnable { esconder() }
     private val ptBr = Locale("pt", "BR")
@@ -110,10 +119,10 @@ class OverlayOferta(private val context: Context) {
 
         // Os tres primeiros campos escolhidos vão na linha grande (o que decide a
         // corrida de relance); o resto desce para o rodapé, na mesma ordem.
-        val escolhidos = cfg.valores(o, custoKmCentavos)
-        tvPrincipal.text = escolhidos.take(3).joinToString("   ")
+        val escolhidos = cfg.camposComValor(o, custoKmCentavos)
+        tvPrincipal.text = linhaPrincipal(escolhidos.take(3), o, cfg, custoKmCentavos)
 
-        val partes = escolhidos.drop(3).toMutableList()
+        val partes = escolhidos.drop(3).map { it.second }.toMutableList()
         if (o.paradas > 1 && cfg.campos.none { it == CampoCartao.PARADAS }) {
             partes += "⏸ ${o.paradas} paradas • ${moeda(o.valor / o.paradas)} cada"
         }
@@ -163,6 +172,41 @@ class OverlayOferta(private val context: Context) {
      * Feito a cada oferta (e não na criação da view) porque o motorista pode ter
      * mudado o estilo entre uma corrida e outra, sem reiniciar o serviço.
      */
+    /**
+     * A linha grande, com cada número na cor da SUA faixa.
+     *
+     * A cor do cartão continua sendo a da pior métrica — é ela que manda aceitar
+     * ou recusar. Mas dentro dela, ver que o R$/km está verde e o R$/hora
+     * vermelho diz na hora o que está errado: a corrida paga bem o quilômetro e
+     * mal o tempo, que é outra decisão (pegar quando o trânsito abrir).
+     *
+     * Só no tema escuro/claro: no colorido o fundo já é o semáforo, e texto
+     * verde sobre fundo verde não se lê.
+     */
+    private fun linhaPrincipal(
+        campos: List<Pair<CampoCartao, String>>,
+        o: Oferta,
+        cfg: ConfigCartao,
+        custoKmCentavos: Long
+    ): CharSequence {
+        val juntos = campos.joinToString("   ") { it.second }
+        val lim = limites ?: return juntos
+        if (cfg.tema == TemaCartao.COLORIDO) return juntos
+
+        val texto = SpannableStringBuilder()
+        campos.forEachIndexed { i, (campo, valor) ->
+            if (i > 0) texto.append("   ")
+            val inicio = texto.length
+            texto.append(valor)
+            val faixa = lim.faixaDoCampo(campo, o, custoKmCentavos) ?: return@forEachIndexed
+            texto.setSpan(
+                ForegroundColorSpan(faixa.corFundo or 0xFF000000.toInt()),
+                inicio, texto.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        return texto
+    }
+
     private fun aplicarEstilo(v: View, cfg: ConfigCartao, classe: Classificacao) {
         val fundo = when (cfg.tema) {
             TemaCartao.COLORIDO -> classe.corFundo

@@ -248,6 +248,15 @@ private fun QuadroDoPeriodo(e: RelatoriosUiState) {
 
         Spacer(Modifier.height(6.dp))
         LinhaValor("R$ por km", if (r.metrosRodados > 0) r.ganhoPorKmCentavos.emReais() + "/km" else "—")
+        // Ganho por km menos custo por km: o número que sobra de verdade a cada
+        // quilômetro. É o que separa rodar muito de ganhar muito.
+        if (r.metrosRodados > 0 && e.custoRealKmCentavos > 0) {
+            val lucroKm = r.ganhoPorKmCentavos - e.custoRealKmCentavos
+            LinhaValor(
+                "Lucro por km", lucroKm.centavosEmReais() + "/km",
+                negrito = true, cor = if (lucroKm >= 0) Lima else VermelhoPrejuizo
+            )
+        }
         LinhaValor(
             "R$ por hora em corrida",
             if (r.segundosEmCorrida > 0) r.ganhoPorHoraCentavos.emReais() + "/h" else "—"

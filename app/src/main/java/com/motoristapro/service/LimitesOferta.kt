@@ -177,6 +177,36 @@ class LimitesOferta(context: Context) {
         return SugestaoDeTarifa(sugerido, aumento)
     }
 
+    /**
+     * A faixa de UM número do cartão, não a da oferta inteira.
+     *
+     * A classificação geral vale a pior das métricas — é ela que decide a cor do
+     * cartão. Só que isso esconde de qual número veio o problema: uma corrida
+     * boa de R$/km que fica vermelha por causa do tempo parece ruim nos dois.
+     * Pintando cada número na sua própria faixa, o motorista vê onde está o
+     * defeito sem ler nada.
+     *
+     * null = o campo não tem faixa (valor, distância, tempo, paradas): esses são
+     * informação, não julgamento.
+     */
+    fun faixaDoCampo(campo: CampoCartao, o: Oferta, custoKmCentavos: Long): Classificacao? = when (campo) {
+        CampoCartao.REAIS_KM -> faixa(o.reaisPorKm, kmRuimAbaixo, kmBoaAcima)
+        CampoCartao.REAIS_HORA -> if (o.minutos > 0) faixa(o.reaisPorHora, horaRuimAbaixo, horaBoaAcima) else null
+        // Por minuto é a mesma régua da hora, dividida por 60: quem pensa por
+        // minuto não quer cadastrar um segundo conjunto de faixas para dizer o
+        // mesmo que já disse em R$/hora.
+        CampoCartao.REAIS_MIN ->
+            if (o.minutos > 0) faixa(o.reaisPorMinuto, horaRuimAbaixo / 60f, horaBoaAcima / 60f) else null
+        CampoCartao.NOTA -> o.nota?.takeIf { usarNota }?.let { faixa(it, notaRuimAbaixo, notaBoaAcima) }
+        CampoCartao.LUCRO, CampoCartao.LUCRO_PCT -> when {
+            custoKmCentavos <= 0 -> null
+            o.lucroEstimado(custoKmCentavos) <= 0.0 -> Classificacao.RUIM
+            minLucroReais > 0f && o.lucroEstimado(custoKmCentavos) < minLucroReais -> Classificacao.RUIM
+            else -> Classificacao.BOA
+        }
+        CampoCartao.VALOR, CampoCartao.DISTANCIA, CampoCartao.TEMPO, CampoCartao.PARADAS -> null
+    }
+
     private fun faixa(valor: Double, ruimAbaixo: Float, boaAcima: Float): Classificacao = when {
         valor < ruimAbaixo -> Classificacao.RUIM
         valor >= boaAcima -> Classificacao.BOA
@@ -203,8 +233,15 @@ class LimitesOferta(context: Context) {
 /** Quanto pedir para a corrida virar BOA, e quanto isso é a mais que o ofertado. */
 data class SugestaoDeTarifa(val valorSugerido: Double, val aumento: Double)
 
+/**
+ * O veredito da oferta, em palavra de ação.
+ *
+ * "BOA" e "RUIM" descreviam a corrida; "ACEITAR" e "RECUSAR" dizem o que fazer,
+ * que é o que o motorista precisa nos segundos que ele tem. A voz já falava
+ * assim desde o começo — agora o cartão fala igual.
+ */
 enum class Classificacao(val corFundo: Int, val rotulo: String) {
-    BOA(0xE62E7D32.toInt(), "BOA"),
+    BOA(0xE62E7D32.toInt(), "ACEITAR"),
     MEDIA(0xE6F6B93B.toInt(), "ATENÇÃO"),
-    RUIM(0xE6C62828.toInt(), "RUIM")
+    RUIM(0xE6C62828.toInt(), "RECUSAR")
 }

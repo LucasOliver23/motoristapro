@@ -70,8 +70,23 @@ import androidx.compose.ui.unit.sp
 import com.motoristapro.ui.componentes.BotaoProEscuro
 import com.motoristapro.ui.componentes.BotaoPro
 import com.motoristapro.ui.componentes.CardPro
+import com.motoristapro.ui.NavegacaoRapida
+import com.motoristapro.ui.mais.AtalhoRedondo
+import com.motoristapro.ui.mais.SubTela
 
 private val FORMATO_DIA = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
+
+/**
+ * Leva para a tela de ajuste dentro do Menu, em um toque.
+ *
+ * Troca a aba e já pede a sub-tela: sem isso o motorista cairia na lista do
+ * Menu e teria que achar o item — que é exatamente o que o atalho existe para
+ * evitar.
+ */
+private fun irParaAjuste(tela: SubTela, irPara: (Aba) -> Unit) {
+    NavegacaoRapida.pedirSubTela(tela.name, Aba.MAIS.ordinal)
+    irPara(Aba.MAIS)
+}
 
 /** Aba Início: turno, lucro do dia, eficiência e atalhos de registro. */
 @Composable
@@ -144,6 +159,26 @@ fun DashboardRoute(
                     BotaoPro("+ Corrida", Modifier.weight(1f)) { dialogCorrida = true }
                     BotaoProEscuro("+ Despesa", Modifier.weight(1f), corDoTexto = Lima) {
                         dialogDespesa = CategoriaDespesa.COMBUSTIVEL
+                    }
+                }
+
+                // Os três ajustes que decidem tudo o que o app calcula, na tela
+                // de abrir — e não a dois ou três toques dentro do Menu. São os
+                // únicos que o motorista mexe de verdade depois de configurar.
+                CardPro {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        AtalhoRedondo("🚦", "Semáforo\nde valores", Modifier.weight(1f)) {
+                            irParaAjuste(SubTela.SEMAFORO, irPara)
+                        }
+                        AtalhoRedondo("🚘", "Meu veículo\ne custos", Modifier.weight(1f)) {
+                            irParaAjuste(SubTela.VEICULO, irPara)
+                        }
+                        AtalhoRedondo(
+                            "🩺", "Checkup\ndo app", Modifier.weight(1f),
+                            cor = if (leitorOk) null else VermelhoPrejuizo
+                        ) {
+                            irParaAjuste(SubTela.CHECKUP, irPara)
+                        }
                     }
                 }
 

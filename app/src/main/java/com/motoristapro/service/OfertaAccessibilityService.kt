@@ -113,6 +113,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         val repo = app.repository
 
         overlay = OverlayOferta(this).apply {
+            limites = this@OfertaAccessibilityService.limites
             aoDispensar = { assinaturaDispensada = ultimaAssinatura }
             aoRegistrar = { oferta -> registrarOferta(oferta) }
             aoVerLocal = { endereco ->

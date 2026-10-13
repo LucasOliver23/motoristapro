@@ -75,6 +75,7 @@ import com.motoristapro.data.repository.emReais
 import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.ui.abrirConfigAcessibilidade
 import com.motoristapro.ui.abrirInicializacaoAutomatica
+import com.motoristapro.ui.NavegacaoRapida
 import com.motoristapro.ui.abrirDetalhesDoApp
 import com.motoristapro.ui.centavosEmReais
 import com.motoristapro.ui.componentes.CampoFormulario
@@ -186,6 +187,16 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val estiloCartao = remember { EstiloCartao(context) }
     var estilo by remember { mutableStateOf(estiloCartao.ler()) }
     var navegacao by remember { mutableStateOf(AppNavegacao.lida(context)) }
+    // Atalho do Início: "abra o Menu já dentro desta tela".
+    LaunchedEffect(Unit) {
+        NavegacaoRapida.subTelaPedida.collect { nome ->
+            if (nome != null) {
+                sub = runCatching { SubTela.valueOf(nome) }.getOrNull()
+                NavegacaoRapida.subTelaPedida.value = null
+            }
+        }
+    }
+
     LaunchedEffect(sub) {
         if (sub == null) {
             estilo = estiloCartao.ler()
@@ -280,11 +291,12 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.VEICULO }
                     ),
                     Ferramenta(
-                        titulo = "Suas faixas",
+                        titulo = "Semáforo de valores",
                         icone = "🚦",
-                        estado = "boa acima de ${"%.2f".format(PT, faixas.kmBoa)}/km",
+                        estado = "aceitar acima de ${"%.2f".format(PT, faixas.kmBoa)}/km · " +
+                            "${estilo.campos.size} números no cartão",
                         semaforo = true,
-                        onClick = { sub = SubTela.FAIXAS }
+                        onClick = { sub = SubTela.SEMAFORO }
                     ),
                     Ferramenta(
                         titulo = "Manutenção",
@@ -324,10 +336,13 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.LEITOR }
                     ),
                     Ferramenta(
-                        titulo = "Impedir que o leitor desligue",
-                        icone = "🔋",
-                        estado = "inicialização automática do fabricante",
-                        onClick = { context.abrirInicializacaoAutomatica() }
+                        titulo = "Checkup do app",
+                        icone = "🩺",
+                        estado = if (leitorOk && notificacoesOk && bateriaOk) "tudo funcionando"
+                        else "tem coisa para liberar",
+                        aceso = leitorOk && notificacoesOk && bateriaOk,
+                        alerta = !leitorOk,
+                        onClick = { sub = SubTela.CHECKUP }
                     ),
                     Ferramenta(
                         titulo = "Aviso por voz",
@@ -350,12 +365,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         else "${palavrasRisco.size} palavra(s)",
                         aceso = palavrasRisco.isNotEmpty() && riscoLigado,
                         onClick = { sub = SubTela.RISCO }
-                    ),
-                    Ferramenta(
-                        titulo = "Estilo do cartão",
-                        icone = "🎨",
-                        estado = "${estilo.campos.size} números · ${estilo.tema.rotulo.lowercase(PT)}",
-                        onClick = { sub = SubTela.ESTILO }
                     ),
                     Ferramenta(
                         titulo = "App de navegação",
@@ -568,19 +577,37 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         }
                     }
                     }
-                    SubTela.FAIXAS ->
-                    CardSuasFaixas(
-                        faixas = faixas,
-                        temCusto = cfg.custoKmCentavos > 0,
-                        valorMinimoViagem = cfg.tarifaMinimaCentavos,
-                        onFaixaKm = vm::definirFaixaKm,
-                        onFaixaHora = vm::definirFaixaHora,
-                        onFaixaNota = vm::definirFaixaNota,
-                        onUsarNota = vm::definirUsarNota,
-                        onLucroMinimo = vm::definirLucroMinimo,
-                        onLucroPercent = vm::definirLucroPercent,
-                        onValorMinimo = vm::definirValorMinimoViagem,
-                        onAbrirAssistente = { assistenteAberto = true }
+                    SubTela.SEMAFORO -> {
+                        // As faixas decidem a COR; o estilo decide o que o cartão
+                        // escreve dentro dela. Separados eram dois menus para
+                        // ajustar a mesma coisa.
+                        CardSuasFaixas(
+                            faixas = faixas,
+                            temCusto = cfg.custoKmCentavos > 0,
+                            valorMinimoViagem = cfg.tarifaMinimaCentavos,
+                            onFaixaKm = vm::definirFaixaKm,
+                            onFaixaHora = vm::definirFaixaHora,
+                            onFaixaNota = vm::definirFaixaNota,
+                            onUsarNota = vm::definirUsarNota,
+                            onLucroMinimo = vm::definirLucroMinimo,
+                            onLucroPercent = vm::definirLucroPercent,
+                            onValorMinimo = vm::definirValorMinimoViagem,
+                            onAbrirAssistente = { assistenteAberto = true }
+                        )
+                        EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
+                    }
+                    SubTela.CHECKUP -> CheckupConteudo(
+                        leitorOk = leitorOk,
+                        ocrLigado = ocr,
+                        notificacoesOk = notificacoesOk,
+                        bateriaOk = bateriaOk,
+                        diagnostico = diagnostico,
+                        onAcessibilidade = { context.abrirConfigAcessibilidade() },
+                        onBateria = { context.pedirBateriaLivre() },
+                        onNotificacoes = { context.abrirDetalhesDoApp() },
+                        onInicializacao = { context.abrirInicializacaoAutomatica() },
+                        onOcr = { vm.definirOcr(!ocr) },
+                        onTestar = vm::testarLeitor
                     )
                     SubTela.RISCO ->
                     CardSecaoEnderecosRisco(
@@ -711,7 +738,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             ) { Text("Ofertas") }
                         }
                     }
-                    SubTela.ESTILO -> EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
                     // Tratada antes, fora desta moldura (ela rola por conta propria).
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
@@ -891,7 +917,7 @@ private val FORMATO_HORA_DIAG = DateTimeFormatter.ofPattern("HH:mm:ss")
  * "Copiar" permite mandar os textos para ajustar o reconhecimento sem precisar de computador.
  */
 @Composable
-private fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean, ocrLigado: Boolean) {
+internal fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean, ocrLigado: Boolean) {
     val clipboard = LocalClipboardManager.current
     CardSecao(titulo = "Diagnóstico do leitor") {
         if (!leitorOk) {
@@ -1316,13 +1342,15 @@ private fun CampoMinimo(
 enum class SubTela(val titulo: String) {
     PERFIL("Meu perfil"),
     VEICULO("Meu veículo e custos"),
-    FAIXAS("Suas faixas"),
+    // Faixas e estilo do cartão viraram uma tela só: os dois são o semáforo —
+    // um decide a cor, o outro decide o que o cartão mostra dentro dela.
+    SEMAFORO("Semáforo de valores"),
+    CHECKUP("Checkup do app"),
     RISCO("Endereços de risco"),
     LEITOR("Leitor de ofertas"),
     NUVEM("Conta e nuvem"),
     BACKUP("Backup e exportação"),
     VERSAO("Versão do app"),
-    ESTILO("Estilo do cartão"),
     APARENCIA("Aparência do app"),
     ASSINATURA("Minha assinatura"),
     NAVEGACAO("App de navegação"),
