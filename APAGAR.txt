@@ -1,4 +1,4 @@
-NADA PARA APAGAR NESTA VERSAO (3.4.2)
+NADA PARA APAGAR NESTA VERSAO (3.4.3)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
@@ -6,4 +6,3 @@ Nenhum arquivo removido. Banco continua na versao 13.
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
   app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt

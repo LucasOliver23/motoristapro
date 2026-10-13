@@ -384,10 +384,38 @@ class OfertaAccessibilityService : AccessibilityService() {
     private fun ocrDisponivel(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && (application as MotoristaApp).preferencias.ocrAtivo
 
+    /**
+     * A captura pegou a NOSSA tela, não a do aplicativo de corrida.
+     *
+     * Acontece porque o print é tirado alguns décimos depois do pedido: nesse
+     * intervalo o motorista pode ter saído da Uber/99 e aberto o MotoristaPro —
+     * e aí o OCR lê o nosso próprio menu, o diagnóstico vira lixo e apaga a
+     * última leitura boa, que era justamente a que interessava.
+     */
+    private fun pareceNossaTela(linhas: List<String>): Boolean {
+        val marcas = listOf(
+            "motoristapro", "motorista pro", "diagnóstico do leitor", "diagnostico do leitor",
+            "copiar textos", "leitor de ofertas", "meu veículo e custos", "suas faixas"
+        )
+        val achadas = marcas.count { marca ->
+            linhas.any { it.lowercase().contains(marca) }
+        }
+        return achadas >= 2
+    }
+
     /** Limita o OCR a uma captura por [INTERVALO_OCR_MS]; pedidos no meio do intervalo são reagendados. */
     private fun solicitarOcr(pacote: String) {
         val ocr = leitorOcr ?: LeitorOcr(this).also { leitorOcr = it }
         if (ocr.ocupado) return
+
+        // Só tira print se um app de corrida estiver MESMO na frente agora. Sem
+        // esta conferência o leitor capturava a tela do próprio MotoristaPro e
+        // gastava o intervalo de captura à toa.
+        val emFrente = runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
+        if (emFrente != null && emFrente !in PACOTES_ALVO) return
+        // Quem manda é quem está na frente AGORA: o pacote que veio do pedido
+        // pode ser de uma leitura de alguns décimos atrás, de outro aplicativo.
+        val alvo = emFrente?.takeIf { it in PACOTES_ALVO } ?: pacote
         val espera = INTERVALO_OCR_MS - (System.currentTimeMillis() - ultimoOcrEm)
         if (espera > 0) {
             handler.removeCallbacks(varrerRunnable)
@@ -402,7 +430,7 @@ class OfertaAccessibilityService : AccessibilityService() {
                 // parecia "não ler nada" e o diagnóstico mostrava a leitura por
                 // texto anterior, que não tinha nada a ver com o problema.
                 registrarDiagnostico(
-                    emptyList(), listOf(pacote), 1, null,
+                    emptyList(), listOf(alvo), 1, null,
                     origem = "imagem (OCR)",
                     motivo = "a captura da tela falhou — tentando de novo em seguida"
                 )
@@ -410,13 +438,19 @@ class OfertaAccessibilityService : AccessibilityService() {
                 handler.postDelayed(varrerRunnable, INTERVALO_OCR_MS)
                 return@ler
             }
-            val achado = escolher(linhas, pacote)
-            val motivo = if (achado == null && pacote == OfertaInDrive.PACOTE) {
+            // Capturou a nossa própria tela: não é leitura, é ruído. Sai sem
+            // tocar no diagnóstico, para a última leitura de verdade continuar lá.
+            if (pareceNossaTela(linhas)) {
+                Log.d(TAG, "Captura descartada: era a tela do próprio MotoristaPro")
+                return@ler
+            }
+            val achado = escolher(linhas, alvo)
+            val motivo = if (achado == null && alvo == OfertaInDrive.PACOTE) {
                 OfertaInDrive.porQueNaoLeu(linhas, listaInDriveValida())
             } else null
-            registrarDiagnostico(linhas, listOf(pacote), 1, achado?.oferta, origem = "imagem (OCR)", motivo = motivo)
-            if (achado != null) pacotesQuePrecisamOcr += pacote
-            processarResultado(achado?.oferta, pacote, achado?.total ?: 1)
+            registrarDiagnostico(linhas, listOf(alvo), 1, achado?.oferta, origem = "imagem (OCR)", motivo = motivo)
+            if (achado != null) pacotesQuePrecisamOcr += alvo
+            processarResultado(achado?.oferta, alvo, achado?.total ?: 1)
         }
     }
 
