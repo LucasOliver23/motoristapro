@@ -140,17 +140,20 @@ class OfertaInDriveTest {
     }
 
     @Test
-    fun soABusca_naoValePorCartao() {
+    fun soABusca_resolvidaPelaTaxaDoCartao() {
         // Caso real: o mapa e o cartão são janelas diferentes e só a do cartão
-        // foi lida. Com 4,4 km o app anunciou R$ 2,50/km numa corrida de
-        // R$ 1,06/km — corrida ruim com cara de ótima. Melhor não mostrar nada.
+        // foi lida. Somar só os 4,4 km da busca anunciava R$ 2,50/km numa corrida
+        // de R$ 1,06/km — corrida ruim com cara de ótima. A saída não era calar:
+        // o próprio cartão diz "R$ 1,1/km", e R$ 11 a essa taxa dá 10 km.
         val soOCartao = listOf(
             "R$ 1,1/km", "~4,4 km", "R$ 11", "Preço justo", "Bianca", "4.93", "(17)", "8 min.",
             "Rua Catauai Q 30 89 (Parque Amazonia)",
             "Aceitar por R$ 11", "Ofereça sua tarifa", "R$ 13", "R$ 14", "Fechar"
         )
         assertTrue(OfertaInDrive.ehTelaDeDetalhe(soOCartao))
-        assertNull(OfertaInDrive.extrair(soOCartao))
+        val oferta = OfertaInDrive.extrair(soOCartao)!!
+        perto(10.0, oferta.km, "km deduzido da taxa")
+        perto(1.1, oferta.reaisPorKm, "R$/km — o mesmo que o inDrive exibe")
     }
 
     @Test
@@ -229,8 +232,13 @@ class OfertaInDriveTest {
     )
 
     @Test
-    fun semALista_oDetalheIncompletoNaoMostraNada() {
-        assertNull(OfertaInDrive.extrair(detalhe23SemViagem))
+    fun semALista_aTaxaDoCartaoResolve() {
+        // Sem a lista, o "R$ 0,8/km" do cartão fecha a conta: 23 / 0,8 = 28,75 km,
+        // contra os 28,4 km reais que a lista mostra. 1% de diferença, e o R$/km
+        // sai idêntico ao que o inDrive exibe.
+        val oferta = OfertaInDrive.extrair(detalhe23SemViagem)!!
+        perto(28.75, oferta.km, "km deduzido da taxa")
+        perto(0.8, oferta.reaisPorKm, "R$/km")
     }
 
     @Test
@@ -288,10 +296,12 @@ class OfertaInDriveTest {
 
     @Test
     fun treeDistancias_naoSomamTodas() {
-        // Sem a lista, 1,5 + 1,6 + 2,7 daria 5,8 km (R$ 1,03/km) numa corrida de
-        // 4,4 km (R$ 1,36/km). Como não há como saber qual dos dois é a busca
-        // repetida, a tela não vale sozinha.
-        assertNull(OfertaInDrive.extrair(detalhe6Arredondado))
+        // Somar 1,5 + 1,6 + 2,7 daria 5,8 km (R$ 1,03/km) numa corrida de 4,4 km
+        // (R$ 1,36/km): as distâncias da tela continuam descartadas por ambíguas.
+        // Quem fecha a conta é a taxa do cartão — 6 / 1,3 = 4,6 km.
+        val oferta = OfertaInDrive.extrair(detalhe6Arredondado)!!
+        perto(4.6, oferta.km, "km deduzido da taxa, não da soma das etiquetas")
+        perto(1.3, oferta.reaisPorKm, "R$/km")
     }
 
     @Test

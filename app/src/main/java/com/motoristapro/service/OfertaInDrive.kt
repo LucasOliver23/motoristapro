@@ -52,6 +52,9 @@ object OfertaInDrive {
     /** "R$ 2,4/km", "R$ 1/km" — informação, nunca o valor da corrida. */
     private val RE_POR_KM = Regex("""R\$\s*\d+(?:[.,]\d+)?\s*/\s*km""", RegexOption.IGNORE_CASE)
 
+    /** O mesmo "R$ 0,8/km", mas guardando o número: é a taxa que o inDrive calculou. */
+    private val RE_TAXA_KM = Regex("""R\$\s*(\d+(?:[.,]\d+)?)\s*/\s*km""", RegexOption.IGNORE_CASE)
+
     /** "R$23", "R$ 19" — o valor de um card da lista. */
     private val RE_VALOR = Regex("""R\$\s*(\d{1,3}(?:\.\d{3})*(?:[.,]\d{1,2})?)""")
 
@@ -160,9 +163,12 @@ object OfertaInDrive {
             val daTela = if (misturada) null else somarDistancias(tudo)
             val daLista = procurarNaLista(valor, tudo, lista)
 
-            // A lista manda. Sem ela, vale o que a tela deu — e sem nenhum dos
-            // dois não se mostra nada, em vez de chutar o km da viagem.
-            val km = daLista ?: daTela ?: return null
+            // A lista manda; depois o mapa; por último a taxa do próprio cartão.
+            // Sem nenhum dos três não se mostra nada, em vez de chutar o km.
+            // Com a lista atrás do detalhe, o primeiro "R$ x/km" da tela pode ser
+            // o de outra corrida — a taxa só vale na tela limpa.
+            val daTaxa = if (misturada) null else kmPelaTaxa(valor, tudo)
+            val km = daLista ?: daTela ?: daTaxa ?: return null
             if (km <= 0.0 || km > KM_MAX || !km.isFinite()) return null
 
             // Os minutos só valem quando a PRÓPRIA tela trouxe a rota inteira.
@@ -231,6 +237,38 @@ object OfertaInDrive {
      * - busca + exatamente UMA outra distância  -> a soma vale;
      * - busca + duas ou mais                    -> null, e a lista decide.
      */
+    /**
+     * O km total deduzido da taxa que o PRÓPRIO inDrive mostra no cartão.
+     *
+     * O cartão traz "R$ 0,8/km" ao lado do "~4,7 km". Esse R$/km não é sobre a
+     * viagem: é o valor dividido pelo total (busca + viagem) — está conferido no
+     * exemplo do topo deste arquivo, 4,8 + 23,6 km em R$ 23 dá os R$ 0,8/km que
+     * o app exibe. Então, virando a conta do avesso, total = valor ÷ taxa.
+     *
+     * É o terceiro recurso, depois da lista e do mapa, porque a taxa aparece
+     * arredondada numa casa: R$ 14 a R$ 0,8/km dá 17,5 km, e o real está entre
+     * 16,5 e 18,7. Ainda assim o número que o motorista olha — o R$/km — sai
+     * exato, porque é o mesmo que o inDrive calculou.
+     *
+     * Só vale se o total for maior que a busca: um resultado menor que o
+     * caminho até o passageiro quer dizer que a taxa lida é outra coisa.
+     */
+    private fun kmPelaTaxa(valor: Double, tudo: String): Double? {
+        val taxa = RE_TAXA_KM.find(tudo)
+            ?.groupValues?.get(1)
+            ?.let { OfertaParser.paraDouble(it) }
+            ?.takeIf { it >= 0.05 }
+            ?: return null
+        val total = valor / taxa
+        if (!total.isFinite() || total <= 0.0 || total > KM_MAX) return null
+
+        val busca = RE_KM.findAll(tudo)
+            .firstOrNull { it.groupValues[1] == "~" }
+            ?.let { OfertaParser.paraDouble(it.groupValues[2]) }
+        if (busca != null && total <= busca) return null
+        return total
+    }
+
     private fun somarDistancias(tudo: String): Double? {
         val achados = RE_KM.findAll(tudo)
             .mapNotNull { m ->
@@ -274,7 +312,8 @@ object OfertaInDrive {
         val misturada = RE_LISTA.containsMatchIn(tudo)
         val daTela = if (misturada) null else somarDistancias(tudo)
         val daLista = procurarNaLista(valor, tudo, lista)
-        if (daTela == null && daLista == null) {
+        val daTaxa = if (misturada) null else kmPelaTaxa(valor, tudo)
+        if (daTela == null && daLista == null && daTaxa == null) {
             if (misturada) {
                 return "a lista ficou aberta atras da oferta, entao os km da tela nao servem" +
                     " — e a corrida de R$ %.2f nao estava na lista guardada (${lista.size} corrida(s))".format(valor)
@@ -284,11 +323,17 @@ object OfertaInDrive {
                 " — distâncias na tela: " + (if (kms.isEmpty()) "nenhuma" else kms.joinToString(", ")) +
                 "; lista guardada: ${lista.size} corrida(s)"
         }
-        val km = daLista ?: daTela!!
+        val km = daLista ?: daTela ?: daTaxa!!
         if (km <= 0.0 || km > KM_MAX || !km.isFinite()) return "km fora do esperado (%.1f km)".format(km)
         val minutos = if (daTela != null) somarMinutosDaRota(textos) else 0
         if (minutos < 0 || minutos > MIN_MAX) return "tempo fora do esperado ($minutos min)"
-        return "a leitura fechou (R$ %.2f • %.1f km) — se não apareceu cartão, foi na hora de mostrar".format(valor, km)
+        val fonte = when {
+            daLista != null -> "pela lista"
+            daTela != null -> "pelas etiquetas do mapa"
+            else -> "pelo R$/km do próprio inDrive"
+        }
+        return "a leitura fechou $fonte (R$ %.2f • %.1f km) — se não apareceu cartão, foi na hora de mostrar"
+            .format(valor, km)
     }
 
     /**
