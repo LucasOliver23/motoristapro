@@ -155,6 +155,21 @@ fun FaixaTresCores(
     }
 }
 
+/** Encaixa o valor no degrau mais perto (degrau 0 = livre). */
+private fun arredondar(v: Float, degrau: Float): Float =
+    if (degrau <= 0f) v else Math.round(v / degrau) * degrau
+
+/** A etiqueta do valor, no alto da régua: é ela que mostra o número. */
+@Composable
+private fun Etiqueta(texto: String, cor: Color) {
+    Box(
+        Modifier.padding(start = 6.dp).clip(RoundedCornerShape(8.dp))
+            .background(cor.copy(alpha = 0.16f)).padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(texto, style = MaterialTheme.typography.bodySmall, color = cor, fontWeight = FontWeight.Bold)
+    }
+}
+
 /**
  * O polegar: uma bolinha com anel na cor da sua ponta.
  *
