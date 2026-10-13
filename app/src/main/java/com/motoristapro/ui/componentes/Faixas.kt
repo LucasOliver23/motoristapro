@@ -8,14 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,7 +23,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -86,30 +83,39 @@ fun FaixaTresCores(
             }
         }
 
-        BoxWithConstraints(Modifier.fillMaxWidth().height(46.dp)) {
-            val larguraPastilha = 74.dp
-            val corrida = maxWidth - larguraPastilha
+        BoxWithConstraints(Modifier.fillMaxWidth().height(44.dp)) {
+            val bolinha = 30.dp
+            val corrida = maxWidth - bolinha
             val corridaPx = with(LocalDensity.current) { corrida.toPx() }.coerceAtLeast(1f)
 
-            // A trilha começa e termina no CENTRO das pastilhas — é o que faz a
-            // cor embaixo do polegar ser a cor daquele valor, e não um pedaço
-            // deslocado meia pastilha para o lado.
+            // A régua de bolinhas começa e termina no CENTRO dos polegares: assim
+            // a cor embaixo do dedo é a cor daquele valor, e não um pedaço
+            // deslocado meia bolinha para o lado.
             Row(
                 Modifier.align(Alignment.Center).fillMaxWidth()
-                    .padding(horizontal = larguraPastilha / 2)
-                    .height(18.dp)
-                    .clip(RoundedCornerShape(99.dp))
-                    .border(1.dp, Contorno, RoundedCornerShape(99.dp))
+                    .padding(horizontal = bolinha / 2),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Pedaco(fracaoInicio, VermelhoPrejuizo)
-                Pedaco(fracaoFim - fracaoInicio, AmareloAlerta)
-                Pedaco(1f - fracaoFim, Lima)
+                repeat(PONTOS) { i ->
+                    val onde = (i + 0.5f) / PONTOS
+                    Box(
+                        Modifier.size(if (onde < fracaoInicio || onde >= fracaoFim) 8.dp else 7.dp)
+                            .clip(CircleShape)
+                            .background(
+                                when {
+                                    onde < fracaoInicio -> VermelhoPrejuizo
+                                    onde < fracaoFim -> AmareloAlerta
+                                    else -> Lima
+                                }
+                            )
+                    )
+                }
             }
 
-            Pastilha(
-                texto = formatar(inicio),
+            Polegar(
                 cor = VermelhoPrejuizo,
-                largura = larguraPastilha,
+                tamanho = bolinha,
                 modifier = Modifier.align(Alignment.CenterStart)
                     .offset { IntOffset((fracaoInicio * corridaPx).roundToInt(), 0) }
                     .pointerInput(minimo, maximo, degrau, corridaPx) {
@@ -122,10 +128,9 @@ fun FaixaTresCores(
                     }
             )
 
-            Pastilha(
-                texto = formatar(fim),
+            Polegar(
                 cor = Lima,
-                largura = larguraPastilha,
+                tamanho = bolinha,
                 modifier = Modifier.align(Alignment.CenterStart)
                     .offset { IntOffset((fracaoFim * corridaPx).roundToInt(), 0) }
                     .pointerInput(minimo, maximo, degrau, corridaPx) {
@@ -151,63 +156,27 @@ fun FaixaTresCores(
 }
 
 /**
- * Um pedaço colorido da trilha.
+ * O polegar: uma bolinha com anel na cor da sua ponta.
  *
- * Peso mínimo de 0,004 em vez de zero: peso zero some do layout, e aí a faixa
- * inteira some quando o polegar encosta na ponta.
+ * Era uma pastilha larga com o valor escrito dentro, e isso quebrava justamente
+ * no caso mais comum: com 1,40 e 1,80 numa régua que vai de 0,50 a 6,00, os dois
+ * valores ficam a 8% um do outro, e duas pastilhas de 74dp se sobrepunham —
+ * escondendo exatamente o número que elas existiam para mostrar. A bolinha ocupa
+ * um terço disso, e os valores ficam nas etiquetas do alto, que já estavam lá.
  */
 @Composable
-private fun RowScope.Pedaco(fracao: Float, cor: Color) {
+private fun Polegar(cor: Color, tamanho: androidx.compose.ui.unit.Dp, modifier: Modifier) {
     Box(
-        Modifier.weight(fracao.coerceAtLeast(0.004f))
-            .fillMaxHeight()
-            .background(
-                Brush.verticalGradient(
-                    listOf(cor.copy(alpha = 0.75f), cor.copy(alpha = 0.35f))
-                )
-            )
-    )
-}
-
-/**
- * O polegar: uma pastilha com o próprio valor escrito dentro.
- *
- * Ler o número na bolinha que se está arrastando é melhor do que procurá-lo em
- * outro canto da tela — ainda mais com o polegar cobrindo metade do slider.
- */
-@Composable
-private fun Pastilha(texto: String, cor: Color, largura: androidx.compose.ui.unit.Dp, modifier: Modifier) {
-    Box(
-        modifier.width(largura).height(34.dp)
-            .clip(RoundedCornerShape(11.dp))
-            .background(SuperficieAlta)
-            .border(1.5.dp, cor.copy(alpha = 0.8f), RoundedCornerShape(11.dp)),
+        modifier.size(tamanho).clip(CircleShape).background(SuperficieAlta)
+            .border(2.dp, cor, CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            texto,
-            color = cor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            textAlign = TextAlign.Center
-        )
+        Box(Modifier.size(tamanho / 2.6f).clip(CircleShape).background(cor))
     }
 }
 
-/** Encaixa o valor no degrau mais perto (degrau 0 = livre). */
-private fun arredondar(v: Float, degrau: Float): Float =
-    if (degrau <= 0f) v else Math.round(v / degrau) * degrau
-
-@Composable
-private fun Etiqueta(texto: String, cor: androidx.compose.ui.graphics.Color) {
-    Box(
-        Modifier.padding(start = 6.dp).clip(RoundedCornerShape(8.dp))
-            .background(cor.copy(alpha = 0.16f)).padding(horizontal = 8.dp, vertical = 3.dp)
-    ) {
-        Text(texto, style = MaterialTheme.typography.bodySmall, color = cor, fontWeight = FontWeight.Bold)
-    }
-}
+/** Quantas bolinhas formam a régua. Ímpar não ajuda em nada; 21 cabe no celular. */
+private const val PONTOS = 21
 
 /** Uma linha da tabela "Suas faixas". */
 data class LinhaFaixa(

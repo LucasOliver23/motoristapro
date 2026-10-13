@@ -1,14 +1,8 @@
-NADA PARA APAGAR NESTA VERSAO (3.6.0)
+NADA PARA APAGAR NESTA VERSAO (3.6.1)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Arquivo NOVO:
-  app/src/main/java/com/motoristapro/ui/mais/CheckupScreen.kt
-
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/service/LimitesOferta.kt
-  app/src/main/java/com/motoristapro/ui/NavegacaoRapida.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/componentes/Faixas.kt
