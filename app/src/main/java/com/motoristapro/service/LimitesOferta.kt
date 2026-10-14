@@ -241,7 +241,7 @@ data class SugestaoDeTarifa(val valorSugerido: Double, val aumento: Double)
  * assim desde o começo — agora o cartão fala igual.
  */
 enum class Classificacao(val corFundo: Int, val rotulo: String) {
-    BOA(0xE62E7D32.toInt(), "ACEITAR"),
+    BOA(0xE60288D1.toInt(), "ACEITAR"),   // azul do visual novo (era verde)
     MEDIA(0xE6F6B93B.toInt(), "ATENÇÃO"),
     RUIM(0xE6C62828.toInt(), "RECUSAR")
 }

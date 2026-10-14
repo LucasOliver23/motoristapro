@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -223,6 +225,40 @@ fun AtalhoRedondo(
             contentAlignment = Alignment.Center
         ) {
             Text(icone, fontSize = 20.sp)
+        }
+        Text(
+            rotulo,
+            style = MaterialTheme.typography.labelSmall,
+            color = cor ?: TextoSecundario,
+            textAlign = TextAlign.Center,
+            fontSize = 10.sp
+        )
+    }
+}
+
+/**
+ * O mesmo atalho com ícone de traço fino (visual novo): o ícone ganha a cor do
+ * assunto — amarelo no semáforo, azul no veículo — em vez da cor fixa do emoji.
+ */
+@Composable
+fun AtalhoRedondo(
+    icone: ImageVector,
+    rotulo: String,
+    corIcone: Color,
+    modifier: Modifier = Modifier,
+    cor: Color? = null,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier.clip(RoundedCornerShape(16.dp)).clickable { onClick() }.padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(SuperficieAlta),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icone, contentDescription = null, tint = cor ?: corIcone, modifier = Modifier.size(22.dp))
         }
         Text(
             rotulo,

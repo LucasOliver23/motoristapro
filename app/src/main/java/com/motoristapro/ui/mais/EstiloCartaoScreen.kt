@@ -209,7 +209,7 @@ private fun PreviaCartao(cfg: ConfigCartao, custoKmCentavos: Long) {
         Classificacao.RUIM -> VermelhoPrejuizo
     }
     val fundoCartao = when (cfg.tema) {
-        TemaCartao.COLORIDO -> Color(0xFF2E7D32)
+        TemaCartao.COLORIDO -> Color(0xFF0288D1)
         TemaCartao.ESCURO -> Color(0xFF14181C)
         TemaCartao.CLARO -> Color(0xFFF2F4F7)
     }

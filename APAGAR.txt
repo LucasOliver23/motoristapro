@@ -1,9 +1,27 @@
-NADA PARA APAGAR NESTA VERSAO (3.7.0)
+NADA PARA APAGAR NESTA VERSAO (3.8.0)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
+Visual novo, parte 1: azul claro no lugar do verde neon, fonte Inter,
+icones de traco fino na barra de baixo e "quanto falta" no Inicio.
+
+Arquivos NOVOS (copiar):
+  app/src/main/res/font/  (pasta inteira: 7 arquivos .ttf)
+  app/src/main/java/com/motoristapro/ui/componentes/Icones.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/PrevisaoMeta.kt
+  app/src/test/java/com/motoristapro/ui/dashboard/PrevisaoMetaTest.kt
+  .github/workflows/verificar.yml
+
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/ui/componentes/Faixas.kt
-  app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt
+  app/src/main/java/com/motoristapro/ui/theme/Tema.kt
+  app/src/main/java/com/motoristapro/ui/AppRaiz.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/CheckupScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/EstiloCartaoScreen.kt
+  app/src/main/java/com/motoristapro/service/LimitesOferta.kt
+  app/src/main/java/com/motoristapro/service/PainelBolha.kt
+  app/src/main/java/com/motoristapro/service/BolhaFlutuante.kt
+  app/src/main/res/drawable/ic_launcher_foreground.xml
+  app/src/main/res/drawable/ic_launcher_background.xml
