@@ -1,5 +1,22 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.custo.CalculadoraCusto
+import com.motoristapro.custo.DadosCusto
+import com.motoristapro.custo.FatiasCusto
+import com.motoristapro.custo.TipoVeiculo
+import com.motoristapro.ui.custo.BarraFatias
+import com.motoristapro.ui.custo.CorCombustivel
+import com.motoristapro.ui.custo.CorManutencao
+import com.motoristapro.ui.custo.CorFixos
+import com.motoristapro.ui.custo.QuadroMeta
+import com.motoristapro.ui.custo.centavosPorKm
+import com.motoristapro.ui.componentes.Cartao
+import com.motoristapro.ui.componentes.Rotulo
+import com.motoristapro.ui.theme.TextoPrincipal
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.horizontalScroll
 import com.motoristapro.ui.componentes.CartaoDestaque
 import com.motoristapro.ui.componentes.CorSobreDestaque
 import com.motoristapro.ui.componentes.SeloTexto
@@ -144,6 +161,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val bolha by vm.bolhaAtiva.collectAsStateWithLifecycle()
     val resumo by vm.resumoAtivo.collectAsStateWithLifecycle()
     val custos by vm.custosFixos.collectAsStateWithLifecycle()
+    val dadosCusto by vm.dadosCusto.collectAsStateWithLifecycle()
     val ocupado by vm.ocupado.collectAsStateWithLifecycle()
     val restaurado by vm.restaurado.collectAsStateWithLifecycle()
     val diagnostico by vm.diagnostico.collectAsStateWithLifecycle()
@@ -538,54 +556,15 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     // Tela de LEITURA. Quem preenche e o assistente de custo: os
                     // mesmos numeros digitados em dois lugares viviam divergindo
                     // (meta de R$ 200/dia convivendo com meta mensal de R$ 5.000).
-                    CardCustoReal(
-                        custoKmCentavos = cfg.custoKmCentavos,
-                        onAbrir = { assistenteAberto = true }
+                    CustoPorKmCard(cfg, dadosCusto, onAbrir = { assistenteAberto = true })
+                    VeiculoCard(cfg, dadosCusto, onAbrir = { assistenteAberto = true })
+                    MetasCard(cfg, onEditar = { assistenteAberto = true })
+                    CustosFixosCard(
+                        custos = custos,
+                        diasTrabalhoMes = cfg.diasTrabalhoMes,
+                        onExcluir = { excluirCusto = it },
+                        onAdicionar = { novoCusto = true }
                     )
-                    ResumoVeiculo(cfg)
-                    ResumoMetas(cfg)
-                    CardSecao(titulo = "Custos fixos mensais") {
-                        Text(
-                            "O que você paga todo mês, rode ou não. O app divide pelos dias trabalhados " +
-                                "e desconta do lucro de cada dia, no Início.",
-                            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                        )
-                        custos.forEach { c ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(c.nome)
-                                    if (c.doAssistente) {
-                                        Text(
-                                            "vem do assistente de custo",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = TextoSecundario
-                                        )
-                                    }
-                                }
-                                Text(c.valorMensalCentavos.emReais() + "/mês", fontWeight = FontWeight.SemiBold)
-                                // Excluir so o que foi digitado a mao: apagar um do
-                                // assistente nao adiantaria, ele volta no proximo calculo.
-                                if (c.doAssistente) {
-                                    Spacer(Modifier.width(48.dp))
-                                } else {
-                                    IconButton(onClick = { excluirCusto = c }) {
-                                        Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario)
-                                    }
-                                }
-                            }
-                        }
-                        val total = custos.filter { it.ativo }.sumOf { it.valorMensalCentavos }
-                        if (total > 0) {
-                            LinhaValor("Total por mês", total.emReais(), negrito = true)
-                            LinhaValor(
-                                "Por dia trabalhado (${cfg.diasTrabalhoMes} dias)",
-                                custoFixoDiario(total, cfg.diasTrabalhoMes).emReais(), cor = VermelhoPrejuizo
-                            )
-                        }
-                        OutlinedButton(onClick = { novoCusto = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text("+ Adicionar custo fixo que o assistente não pergunta")
-                        }
-                    }
                     }
                     SubTela.SEMAFORO -> {
                         // As faixas decidem a COR; o estilo decide o que o cartão
@@ -1646,4 +1625,192 @@ private fun iconeDeTraco(selo: String): Pair<ImageVector, Color>? = when (selo) 
     "🌓" -> Icones.Contraste to Roxo
     "⚙" -> Icones.Engrenagem to TextoSecundario
     else -> null
+}
+
+
+// ====================================================== meu veículo e custos (4.1)
+
+/** O custo por km grande, com a barra de onde ele vem (combustível, manutenção, fixos). */
+@Composable
+private fun CustoPorKmCard(cfg: Configuracao, dados: DadosCusto?, onAbrir: () -> Unit) {
+    val fatias = dados?.let { FatiasCusto.de(CalculadoraCusto.calcular(it)) } ?: FatiasCusto.ZERO
+    CartaoDestaque {
+        Rotulo("Seu custo por km")
+        if (cfg.custoKmCentavos > 0) {
+            Text(
+                buildAnnotatedString {
+                    append(cfg.custoKmCentavos.emReais())
+                    withStyle(SpanStyle(fontSize = 20.sp, color = TextoSecundario)) { append(" /km") }
+                },
+                style = EstiloValor, fontSize = 42.sp
+            )
+            Text(
+                "É o que o app desconta de cada corrida para mostrar o lucro.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+            if (fatias.total > 0) {
+                BarraFatias(fatias, Modifier.fillMaxWidth().height(12.dp).padding(top = 4.dp))
+                Row(Modifier.fillMaxWidth()) {
+                    LegendaFatia("Combustível", fatias.combustivel, CorCombustivel, Modifier.weight(1f))
+                    LegendaFatia("Manutenção", fatias.manutencao, CorManutencao, Modifier.weight(1f))
+                    LegendaFatia("Fixos", fatias.fixos, CorFixos, Modifier.weight(1f))
+                }
+            }
+        } else {
+            Text(
+                "Você ainda não calculou seu custo. Sem ele, o app mostra o valor bruto da " +
+                    "corrida — não o que sobra pra você.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        }
+        Button(
+            onClick = onAbrir,
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
+        ) {
+            Text(if (cfg.custoKmCentavos > 0) "Recalcular meu custo" else "Calcular meu custo", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun LegendaFatia(nome: String, porKm: Double, cor: Color, modifier: Modifier) {
+    Column(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(7.dp).clip(CircleShape).background(cor))
+            Text(nome, fontSize = 11.sp, color = TextoSecundario, modifier = Modifier.padding(start = 4.dp))
+        }
+        Text(centavosPorKm(porKm).removePrefix("R$ "), style = EstiloValor, fontSize = 15.sp)
+    }
+}
+
+/** O veículo num cartão só: ícone, nome e etiquetas (moto, gasolina, 35 km/L, quitada). */
+@Composable
+private fun VeiculoCard(cfg: Configuracao, dados: DadosCusto?, onAbrir: () -> Unit) {
+    val nome = cfg.veiculoNome?.takeIf { it.isNotBlank() } ?: dados?.veiculoNome?.takeIf { it.isNotBlank() }
+    val moto = dados?.tipoVeiculo != TipoVeiculo.CARRO
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Superficie)
+            .clickable { onAbrir() }.padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SeloIcone(if (moto) Icones.Moto else Icones.Carro, AzulInfo, tamanho = 46.dp)
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(nome ?: "Veículo não informado", fontWeight = FontWeight.Bold)
+            val etiquetas = buildList {
+                dados?.let { add(it.tipoVeiculo.rotulo) }
+                dados?.let { add(it.combustivel.rotulo) }
+                if (cfg.consumoKmLx100 > 0) {
+                    add(String.format(PT, "%.0f %s", cfg.consumoKmLx100 / 100.0, dados?.combustivel?.unidade ?: "km/L"))
+                }
+                dados?.let { add(if (moto) it.forma.rotulo.replace("do", "da") else it.forma.rotulo) }
+            }
+            if (etiquetas.isEmpty()) {
+                Text("Toque para preencher no assistente", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+            } else {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    etiquetas.forEach { t ->
+                        Text(
+                            t, fontSize = 12.sp, color = TextoSecundario, fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(SuperficieAlta)
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+        Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
+    }
+}
+
+/** Metas em três quadradinhos (dia, semana, mês). Todas saem da mensal, no assistente. */
+@Composable
+private fun MetasCard(cfg: Configuracao, onEditar: () -> Unit) {
+    Cartao(espaco = 10) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Rotulo("Suas metas de lucro", Modifier.weight(1f))
+            Text(
+                "Editar", color = Lima, fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onEditar() }.padding(4.dp)
+            )
+        }
+        if (cfg.metaLucroMensalCentavos <= 0) {
+            Text(
+                "Sem meta cadastrada. O assistente pergunta quanto você quer levar por mês " +
+                    "e divide pelos dias trabalhados.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+            return@Cartao
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QuadroMeta("Por dia", cfg.metaLucroDiarioCentavos, Lima, Modifier.weight(1f))
+            QuadroMeta("Semana", cfg.metaLucroSemanalCentavos, TextoPrincipal, Modifier.weight(1f))
+            QuadroMeta("Mês", cfg.metaLucroMensalCentavos, TextoPrincipal, Modifier.weight(1f))
+        }
+        Text(
+            "${cfg.diasTrabalhoMes} dias por mês · a meta do dia é a barra do Início",
+            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+        )
+    }
+}
+
+/**
+ * Os custos fixos do mês numa lista com ícone. Os que vêm do assistente não têm
+ * lixeira: apagar não adiantaria, eles voltam no próximo cálculo.
+ */
+@Composable
+private fun CustosFixosCard(
+    custos: List<CustoFixo>,
+    diasTrabalhoMes: Int,
+    onExcluir: (CustoFixo) -> Unit,
+    onAdicionar: () -> Unit
+) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Superficie).padding(horizontal = 14.dp)) {
+        Rotulo("Custos fixos do mês", Modifier.padding(top = 14.dp, bottom = 4.dp))
+        custos.forEach { c ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                SeloIcone(if (c.doAssistente) Icones.Escudo else Icones.Alfinete, if (c.doAssistente) Turquesa else Roxo)
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text(c.nome, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (c.doAssistente) "do assistente de custo" else "adicionado por você",
+                        style = MaterialTheme.typography.labelSmall, color = TextoSecundario
+                    )
+                }
+                Text(
+                    buildAnnotatedString {
+                        append(c.valorMensalCentavos.emReais().removePrefix("R$ "))
+                        withStyle(SpanStyle(fontSize = 11.sp, color = TextoSecundario)) { append("/mês") }
+                    },
+                    style = EstiloValor, fontSize = 15.sp
+                )
+                if (!c.doAssistente) {
+                    IconButton(onClick = { onExcluir(c) }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+            HorizontalDivider(thickness = 1.dp, color = Contorno)
+        }
+        Row(
+            Modifier.fillMaxWidth().clickable { onAdicionar() }.padding(vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SeloIcone(Icones.Mais, Roxo)
+            Text(
+                "Adicionar custo fixo", color = Lima, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 12.dp)
+            )
+        }
+        val total = custos.filter { it.ativo }.sumOf { it.valorMensalCentavos }
+        if (total > 0) {
+            Text(
+                "Total ${total.emReais()}/mês · ${custoFixoDiario(total, diasTrabalhoMes).emReais()} por dia trabalhado",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario,
+                modifier = Modifier.padding(bottom = 14.dp)
+            )
+        }
+    }
 }
