@@ -316,3 +316,49 @@ object CalculadoraCusto {
         return lista
     }
 }
+
+/**
+ * O custo por km dividido nas três fatias que o motorista reconhece: o que
+ * vai no tanque, o que vai na oficina e o que se paga rode ou não.
+ * Em centavos por km (Double: as fatias pequenas, como R$ 0,004, somam).
+ */
+data class FatiasCusto(val combustivel: Double, val manutencao: Double, val fixos: Double) {
+    val total: Double get() = combustivel + manutencao + fixos
+
+    companion object {
+        val ZERO = FatiasCusto(0.0, 0.0, 0.0)
+
+        /** Agrupa os itens do resultado: "Combustível", "Manutenção" e o resto (fixos). */
+        fun de(r: ResultadoCusto): FatiasCusto {
+            if (r.kmPorMes <= 0) return ZERO
+            val km = r.kmPorMes.toDouble()
+            var comb = 0.0
+            var manut = 0.0
+            var fixos = 0.0
+            r.itens.forEach { item ->
+                val porKm = item.mensalCentavos / km
+                when (item.nome) {
+                    "Combustível" -> comb += porKm
+                    "Manutenção" -> manut += porKm
+                    else -> fixos += porKm
+                }
+            }
+            return FatiasCusto(comb, manut, fixos)
+        }
+    }
+}
+
+/**
+ * O custo "até aqui", para a faixa do assistente que muda enquanto o motorista
+ * digita. O km por dia só é perguntado no último passo; até lá a conta usa
+ * [KM_DIA_ESTIMADO] — melhor um número aproximado do que um zero parado.
+ */
+object CustoAoVivo {
+    const val KM_DIA_ESTIMADO = 200L
+
+    fun calcular(d: DadosCusto): Pair<ResultadoCusto, Boolean> {
+        val estimado = d.kmPorDia <= 0
+        val base = if (estimado) d.copy(kmPorDia = KM_DIA_ESTIMADO) else d
+        return CalculadoraCusto.calcular(base) to estimado
+    }
+}

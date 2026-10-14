@@ -107,6 +107,22 @@ object Icones {
 
     val Seta = icone("M12 19V5", "M5 12l7-7 7 7")
 
+    // ---- assistente de custo
+
+    val Moto = icone(
+        circulo(5.5f, 17f, 3f), circulo(18.5f, 17f, 3f),
+        "M5.5 17l4-7h5l4 7", "M9.5 10L8 6H5", "M14.5 10l1.5-4h3"
+    )
+
+    val Carro = icone(
+        "M5 17h14", "M6 17l1.5-6h9L18 17", "M7 17v2", "M17 17v2", "M4 11h16",
+        "M3 17h2", "M19 17h2"
+    )
+
+    val Alvo = icone(circulo(12f, 12f, 9f), circulo(12f, 12f, 4f))
+
+    val Fechar = icone("M18 6L6 18", "M6 6l12 12")
+
     // -------------------------------------------------------------- montagem
 
     /** Círculo em caminho SVG (dois arcos), porque o ImageVector só entende path. */

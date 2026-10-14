@@ -1,5 +1,7 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.custo.DadosCusto
+import com.motoristapro.ui.custo.paraDados
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -77,6 +79,15 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
 
     val custosFixos: StateFlow<List<CustoFixo>> = repo.custosFixos()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * As respostas do assistente de custo, para o resumo de "Meu veículo e
+     * custos" mostrar de onde vem o custo (combustível, manutenção, fixos) e
+     * as etiquetas do veículo (moto, gasolina, quitada).
+     */
+    val dadosCusto: StateFlow<DadosCusto?> = repo.perfilCusto()
+        .map { it?.paraDados() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     // ================================================================== manutenção
 

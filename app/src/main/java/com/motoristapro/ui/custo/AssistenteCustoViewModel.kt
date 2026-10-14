@@ -20,17 +20,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** Os quatro passos do assistente, na ordem. */
-enum class PassoCusto(val titulo: String) {
-    FIXOS("Custos fixos"),
-    MANUTENCAO("Manutenção"),
-    COMBUSTIVEL("Combustível"),
-    METAS("Metas")
+/**
+ * Os cinco passos do assistente, na ordem. [titulo] é a pergunta grande do
+ * passo; [rotulo] é o nome curto que vai embaixo do ícone na fila de passos.
+ */
+enum class PassoCusto(val titulo: String, val rotulo: String) {
+    VEICULO("Qual é o seu veículo?", "Veículo"),
+    FIXOS("Custos fixos", "Fixos"),
+    MANUTENCAO("Manutenção", "Manutenção"),
+    COMBUSTIVEL("Combustível", "Combustível"),
+    METAS("Quanto você roda", "Metas")
 }
 
 data class EstadoAssistente(
     val carregando: Boolean = true,
-    val passo: PassoCusto = PassoCusto.FIXOS,
+    val passo: PassoCusto = PassoCusto.VEICULO,
     val dados: DadosCusto = DadosCusto(),
     /** Preenchido ao tocar em "Calcular custo". null = ainda no formulário. */
     val resultado: ResultadoCusto? = null,
@@ -112,6 +116,7 @@ class AssistenteCustoViewModel(private val repo: FinanceiroRepository) : ViewMod
             "Intervalo do óleo", "Duração dos pneus", "Intervalo da revisão" -> PassoCusto.MANUTENCAO
             "Consumo médio", "Preço por litro" -> PassoCusto.COMBUSTIVEL
             "Km por dia", "Horas por dia" -> PassoCusto.METAS
+            "Valor do veículo" -> PassoCusto.VEICULO
             else -> PassoCusto.FIXOS
         }
         _estado.value = _estado.value.copy(resultado = null, avisosPendentes = false, passo = passo)

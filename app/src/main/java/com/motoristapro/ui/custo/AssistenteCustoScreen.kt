@@ -6,53 +6,80 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.motoristapro.custo.CustoAoVivo
 import com.motoristapro.custo.DadosCusto
+import com.motoristapro.custo.FatiasCusto
 import com.motoristapro.custo.FormaAquisicao
-import com.motoristapro.custo.ItemCusto
 import com.motoristapro.custo.ResultadoCusto
 import com.motoristapro.custo.TipoCombustivel
 import com.motoristapro.custo.TipoTrabalho
 import com.motoristapro.custo.TipoVeiculo
 import com.motoristapro.data.repository.emReais
+import com.motoristapro.ui.componentes.Cartao
 import com.motoristapro.ui.componentes.CampoFormulario
-import com.motoristapro.ui.componentes.CardSecao
+import com.motoristapro.ui.componentes.CorSobreDestaque
+import com.motoristapro.ui.componentes.Icones
+import com.motoristapro.ui.componentes.Pilula
+import com.motoristapro.ui.componentes.Rotulo
 import com.motoristapro.ui.paraCentavosOuZero
 import com.motoristapro.ui.theme.AmareloAlerta
+import com.motoristapro.ui.theme.AzulInfo
 import com.motoristapro.ui.theme.Contorno
+import com.motoristapro.ui.theme.EstiloValor
 import com.motoristapro.ui.theme.Fundo
+import com.motoristapro.ui.theme.Laranja
 import com.motoristapro.ui.theme.Lima
+import com.motoristapro.ui.theme.Roxo
 import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.theme.SuperficieAlta
+import com.motoristapro.ui.theme.SuperficieMaisAlta
+import com.motoristapro.ui.theme.TextoPrincipal
 import com.motoristapro.ui.theme.TextoSecundario
 import com.motoristapro.ui.theme.Turquesa
 import com.motoristapro.ui.theme.VermelhoPrejuizo
@@ -62,12 +89,27 @@ import androidx.compose.runtime.setValue
 
 private val PT = Locale("pt", "BR")
 
+/** As cores das três fatias do custo, iguais no resumo, no assistente e no resultado. */
+val CorCombustivel get() = Laranja
+val CorManutencao get() = AzulInfo
+val CorFixos get() = Roxo
+
+/** O ícone de cada passo, na fila de cima. */
+private fun iconeDo(p: PassoCusto): ImageVector = when (p) {
+    PassoCusto.VEICULO -> Icones.Moto
+    PassoCusto.FIXOS -> Icones.Escudo
+    PassoCusto.MANUTENCAO -> Icones.Chave
+    PassoCusto.COMBUSTIVEL -> Icones.Combustivel
+    PassoCusto.METAS -> Icones.Alvo
+}
+
 /**
- * Assistente de custo: quatro passos até o custo real por km e a tarifa mínima.
+ * Assistente de custo: cinco passos até o custo real por km e a tarifa mínima.
  *
  * A ideia é não pedir nada que o motorista não saiba de cabeça. Tudo que dá para
  * derivar (IPVA em reais, desvalorização mensal, km do mês) é calculado e mostrado,
- * nunca perguntado.
+ * nunca perguntado. E o custo "até aqui" fica sempre à vista, mudando enquanto
+ * ele digita — é o que faz cada campo valer a pena preencher.
  */
 @Composable
 fun AssistenteCustoScreen(
@@ -82,34 +124,19 @@ fun AssistenteCustoScreen(
         // os recuos vem direitos: barra de status em cima, teclado embaixo.
         Modifier.fillMaxSize().background(Fundo).statusBarsPadding().imePadding()
     ) {
-        // -------------------------------------------------------------- topo
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onFechar) { Text("Fechar", color = TextoSecundario) }
-            Spacer(Modifier.weight(1f))
-            Text(
-                e.dados.forma.rotulo.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = TextoSecundario
-            )
-        }
-
         if (r != null && !e.avisosPendentes) {
-            ResultadoCard(r, e.aplicado, vm::aplicarAoSemaforo, vm::voltarAoFormulario, Modifier.weight(1f))
+            ResultadoFinal(e.dados, r, e.aplicado, vm::aplicarAoSemaforo, vm::voltarAoFormulario, onFechar)
             return@Column
         }
 
+        // -------------------------------------------------------------- topo
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                e.passo.titulo,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+            IconButton(onClick = onFechar) {
+                Icon(Icones.Fechar, contentDescription = "Fechar", tint = TextoSecundario)
+            }
             Spacer(Modifier.weight(1f))
             Text(
                 "Passo ${e.indicePasso + 1} de ${PassoCusto.entries.size}",
@@ -117,28 +144,21 @@ fun AssistenteCustoScreen(
                 color = TextoSecundario
             )
         }
+        FilaDePassos(e.passo, vm::irPara)
 
-        // barra de progresso dos 4 passos
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            PassoCusto.entries.forEachIndexed { i, _ ->
-                Box(
-                    Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp))
-                        .background(if (i <= e.indicePasso) Lima else SuperficieAlta)
-                )
-            }
-        }
+        val (aoVivo, estimado) = remember(e.dados) { CustoAoVivo.calcular(e.dados) }
+        val fatias = remember(aoVivo) { FatiasCusto.de(aoVivo) }
 
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Text(e.passo.titulo, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = TextoPrincipal)
             when (e.passo) {
-                PassoCusto.FIXOS -> PassoFixos(e.dados, vm::editar)
-                PassoCusto.MANUTENCAO -> PassoManutencao(e.dados, vm::editar)
+                PassoCusto.VEICULO -> PassoVeiculo(e.dados, vm::editar)
+                PassoCusto.FIXOS -> PassoFixos(e.dados, fatias, vm::editar)
+                PassoCusto.MANUTENCAO -> PassoManutencao(e.dados, fatias, vm::editar)
                 PassoCusto.COMBUSTIVEL -> PassoCombustivel(e.dados, vm::editar)
                 PassoCusto.METAS -> PassoMetas(e.dados, vm::editar)
             }
@@ -146,22 +166,29 @@ fun AssistenteCustoScreen(
         }
 
         // ------------------------------------------------------------ rodapé
+        FaixaAoVivo(aoVivo, fatias, estimado)
         Row(
             Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (e.indicePasso > 0) {
-                OutlinedButton(onClick = vm::voltar) { Text("Voltar") }
+                Button(
+                    onClick = vm::voltar,
+                    modifier = Modifier.height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuperficieAlta, contentColor = TextoPrincipal)
+                ) { Text("Voltar", fontWeight = FontWeight.SemiBold) }
             }
             Button(
                 onClick = { if (e.ultimoPasso) vm.calcular() else vm.avancar() },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Fundo)
+                modifier = Modifier.weight(1f).height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
             ) {
                 Text(
                     if (e.ultimoPasso) "Calcular meu custo" else "Continuar",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.ExtraBold
                 )
             }
         }
@@ -185,7 +212,7 @@ fun AssistenteCustoScreen(
             confirmButton = {
                 Button(
                     onClick = vm::calcularMesmoAssim,
-                    colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Fundo)
+                    colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
                 ) { Text("Calcular assim mesmo") }
             },
             dismissButton = {
@@ -195,65 +222,182 @@ fun AssistenteCustoScreen(
     }
 }
 
+// =============================================================== fila e faixa
+
+/** Os cinco passos com ícone e nome; os já vistos ganham ✓ e um toque leva até eles. */
+@Composable
+private fun FilaDePassos(atual: PassoCusto, onIr: (PassoCusto) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+        PassoCusto.entries.forEach { p ->
+            val feito = p.ordinal < atual.ordinal
+            val agora = p == atual
+            Column(
+                Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onIr(p) }.padding(vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    Modifier.size(36.dp).clip(CircleShape).background(
+                        when {
+                            agora -> Lima
+                            feito -> Lima.copy(alpha = 0.16f)
+                            else -> SuperficieAlta
+                        }
+                    ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        if (feito) Icones.Certo else iconeDo(p),
+                        contentDescription = null,
+                        tint = when {
+                            agora -> CorSobreDestaque
+                            feito -> Lima
+                            else -> TextoSecundario
+                        },
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Text(
+                    p.rotulo,
+                    fontSize = 10.sp,
+                    color = if (agora) TextoPrincipal else TextoSecundario,
+                    fontWeight = if (agora) FontWeight.Bold else FontWeight.Normal,
+                    modifier = Modifier.padding(top = 4.dp),
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+/** "Seu custo até aqui": muda a cada tecla, com as três fatias numa barrinha. */
+@Composable
+private fun FaixaAoVivo(r: ResultadoCusto, f: FatiasCusto, estimado: Boolean) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(16.dp))
+            .background(Lima.copy(alpha = 0.08f)).border(1.dp, Lima.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Rotulo("Seu custo até aqui")
+            Text(
+                if (r.custoPorKmCentavos > 0) "${r.custoPorKmCentavos.emReais()} /km" else "—",
+                style = EstiloValor, fontSize = 20.sp, color = Lima
+            )
+            if (estimado && r.custoPorKmCentavos > 0) {
+                Text(
+                    "estimando ${CustoAoVivo.KM_DIA_ESTIMADO} km/dia até o último passo",
+                    fontSize = 10.sp, color = TextoSecundario
+                )
+            }
+        }
+        if (f.total > 0) BarraFatias(f, Modifier.width(110.dp).height(8.dp))
+    }
+}
+
+/** Barra dividida nas três cores (combustível, manutenção, fixos). */
+@Composable
+fun BarraFatias(f: FatiasCusto, modifier: Modifier) {
+    Row(modifier.clip(RoundedCornerShape(99.dp)), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        listOf(f.combustivel to CorCombustivel, f.manutencao to CorManutencao, f.fixos to CorFixos)
+            .filter { it.first > 0 }
+            .forEach { (v, cor) -> Box(Modifier.weight(v.toFloat()).fillMaxHeight().background(cor)) }
+    }
+}
+
+/** O cartão do topo de cada passo: quanto ESTE passo soma no custo por km. */
+@Composable
+private fun SomaDoPasso(rotulo: String, porKmCentavos: Double, icone: ImageVector, cor: Color, conta: String? = null) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Superficie)
+            .background(Brush.linearGradient(listOf(Lima.copy(alpha = 0.10f), Color.Transparent)))
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(cor.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center
+        ) { Icon(icone, contentDescription = null, tint = cor, modifier = Modifier.size(22.dp)) }
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Rotulo(rotulo)
+            Text(centavosPorKm(porKmCentavos), style = EstiloValor, fontSize = 26.sp, color = TextoPrincipal)
+        }
+        if (conta != null) Text(conta, fontSize = 11.sp, color = TextoSecundario)
+    }
+}
+
+/** R$ por km com 2 casas; abaixo de 1 centavo mostra 3, senão vira "R$ 0,00". */
+fun centavosPorKm(c: Double): String =
+    if (c > 0 && c < 1) String.format(PT, "R$ %.3f", c / 100.0) else String.format(PT, "R$ %.2f", c / 100.0)
+
 // ====================================================================== passos
 
 @Composable
-private fun PassoFixos(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
-    CardSecao(titulo = "Como é o seu veículo") {
-        Text("Transporte", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-        EscolhaEmLinha(
-            opcoes = TipoVeiculo.entries.map { it.rotulo },
-            selecionado = d.tipoVeiculo.rotulo,
-            onEscolher = { r -> editar { it.copy(tipoVeiculo = TipoVeiculo.entries.first { t -> t.rotulo == r }) } }
-        )
-        Spacer(Modifier.height(4.dp))
-        Text("O que você faz", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-        EscolhaEmLinha(
-            opcoes = TipoTrabalho.entries.map { it.rotulo },
-            selecionado = d.tipoTrabalho.rotulo,
-            onEscolher = { r ->
-                editar { it.copy(tipoTrabalho = TipoTrabalho.entries.first { t -> t.rotulo == r }) }
+private fun PassoVeiculo(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
+    Text(
+        "Isso muda o desgaste, a depreciação e quais custos entram na conta.",
+        style = MaterialTheme.typography.bodyMedium, color = TextoSecundario
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        BlocoEscolha(Icones.Carro, "Carro", d.tipoVeiculo == TipoVeiculo.CARRO, Modifier.weight(1f)) {
+            editar { it.copy(tipoVeiculo = TipoVeiculo.CARRO) }
+        }
+        BlocoEscolha(Icones.Moto, "Moto", d.tipoVeiculo == TipoVeiculo.MOTO, Modifier.weight(1f)) {
+            editar { it.copy(tipoVeiculo = TipoVeiculo.MOTO) }
+        }
+    }
+    Rotulo("O que você faz", Modifier.padding(top = 4.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TipoTrabalho.entries.forEach { t ->
+            Pilula(if (t == TipoTrabalho.AMBOS) "Os dois" else t.rotulo, d.tipoTrabalho == t) {
+                editar { it.copy(tipoTrabalho = t) }
             }
-        )
-        Spacer(Modifier.height(4.dp))
-        Text("Como conseguiu", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-        EscolhaEmLinha(
-            opcoes = FormaAquisicao.entries.map { it.rotulo },
-            selecionado = d.forma.rotulo,
-            onEscolher = { r -> editar { it.copy(forma = FormaAquisicao.entries.first { f -> f.rotulo == r }) } }
-        )
-        Text(
-            when (d.forma) {
-                FormaAquisicao.QUITADO -> "Veículo seu, sem parcela. Entra a depreciação: ele vale menos a cada mês."
-                FormaAquisicao.FINANCIADO -> "Entram a parcela E a depreciação — o veículo é seu e desvaloriza no seu bolso."
-                FormaAquisicao.ALUGADO -> "Entra só o aluguel. Depreciação e IPVA são de quem alugou, não seus."
-            },
-            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-        )
+        }
     }
-
-    CardSecao(titulo = "Qual é o veículo") {
-        CampoTexto(
-            "Nome do veículo", d.veiculoNome,
-            ajuda = "Como você chama ele. Ex.: Fan 160 2021."
-        ) { v -> editar { it.copy(veiculoNome = v) } }
+    Rotulo("Como conseguiu", Modifier.padding(top = 4.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FormaAquisicao.entries.forEach { f ->
+            Pilula(f.rotulo, d.forma == f) { editar { it.copy(forma = f) } }
+        }
     }
+    Text(
+        when (d.forma) {
+            FormaAquisicao.QUITADO -> "Veículo seu, sem parcela. Entra a depreciação: ele vale menos a cada mês."
+            FormaAquisicao.FINANCIADO -> "Entram a parcela E a depreciação — o veículo é seu e desvaloriza no seu bolso."
+            FormaAquisicao.ALUGADO -> "Entra só o aluguel. Depreciação e IPVA são de quem alugou, não seus."
+        },
+        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+    )
+    CampoTexto(
+        "Nome do veículo", d.veiculoNome,
+        ajuda = "Como você chama ele. Ex.: Fan 160 2021."
+    ) { v -> editar { it.copy(veiculoNome = v) } }
+    if (d.forma != FormaAquisicao.ALUGADO) {
+        CampoDinheiro(
+            "Valor na tabela FIPE", d.valorVeiculoCentavos,
+            ajuda = "Quanto ele vale hoje. Usado para a depreciação e o IPVA."
+        ) { v -> editar { it.copy(valorVeiculoCentavos = v) } }
+    }
+}
 
+@Composable
+private fun PassoFixos(d: DadosCusto, f: FatiasCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
+    SomaDoPasso("Fixos por km", f.fixos, Icones.Escudo, CorFixos)
+    Text(
+        "O que você paga rode ou não. Vira custo por km dividido pelo quanto você roda.",
+        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+    )
     if (d.forma == FormaAquisicao.ALUGADO) {
-        CardSecao(titulo = "Aluguel") {
+        Cartao {
+            Rotulo("Aluguel")
             CampoDinheiro("Aluguel mensal", d.aluguelMensalCentavos) { v -> editar { it.copy(aluguelMensalCentavos = v) } }
         }
     } else {
-        CardSecao(titulo = "O veículo") {
-            CampoDinheiro(
-                "Valor do veículo hoje", d.valorVeiculoCentavos,
-                ajuda = "Quanto vale na tabela FIPE. Usado para depreciação e IPVA."
-            ) { v -> editar { it.copy(valorVeiculoCentavos = v) } }
-
+        Cartao {
+            Rotulo("O veículo")
             if (d.forma == FormaAquisicao.FINANCIADO) {
                 CampoDinheiro("Parcela mensal", d.parcelaMensalCentavos) { v -> editar { it.copy(parcelaMensalCentavos = v) } }
             }
-
             CampoPercentual(
                 "Desvalorização por ano", d.desvalorizacaoAnualX100,
                 ajuda = "Quanto o veículo perde de valor por ano. 10% a 15% é o comum."
@@ -262,15 +406,15 @@ private fun PassoFixos(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
                 "Depreciação por mês",
                 (d.valorVeiculoCentavos * (d.desvalorizacaoAnualX100 / 10_000.0) / 12.0).toLong()
             )
-
+        }
+        Cartao {
+            Rotulo("IPVA")
             // Dois jeitos de informar o IPVA porque quase todo motorista sabe o
             // valor em reais do carnê, e quase nenhum sabe a aliquota do estado.
-            Text("IPVA — informar por", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-            EscolhaEmLinha(
-                opcoes = listOf(POR_PORCENTO, POR_REAIS),
-                selecionado = if (d.ipvaEmReais) POR_REAIS else POR_PORCENTO,
-                onEscolher = { r -> editar { it.copy(ipvaEmReais = r == POR_REAIS) } }
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pilula("Em % do valor", !d.ipvaEmReais) { editar { it.copy(ipvaEmReais = false) } }
+                Pilula("Em R$ por ano", d.ipvaEmReais) { editar { it.copy(ipvaEmReais = true) } }
+            }
             if (d.ipvaEmReais) {
                 CampoDinheiro(
                     "IPVA por ano", d.ipvaAnualCentavos,
@@ -286,36 +430,41 @@ private fun PassoFixos(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
             LinhaCalculada("IPVA por mês", d.ipvaMensalEmCentavos.toLong())
         }
     }
-
-    CardSecao(titulo = "Outros custos do mês") {
+    Cartao {
+        Rotulo("Outros custos do mês")
         CampoDinheiro("Seguro mensal", d.seguroMensalCentavos, ajuda = "Paga por ano? Divida por 12.") { v ->
             editar { it.copy(seguroMensalCentavos = v) }
         }
         CampoDinheiro(
             "Outros custos fixos", d.outrosMensaisCentavos,
-            ajuda = "Aluguel de garagem, app de rastreamento, lavagem — o que você paga todo mês."
+            ajuda = "Garagem, app de rastreamento, lavagem — o que você paga todo mês."
         ) { v -> editar { it.copy(outrosMensaisCentavos = v) } }
     }
 }
 
 @Composable
-private fun PassoManutencao(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
-    CardSecao(titulo = "Troca de óleo") {
+private fun PassoManutencao(d: DadosCusto, f: FatiasCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
+    SomaDoPasso("Manutenção por km", f.manutencao, Icones.Chave, CorManutencao)
+    Cartao {
+        Rotulo("Troca de óleo")
         CampoDinheiro("Custo da troca", d.trocaOleoCentavos) { v -> editar { it.copy(trocaOleoCentavos = v) } }
         CampoKm("A cada quantos km", d.intervaloOleoKm) { v -> editar { it.copy(intervaloOleoKm = v) } }
         LinhaPorKm("Dá por km", d.trocaOleoCentavos, d.intervaloOleoKm)
     }
-    CardSecao(titulo = "Pneus") {
+    Cartao {
+        Rotulo("Pneus")
         CampoDinheiro("Jogo de pneus", d.jogoPneusCentavos) { v -> editar { it.copy(jogoPneusCentavos = v) } }
         CampoKm("Duram quantos km", d.duracaoPneusKm) { v -> editar { it.copy(duracaoPneusKm = v) } }
         LinhaPorKm("Dá por km", d.jogoPneusCentavos, d.duracaoPneusKm)
     }
-    CardSecao(titulo = "Revisão") {
+    Cartao {
+        Rotulo("Revisão")
         CampoDinheiro("Custo da revisão", d.revisaoCentavos) { v -> editar { it.copy(revisaoCentavos = v) } }
         CampoKm("A cada quantos km", d.intervaloRevisaoKm) { v -> editar { it.copy(intervaloRevisaoKm = v) } }
         LinhaPorKm("Dá por km", d.revisaoCentavos, d.intervaloRevisaoKm)
     }
-    CardSecao(titulo = "Outro desgaste") {
+    Cartao {
+        Rotulo("Outro desgaste")
         Text(
             "Relação e coroa, pastilha de freio, embreagem — qualquer peça que você troca " +
                 "de tantos em tantos km.",
@@ -329,39 +478,61 @@ private fun PassoManutencao(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) 
 
 @Composable
 private fun PassoCombustivel(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
-    CardSecao(titulo = "Combustível") {
-        EscolhaEmGrade(
-            opcoes = TipoCombustivel.entries.map { it.rotulo },
-            selecionado = d.combustivel.rotulo,
-            onEscolher = { r ->
-                editar { it.copy(combustivel = TipoCombustivel.entries.first { c -> c.rotulo == r }) }
+    val porKm = if (d.consumoX100 > 0) d.precoLitroCentavos * 100.0 / d.consumoX100 else 0.0
+    SomaDoPasso(
+        "Combustível por km", porKm, Icones.Combustivel, CorCombustivel,
+        conta = if (porKm > 0) String.format(PT, "%.2f ÷ %.0f", d.precoLitroCentavos / 100.0, d.consumoX100 / 100.0) else null
+    )
+    Rotulo("Tipo")
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TipoCombustivel.entries.chunked(3).forEach { linha ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                linha.forEach { c ->
+                    Pilula(c.rotulo, d.combustivel == c, Modifier.weight(1f)) { editar { it.copy(combustivel = c) } }
+                }
             }
-        )
-        Spacer(Modifier.height(4.dp))
-        CampoDinheiro(
-            when (d.combustivel) {
-                TipoCombustivel.ELETRICO -> "Preço do kWh"
-                TipoCombustivel.GNV -> "Preço do m³"
-                else -> "Preço do litro"
-            },
-            d.precoLitroCentavos
-        ) { v -> editar { it.copy(precoLitroCentavos = v) } }
-
-        CampoDecimal(
-            "Consumo médio (${d.combustivel.unidade})", d.consumoX100,
-            ajuda = "Quanto o veículo faz de verdade no seu uso, não o do fabricante."
-        ) { v -> editar { it.copy(consumoX100 = v) } }
-
-        val porKm = if (d.consumoX100 > 0) d.precoLitroCentavos * 100 / d.consumoX100 else 0
-        if (porKm > 0) {
-            LinhaCalculada("Combustível por km", porKm, destaque = true)
         }
+    }
+    CampoDinheiro(
+        when (d.combustivel) {
+            TipoCombustivel.ELETRICO -> "Preço do kWh"
+            TipoCombustivel.GNV -> "Preço do m³"
+            else -> "Preço do litro"
+        },
+        d.precoLitroCentavos
+    ) { v -> editar { it.copy(precoLitroCentavos = v) } }
+
+    Cartao {
+        val unidade = d.combustivel.unidade
+        Rotulo("Quantos ${unidade.substringBefore('/')} faz com 1 ${unidade.substringAfter('/')}")
+        // A barrinha resolve o caso comum num deslize; o campo fica para quem
+        // quer o número exato (consumo com vírgula).
+        val (min, max) = if (d.tipoVeiculo == TipoVeiculo.MOTO) 15f to 60f else 5f to 25f
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (d.consumoX100 > 0) String.format(PT, "%.1f", d.consumoX100 / 100.0) else "—",
+                style = EstiloValor, fontSize = 22.sp, modifier = Modifier.width(64.dp)
+            )
+            Slider(
+                value = (d.consumoX100 / 100f).coerceIn(min, max),
+                onValueChange = { v -> editar { it.copy(consumoX100 = Math.round(v * 2) * 50L) } },
+                valueRange = min..max,
+                modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(thumbColor = TextoPrincipal, activeTrackColor = Lima, inactiveTrackColor = SuperficieMaisAlta)
+            )
+        }
+        CampoDecimal(
+            "Consumo médio ($unidade)", d.consumoX100,
+            ajuda = if (d.tipoVeiculo == TipoVeiculo.MOTO) "Moto de 150–160 cc costuma fazer de 30 a 40 km/L no dia a dia."
+            else "Carro popular costuma fazer de 10 a 14 km/L na cidade."
+        ) { v -> editar { it.copy(consumoX100 = v) } }
     }
 }
 
 @Composable
 private fun PassoMetas(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
-    CardSecao(titulo = "Quanto você roda") {
+    Cartao(espaco = 10) {
+        Rotulo("Quanto você roda")
         CampoKm("Km por dia", d.kmPorDia) { v -> editar { it.copy(kmPorDia = v) } }
 
         Text("Dias por semana", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
@@ -369,16 +540,12 @@ private fun PassoMetas(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
             (1..7).forEach { n ->
                 val ativo = d.diasPorSemana == n
                 Box(
-                    Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(10.dp))
+                    Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp))
                         .background(if (ativo) Lima else SuperficieAlta)
                         .clickable { editar { it.copy(diasPorSemana = n) } },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "$n",
-                        color = if (ativo) Fundo else TextoSecundario,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("$n", color = if (ativo) CorSobreDestaque else TextoSecundario, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -391,7 +558,8 @@ private fun PassoMetas(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
             value = d.horasPorDia.toFloat(),
             onValueChange = { v -> editar { it.copy(horasPorDia = v.toInt().coerceIn(1, 18)) } },
             valueRange = 1f..18f,
-            steps = 16
+            steps = 16,
+            colors = SliderDefaults.colors(thumbColor = TextoPrincipal, activeTrackColor = Lima, inactiveTrackColor = SuperficieMaisAlta)
         )
 
         HorizontalDivider(color = Contorno)
@@ -400,17 +568,20 @@ private fun PassoMetas(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
         LinhaTexto("Horas no mês", String.format(PT, "%.0f h", d.diasPorMes * d.horasPorDia))
     }
 
-    CardSecao(titulo = "Sua meta") {
+    Cartao(espaco = 10) {
+        Rotulo("Sua meta")
         CampoDinheiro(
             "Lucro que quer levar por mês", d.metaLucroMensalCentavos,
-            ajuda = "O que sobra pra você, já pagos todos os custos acima."
+            ajuda = "O que sobra pra você, já pagos todos os custos."
         ) { v -> editar { it.copy(metaLucroMensalCentavos = v) } }
 
         if (d.metaLucroMensalCentavos > 0) {
-            HorizontalDivider(color = Contorno)
             // A meta do dia e a da semana saem desta: uma meta so, sem se contradizer.
-            LinhaCalculada("Por dia trabalhado", d.metaLucroDiarioCentavos, destaque = true)
-            LinhaCalculada("Por semana", d.metaLucroSemanalCentavos)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                QuadroMeta("Por dia", d.metaLucroDiarioCentavos, Lima, Modifier.weight(1f))
+                QuadroMeta("Semana", d.metaLucroSemanalCentavos, TextoPrincipal, Modifier.weight(1f))
+                QuadroMeta("Mês", d.metaLucroMensalCentavos, TextoPrincipal, Modifier.weight(1f))
+            }
             Text(
                 "A meta do dia é a que aparece no Início, na barra do lucro de hoje.",
                 style = MaterialTheme.typography.bodySmall, color = TextoSecundario
@@ -419,114 +590,173 @@ private fun PassoMetas(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Un
     }
 }
 
+/** Quadradinho "POR DIA 200" das metas (reais inteiros: centavo de meta não ajuda ninguém). */
+@Composable
+fun QuadroMeta(rotulo: String, centavos: Long, cor: Color, modifier: Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(12.dp)).background(SuperficieAlta).padding(vertical = 9.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(rotulo.uppercase(), fontSize = 9.sp, letterSpacing = 1.sp, color = TextoSecundario, fontWeight = FontWeight.SemiBold)
+        Text(String.format(PT, "%,d", centavos / 100), style = EstiloValor, fontSize = 17.sp, color = cor)
+    }
+}
+
+/** Bloco grande de escolha com ícone (Carro / Moto). */
+@Composable
+private fun BlocoEscolha(icone: ImageVector, rotulo: String, ativo: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.clip(RoundedCornerShape(16.dp))
+            .background(if (ativo) Lima.copy(alpha = 0.12f) else SuperficieAlta)
+            .border(2.dp, if (ativo) Lima else Color.Transparent, RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(icone, contentDescription = null, tint = if (ativo) Lima else TextoSecundario, modifier = Modifier.size(30.dp))
+        Text(rotulo, fontWeight = FontWeight.SemiBold, color = if (ativo) TextoPrincipal else TextoSecundario)
+    }
+}
+
 // ================================================================== resultado
 
 @Composable
-private fun ResultadoCard(
+private fun ResultadoFinal(
+    d: DadosCusto,
     r: ResultadoCusto,
     aplicado: Boolean,
     onAplicar: () -> Unit,
     onVoltar: () -> Unit,
-    modifier: Modifier = Modifier
+    onFechar: () -> Unit
 ) {
+    val f = FatiasCusto.de(r)
     Column(
-        modifier.verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        Modifier.fillMaxSize()
+            .background(Brush.radialGradient(listOf(Lima.copy(alpha = 0.16f), Color.Transparent)))
     ) {
-        Text("Seu custo real", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-
-        CardSecao(titulo = "Quanto custa rodar") {
-            Text(
-                "${r.custoPorKmCentavos.emReais()} / km",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold
-            )
-            Box(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .border(1.dp, Lima.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
-            ) {
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 4.dp)) {
+            IconButton(onClick = onFechar) { Icon(Icones.Fechar, contentDescription = "Fechar", tint = TextoSecundario) }
+        }
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    Modifier.size(72.dp).clip(CircleShape).background(Lima.copy(alpha = 0.14f))
+                        .border(3.dp, Lima, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icones.Certo, contentDescription = null, tint = Lima, modifier = Modifier.size(36.dp)) }
+                Rotulo("Seu custo real", Modifier.padding(top = 14.dp))
                 Text(
-                    "Aceite corridas acima de ${r.tarifaMinimaPorKmCentavos.emReais()}/km",
-                    color = Lima, fontWeight = FontWeight.Bold
+                    buildAnnotatedString {
+                        append(r.custoPorKmCentavos.emReais())
+                        withStyle(SpanStyle(fontSize = 22.sp, color = TextoSecundario)) { append("/km") }
+                    },
+                    style = EstiloValor, fontSize = 52.sp, color = Lima
+                )
+                Text(
+                    "${r.custoMensalCentavos.emReais()} por mês para rodar " + String.format(PT, "%,d km", r.kmPorMes),
+                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario, textAlign = TextAlign.Center
                 )
             }
-            Text(
-                "Abaixo disso você roda de graça. Esse é o número que vai alimentar o semáforo.",
-                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-            )
-        }
 
-        CardSecao(titulo = "Projeção") {
-            r.projecoes.forEach { p ->
-                Column(Modifier.padding(vertical = 4.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(p.rotulo, fontWeight = FontWeight.SemiBold)
-                        Text(String.format(PT, "%,d km", p.km), color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Receita ${p.receitaCentavos.emReais()}", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-                        Text("Custos ${p.custoCentavos.emReais()}", style = MaterialTheme.typography.bodySmall, color = VermelhoPrejuizo)
-                        Text(p.lucroCentavos.emReais(), style = MaterialTheme.typography.bodySmall, color = Lima, fontWeight = FontWeight.Bold)
+            Cartao(espaco = 8) {
+                Rotulo("De onde vem")
+                LinhaFatia("Combustível", f.combustivel, f.total, CorCombustivel)
+                LinhaFatia("Manutenção e pneus", f.manutencao, f.total, CorManutencao)
+                LinhaFatia("IPVA, seguro e fixos", f.fixos, f.total, CorFixos)
+                if (f.total <= 0) Text("Nenhum custo informado.", color = TextoSecundario)
+            }
+
+            if (r.tarifaMinimaPorKmCentavos > 0) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Lima.copy(alpha = 0.08f)).padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        buildAnnotatedString {
+                            if (d.metaLucroDiarioCentavos > 0 && d.kmPorDia > 0) {
+                                append("Para levar ")
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("${d.metaLucroDiarioCentavos.emReais()} por dia")
+                                }
+                                append(" rodando ${d.kmPorDia} km, aceite corridas a partir de ")
+                            } else {
+                                append("Aceite corridas a partir de ")
+                            }
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Lima)) {
+                                append("${r.tarifaMinimaPorKmCentavos.emReais()}/km")
+                            }
+                            append(".")
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "${r.custoPorKmCentavos.emReais()} de custo + " +
+                            "${(r.tarifaMinimaPorKmCentavos - r.custoPorKmCentavos).coerceAtLeast(0).emReais()} de lucro por km. " +
+                            "Abaixo do custo você roda de graça.",
+                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                    )
+                }
+            }
+
+            Cartao(espaco = 6) {
+                Rotulo("Projeção com essa tarifa")
+                r.projecoes.forEach { p ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(p.rotulo, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(64.dp))
+                        Text(String.format(PT, "%,d km", p.km), style = MaterialTheme.typography.bodySmall, color = TextoSecundario, modifier = Modifier.weight(1f))
+                        Text(p.lucroCentavos.emReais(), style = EstiloValor, fontSize = 15.sp, color = Lima)
                     }
                 }
-                HorizontalDivider(color = Contorno)
+                Text("lucro já descontados todos os custos", fontSize = 11.sp, color = TextoSecundario)
             }
-        }
-
-        CardSecao(titulo = "De onde vem o custo") {
-            Text(
-                "Custo mensal: ${r.custoMensalCentavos.emReais()}",
-                fontWeight = FontWeight.Bold
-            )
-            r.itens.forEach { LinhaItemCusto(it) }
-            if (r.itens.isEmpty()) {
-                Text("Nenhum custo informado.", color = TextoSecundario)
+            if (aplicado) {
+                Text(
+                    "Pronto: o cartão da oferta já usa ${r.custoPorKmCentavos.emReais()}/km de custo e " +
+                        "${r.tarifaMinimaPorKmCentavos.emReais()}/km como mínimo.",
+                    style = MaterialTheme.typography.bodySmall, color = Turquesa
+                )
             }
+            Spacer(Modifier.height(4.dp))
         }
-
-        Button(
-            onClick = onAplicar,
-            enabled = r.valido && !aplicado,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Fundo)
-        ) {
-            Text(if (aplicado) "Aplicado ao semáforo ✓" else "Aplicar ao semáforo", fontWeight = FontWeight.Bold)
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = onAplicar,
+                enabled = r.valido && !aplicado,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
+            ) {
+                Text(
+                    if (aplicado) "Aplicado ao semáforo ✓"
+                    else "Usar ${r.tarifaMinimaPorKmCentavos.emReais()}/km no semáforo",
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+            Button(
+                onClick = onVoltar,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SuperficieAlta, contentColor = TextoPrincipal)
+            ) { Text("Revisar os valores", fontWeight = FontWeight.SemiBold) }
         }
-        if (aplicado) {
-            Text(
-                "Pronto: o cartão da oferta já usa ${r.custoPorKmCentavos.emReais()}/km " +
-                    "para calcular o lucro de cada corrida.",
-                style = MaterialTheme.typography.bodySmall, color = Turquesa
-            )
-        }
-        OutlinedButton(onClick = onVoltar, modifier = Modifier.fillMaxWidth()) {
-            Text("Mudar os valores")
-        }
-        Spacer(Modifier.height(8.dp))
     }
 }
 
 @Composable
-private fun LinhaItemCusto(item: ItemCusto) {
-    Column(Modifier.padding(top = 10.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(item.nome, style = MaterialTheme.typography.bodyMedium)
-            Text(item.mensalCentavos.emReais(), fontWeight = FontWeight.Bold)
-        }
-        Box(
-            Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
-                .background(SuperficieAlta)
-        ) {
-            Box(
-                Modifier.fillMaxWidth(item.percentual / 100f).height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)).background(Lima)
-            )
-        }
+private fun LinhaFatia(nome: String, porKm: Double, total: Double, cor: Color) {
+    if (porKm <= 0) return
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(cor))
+        Text(nome, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(start = 8.dp))
+        Text(centavosPorKm(porKm).removePrefix("R$ "), style = EstiloValor, fontSize = 15.sp)
         Text(
-            "${item.porKmCentavos.emReais()}/km · ${item.percentual}% do custo",
-            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            "${Math.round(porKm * 100 / total)}%",
+            style = MaterialTheme.typography.bodySmall, color = TextoSecundario,
+            textAlign = TextAlign.End, modifier = Modifier.width(44.dp)
         )
     }
 }

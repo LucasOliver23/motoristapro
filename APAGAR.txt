@@ -1,15 +1,19 @@
-NADA PARA APAGAR NESTA VERSAO (4.0.1)
+NADA PARA APAGAR NESTA VERSAO (4.1.0)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Atualizacao automatica: ao abrir o app ele procura versao nova no GitHub
-sozinho (no maximo a cada 10 min) e mostra o aviso "Atualizar agora".
+"Meu veiculo e custos" e o assistente de custo no visual novo (previa em
+mockups/previa-custos.png).
 
 Arquivos NOVOS (copiar):
-  app/src/main/java/com/motoristapro/atualizacao/AvisoAtualizacao.kt
+  app/src/test/java/com/motoristapro/custo/FatiasCustoTest.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/ui/MainActivity.kt
-  .github/workflows/apk.yml
+  app/src/main/java/com/motoristapro/custo/CalculadoraCusto.kt
+  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoScreen.kt
+  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoViewModel.kt
+  app/src/main/java/com/motoristapro/ui/componentes/Icones.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt
