@@ -61,6 +61,8 @@ object Icones {
 
     val Mais = icone("M12 5v14", "M5 12h14")
 
+    val Certo = icone("M20 6L9 17l-5-5")
+
     // -------------------------------------------------------------- montagem
 
     /** Círculo em caminho SVG (dois arcos), porque o ImageVector só entende path. */

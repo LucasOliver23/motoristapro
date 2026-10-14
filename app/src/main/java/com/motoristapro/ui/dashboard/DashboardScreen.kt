@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -109,6 +110,8 @@ fun DashboardRoute(
     val leitorOk by vm.leitorConectado.collectAsStateWithLifecycle()
     val gpsOk by vm.gpsRodando.collectAsStateWithLifecycle()
     val plataformas by vm.plataformas.collectAsStateWithLifecycle()
+    val sequencia by vm.sequencia.collectAsStateWithLifecycle()
+    val contexto = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
     var dialogDespesa by rememberSaveable { mutableStateOf<CategoriaDespesa?>(null) }
@@ -124,6 +127,17 @@ fun DashboardRoute(
     }
     LaunchedEffect(Unit) { vm.mensagens.collect { snackbar.showSnackbar(it) } }
 
+    // Comemoração: uma vez por dia, na hora em que o lucro passa da meta.
+    var comemorar by rememberSaveable { mutableStateOf(false) }
+    val bateuMeta = !estado.carregando && estado.config.metaLucroDiarioCentavos > 0 &&
+        estado.resumo.lucroLiquidoCentavos >= estado.config.metaLucroDiarioCentavos
+    LaunchedEffect(bateuMeta, estado.dia) {
+        if (bateuMeta && !ComemoracaoMetaPrefs.jaComemorou(contexto, estado.dia)) {
+            ComemoracaoMetaPrefs.marcar(contexto, estado.dia)
+            comemorar = true
+        }
+    }
+
     // Localização (+ notificações no Android 13+) antes de iniciar o turno.
     val permissoes = remember {
         buildList {
@@ -136,6 +150,16 @@ fun DashboardRoute(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { resultado ->
         vm.iniciarJornada(comGps = resultado[Manifest.permission.ACCESS_FINE_LOCATION] == true)
+    }
+
+    // Botão "Iniciar jornada" do widget: espera o Início carregar e segue o
+    // mesmo caminho do botão da tela (pede a localização e abre o turno).
+    val pedidoWidget by NavegacaoRapida.iniciarJornadaPedido.collectAsStateWithLifecycle()
+    LaunchedEffect(pedidoWidget, estado.carregando) {
+        if (pedidoWidget && !estado.carregando) {
+            NavegacaoRapida.iniciarJornadaPedido.value = false
+            if (estado.jornada == null) pedirPermissoes.launch(permissoes)
+        }
     }
 
     // O cabeçalho fala com a pessoa, não com o app: "Olá, Lucas" e, do lado, o
@@ -206,6 +230,17 @@ fun DashboardRoute(
                 Spacer(Modifier.height(8.dp))
             }
         }
+    }
+
+    if (comemorar) {
+        ComemoracaoMeta(
+            lucroCentavos = estado.resumo.lucroLiquidoCentavos,
+            segundosRodados = estado.jornadasEncerradas.segundos + (estado.jornada?.segundosRodando(agora) ?: 0),
+            sequencia = sequencia,
+            turnoAberto = estado.jornada != null,
+            onContinuar = { comemorar = false },
+            onEncerrar = { comemorar = false; vm.encerrarJornada() }
+        )
     }
 
     dialogDespesa?.let { categoria ->

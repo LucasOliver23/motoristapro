@@ -48,6 +48,7 @@ import com.motoristapro.ui.assinatura.AssinaturaScreen
 import com.motoristapro.ui.theme.MotoristaTema
 import com.motoristapro.ui.theme.PreferenciaTema
 import com.motoristapro.ui.theme.temaEscuro
+import com.motoristapro.widget.WidgetLucro
 import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -67,6 +68,8 @@ class MainActivity : ComponentActivity() {
         // frame ja sai na cor certa, sem piscar.
         PreferenciaTema.carregar(this)
         super.onCreate(savedInstanceState)
+        // Só na primeira abertura: ao girar a tela o pedido do widget não repete.
+        if (savedInstanceState == null) atenderWidget(intent)
         setContent {
             // Os icones da status bar acompanham o tema: claros no escuro, escuros no claro.
             val escuro = temaEscuro
@@ -84,6 +87,20 @@ class MainActivity : ComponentActivity() {
                     AppComLogin()
                 }
             }
+        }
+    }
+
+    /** singleTop: com o app já aberto, o toque no widget chega aqui. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        atenderWidget(intent)
+    }
+
+    /** Botão "Iniciar jornada" do widget: vai para o Início e pede o turno. */
+    private fun atenderWidget(intent: Intent?) {
+        if (intent?.action == WidgetLucro.ACAO_INICIAR_JORNADA) {
+            NavegacaoRapida.iniciarJornadaPedido.value = true
+            NavegacaoRapida.pedir(Aba.INICIO.ordinal)
         }
     }
 }

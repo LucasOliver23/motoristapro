@@ -25,6 +25,12 @@ object NavegacaoRapida {
      */
     val subTelaPedida = MutableStateFlow<String?>(null)
 
+    /**
+     * "Inicie a jornada assim que o Início aparecer" — vem do botão do widget.
+     * O Início é quem pede a permissão de localização, então o pedido espera lá.
+     */
+    val iniciarJornadaPedido = MutableStateFlow(false)
+
     fun pedir(indice: Int) {
         abaPedida.value = indice
     }
