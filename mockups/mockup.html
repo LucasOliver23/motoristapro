@@ -2,7 +2,7 @@
 <html lang="pt-BR"><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#39FF14;--lucro2:#7CE38B;--verm:#FF5252;--amar:#FFC94D;--azul:#58A6FF;--turq:#2DE2C5;--roxo:#BC8CFF;--txt:#fff;--sec:#8B949E;--cont:#21262D}
+:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#4CC9F0;--lucro2:#8FDCF7;--verm:#FF5252;--amar:#FFC94D;--azul:#58A6FF;--turq:#2DE2C5;--roxo:#BC8CFF;--txt:#fff;--sec:#8B949E;--cont:#21262D}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#05070a;font-family:Inter,sans-serif;color:var(--txt);padding:40px 30px;width:1820px}
 h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
@@ -11,7 +11,7 @@ h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
 .col{display:flex;flex-direction:column;align-items:center;gap:14px}
 .rot{font-weight:700;font-size:18px}.rot small{display:block;color:var(--sec);font-weight:400;font-size:13px;margin-top:4px;text-align:center;max-width:400px}
 .tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:#2b1d1d;color:#ff8a8a;margin-left:6px;vertical-align:middle}
-.tag.n{background:#13301a;color:var(--lucro)}
+.tag.n{background:#122a40;color:var(--lucro)}
 .cel{width:400px;height:840px;border-radius:44px;background:var(--fundo);border:10px solid #1e232b;overflow:hidden;position:relative;box-shadow:0 30px 60px #0008}
 .sb{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:13px;color:var(--sec);font-weight:600}
 .pad{padding:14px 18px}
@@ -28,7 +28,7 @@ h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
 .nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sec)}
 .nav .on{color:var(--lucro)}
 /* versão antiga simplificada */
-.velho{font-family:Roboto,sans-serif}
+.velho{font-family:Roboto,sans-serif;--lucro:#39FF14}
 .velho .emoji{font-size:26px;text-align:center}
 </style></head><body>
 <h1>MotoristaPro · prévia do visual novo</h1>
@@ -72,14 +72,14 @@ h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
    <div><div style="font-size:22px;font-weight:800;letter-spacing:-.4px">Olá, Lucas</div>
    <div style="color:var(--sec);font-size:13px">terça, 14 de outubro</div></div>
-   <div style="display:flex;align-items:center;gap:6px;background:#13301a;color:var(--lucro);font-size:11px;font-weight:700;padding:6px 10px;border-radius:20px"><span style="width:7px;height:7px;border-radius:50%;background:var(--lucro)"></span>LEITOR ON</div>
+   <div style="display:flex;align-items:center;gap:6px;background:#122a40;color:var(--lucro);font-size:11px;font-weight:700;padding:6px 10px;border-radius:20px"><span style="width:7px;height:7px;border-radius:50%;background:var(--lucro)"></span>LEITOR ON</div>
   </div>
-  <div class="card" style="background:linear-gradient(160deg,#17251b,#161C24 60%)">
+  <div class="card" style="background:linear-gradient(160deg,#14243a,#161C24 60%)">
    <div class="lbl">LUCRO LÍQUIDO DE HOJE</div>
    <div class="num" style="font-family:'Space Grotesk';font-size:46px;font-weight:700;margin-top:4px;letter-spacing:-1px">R$ 142<span style="color:var(--sec);font-size:28px">,80</span></div>
-   <div class="barra"><i style="width:57%;background:linear-gradient(90deg,#2ECC0F,var(--lucro))"></i></div>
+   <div class="barra"><i style="width:57%;background:linear-gradient(90deg,#1E9BD7,var(--lucro))"></i></div>
    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--sec);margin-top:6px"><span class="num">57% da meta</span><span class="num">R$ 250</span></div>
-   <div style="margin-top:12px;background:#0f1a12;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center">
+   <div style="margin-top:12px;background:#0f1a26;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center">
     <svg class="ico" style="color:var(--turq)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
     <div style="font-size:13px;line-height:1.35">Faltam <b class="num">R$ 107,20</b>. No seu ritmo de <b class="num">R$ 32/h</b>, termina por volta das <b style="color:var(--turq)">17h50</b>.</div>
    </div>
@@ -112,7 +112,7 @@ h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
 <!-- 3 META BATIDA -->
 <div class="col">
 <div class="rot">3 · Meta batida <span class="tag n">NOVO</span><small>Comemoração + sequência de dias + vibração</small></div>
-<div class="cel" style="background:radial-gradient(circle at 50% 30%,#163a15,#0D1117 65%)">
+<div class="cel" style="background:radial-gradient(circle at 50% 30%,#123354,#0D1117 65%)">
  <div class="sb"><span>18:04</span><span>41%</span></div>
  <div style="position:absolute;inset:0;pointer-events:none">
   <!-- confete -->
@@ -125,7 +125,7 @@ h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
   <i style="position:absolute;left:180px;top:150px;width:10px;height:5px;background:var(--verm);transform:rotate(-40deg)"></i>
  </div>
  <div style="text-align:center;padding:90px 24px 0">
-  <div style="width:110px;height:110px;margin:0 auto;border-radius:50%;background:#13301a;border:3px solid var(--lucro);display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px #39ff1455">
+  <div style="width:110px;height:110px;margin:0 auto;border-radius:50%;background:#122a40;border:3px solid var(--lucro);display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px #4CC9F055">
    <svg viewBox="0 0 24 24" style="width:56px;height:56px;stroke:var(--lucro);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6L9 17l-5-5"/></svg></div>
   <div style="font-family:'Space Grotesk';font-size:30px;font-weight:700;margin-top:24px">Meta do dia batida!</div>
   <div class="num" style="font-family:'Space Grotesk';font-size:52px;font-weight:700;color:var(--lucro);margin-top:8px">R$ 253,40</div>
@@ -161,7 +161,7 @@ h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
    <div style="font-size:11px;color:var(--sec)">ontem: <span class="num" style="color:var(--lucro2)">R$ 231</span></div>
   </div>
   <div style="display:flex;align-items:center;gap:16px;margin-top:14px">
-   <svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="35" stroke="#2B323B" stroke-width="9" fill="none"/><circle cx="42" cy="42" r="35" stroke="#39FF14" stroke-width="9" fill="none" stroke-dasharray="0 220" stroke-linecap="round" transform="rotate(-90 42 42)"/><text x="42" y="47" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-weight="700" font-size="16">0%</text></svg>
+   <svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="35" stroke="#2B323B" stroke-width="9" fill="none"/><circle cx="42" cy="42" r="35" stroke="#4CC9F0" stroke-width="9" fill="none" stroke-dasharray="0 220" stroke-linecap="round" transform="rotate(-90 42 42)"/><text x="42" y="47" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-weight="700" font-size="16">0%</text></svg>
    <div><div class="lbl">LUCRO DE HOJE</div><div class="num" style="font-family:'Space Grotesk';font-size:30px;font-weight:700">R$ 0,00</div><div style="font-size:12px;color:var(--sec)">meta R$ 250</div></div>
   </div>
   <div style="margin-top:14px;background:var(--lucro);color:#000;font-weight:800;text-align:center;padding:13px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px">
