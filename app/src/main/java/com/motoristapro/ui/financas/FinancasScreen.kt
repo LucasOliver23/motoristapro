@@ -1,5 +1,7 @@
 package com.motoristapro.ui.financas
 
+import com.motoristapro.ui.NavegacaoRapida
+import com.motoristapro.ui.Aba
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import com.motoristapro.ui.componentes.BarraMeta
@@ -133,7 +135,7 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { CartaoDoMes(mes, metas.config.metaLucroMensalCentavos) }
+            item { CartaoDoMes(mes) }
 
             item { CartaoCategorias(mes) }
 
@@ -177,24 +179,6 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
                             onExcluir = { excluir = l.despesa }
                         )
                     }
-                }
-            }
-
-            item {
-                val cfg = metas.config
-                Cartao(Modifier.padding(top = 8.dp), espaco = 10) {
-                    Rotulo("Metas de lucro")
-                    ProgressoMeta("Hoje", metas.hoje, cfg.metaLucroDiarioCentavos, metas.hoje.emReais(), cfg.metaLucroDiarioCentavos.emReais())
-                    ProgressoMeta("Esta semana", metas.semana, cfg.metaLucroSemanalCentavos, metas.semana.emReais(), cfg.metaLucroSemanalCentavos.emReais())
-                    ProgressoMeta("Este mês", metas.mes, cfg.metaLucroMensalCentavos, metas.mes.emReais(), cfg.metaLucroMensalCentavos.emReais())
-                    // Só leitura, de propósito: a meta mensal é definida UMA vez no
-                    // assistente de custos, e a diária e a semanal saem dela.
-                    Text(
-                        if (cfg.metaLucroMensalCentavos > 0)
-                            "A meta do mês é definida em Menu ▸ Meu veículo e custos. A diária e a semanal saem dela."
-                        else "Defina sua meta em Menu ▸ Meu veículo e custos.",
-                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                    )
                 }
             }
         }
@@ -291,39 +275,56 @@ private fun DespesaItem(d: Despesa, onClick: () -> Unit, onExcluir: () -> Unit) 
 
 // ------------------------------------------------------------------ visual novo (4.0)
 
-/** O cartão de cima: lucro do mês, quanto entrou, quanto saiu e a meta do mês. */
+/**
+ * O cartão de cima: lucro do mês, quanto entrou e quanto saiu. As metas ficam
+ * em Atividade (cada período com a sua meta) — aqui é só o dinheiro do mês.
+ */
 @Composable
-private fun CartaoDoMes(mes: MesUiState, metaMensal: Long) {
+private fun CartaoDoMes(mes: MesUiState) {
     val r = mes.resumo
     val temFixo = mes.custoFixoMensal > 0
     val lucro = if (temFixo) mes.lucroRealCentavos else r.lucroLiquidoCentavos
     CartaoDestaque {
         Rotulo(if (temFixo) "Lucro real do mês" else "Lucro do mês")
-        ValorComCentavos(lucro.emReais(), 38.sp, cor = if (lucro >= 0) TextoPrincipal else VermelhoPrejuizo)
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("↑ " + r.faturamentoCentavos.emReais(), style = MaterialTheme.typography.bodySmall, color = Lima)
-            Text(
-                "↓ " + (r.despesasCentavos + mes.custoFixoMensal).emReais(),
-                style = MaterialTheme.typography.bodySmall, color = VermelhoPrejuizo
+        ValorComCentavos(lucro.emReais(), 36.sp, cor = if (lucro >= 0) TextoPrincipal else VermelhoPrejuizo)
+        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            QuadroFluxo("Entrou", "↑ " + r.faturamentoCentavos.emReais().removePrefix("R$ "), Lima, Modifier.weight(1f))
+            QuadroFluxo(
+                "Saiu", "↓ " + (r.despesasCentavos + mes.custoFixoMensal).emReais().removePrefix("R$ "),
+                VermelhoPrejuizo, Modifier.weight(1f)
             )
         }
-        if (metaMensal > 0) {
-            BarraMeta(lucro.toFloat() / metaMensal, Modifier.padding(top = 6.dp))
-            Row(Modifier.fillMaxWidth()) {
-                Text(
-                    "${(lucro.coerceAtLeast(0) * 100 / metaMensal)}% da meta do mês",
-                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                )
-                Box(Modifier.weight(1f))
-                Text(metaMensal.emReais(), style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-            }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val detalhe = buildList {
+                add("${r.qtdCorridas} corridas")
+                add(String.format(PT, "%.0f km", r.kmRodados))
+            }.joinToString(" · ")
+            Text("$detalhe · ", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+            Text(
+                "ver metas em Atividade ›",
+                style = MaterialTheme.typography.bodySmall, color = Lima, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp))
+                    .clickable { NavegacaoRapida.pedir(Aba.RELATORIOS.ordinal) }
+            )
         }
-        val detalhe = buildList {
-            add("${r.qtdCorridas} corridas")
-            add(String.format(PT, "%.0f km", r.kmRodados))
-            if (temFixo) add("custos fixos ${mes.custoFixoMensal.emReais()}")
-        }.joinToString(" · ")
-        Text(detalhe, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+        if (temFixo) {
+            Text(
+                "Saiu já inclui ${mes.custoFixoMensal.emReais()} de custos fixos do mês.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        }
+    }
+}
+
+/** Quadrinho "ENTROU ↑ 4.102,00" / "SAIU ↓ 1.683,40". */
+@Composable
+private fun QuadroFluxo(rotulo: String, valor: String, cor: Color, modifier: Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(12.dp)).background(cor.copy(alpha = 0.08f))
+            .padding(horizontal = 10.dp, vertical = 9.dp)
+    ) {
+        Rotulo(rotulo)
+        Text(valor, style = EstiloValor, fontSize = 17.sp, color = cor, maxLines = 1)
     }
 }
 

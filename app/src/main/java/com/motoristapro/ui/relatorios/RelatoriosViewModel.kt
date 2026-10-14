@@ -77,8 +77,21 @@ data class RelatoriosUiState(
     /** Tempo de app ligado no período (jornadas, já contando a que está aberta). */
     val conectado: TempoConectado = TempoConectado.VAZIO,
     /** Mapa de calor dia da semana x faixa de 2 h. */
-    val mapa: List<CasaDoMapa> = emptyList()
+    val mapa: List<CasaDoMapa> = emptyList(),
+    /** As metas de lucro (centavos), todas saídas da mensal do assistente de custo. */
+    val metaDiaria: Long = 0,
+    val metaSemanal: Long = 0,
+    val metaMensal: Long = 0
 ) {
+    /** A meta do período escolhido: o ano é a mensal × 12. */
+    val metaDoPeriodo: Long
+        get() = when (periodo) {
+            PeriodoRelatorio.DIARIO -> metaDiaria
+            PeriodoRelatorio.SEMANAL -> metaSemanal
+            PeriodoRelatorio.MENSAL -> metaMensal
+            PeriodoRelatorio.ANUAL -> metaMensal * 12
+        }
+
     /** A casa mais clara do mapa — "o seu melhor horário da semana". */
     val melhorCasa: CasaDoMapa? get() = mapa.filter { it.ofertas >= 2 }.maxByOrNull { it.reaisKmCentavos }
         ?: mapa.maxByOrNull { it.reaisKmCentavos }
@@ -173,13 +186,17 @@ class RelatoriosViewModel(private val repo: FinanceiroRepository) : ViewModel() 
             val consumo = flow<ConsumoCombustivel?> { emit(repo.consumoCombustivel(ini, fim)) }
                 .catch { emit(null) }
             val extras = combine(repo.resumoOfertas(ini, fim), repo.custoFixoMensal(), repo.configuracao()) { of, fixo, cfg ->
-                Extras(of, fixo, cfg.diasTrabalhoMes, cfg.custoKmCentavos)
+                Extras(
+                    of, fixo, cfg.diasTrabalhoMes, cfg.custoKmCentavos,
+                    cfg.metaLucroDiarioCentavos, cfg.metaLucroSemanalCentavos, cfg.metaLucroMensalCentavos
+                )
             }
             base.combine(consumo) { estado, c -> estado.copy(consumo = c) }
                 .combine(extras) { estado, x ->
                     estado.copy(
                         ofertas = x.ofertas, custoFixoMensal = x.custoFixoMensal,
-                        diasTrabalhoMes = x.diasTrabalhoMes, custoKmConfigurado = x.custoKmCentavos
+                        diasTrabalhoMes = x.diasTrabalhoMes, custoKmConfigurado = x.custoKmCentavos,
+                        metaDiaria = x.metaDiaria, metaSemanal = x.metaSemanal, metaMensal = x.metaMensal
                     )
                 }
                 .combine(repo.faixasHorarias(ini, fim)) { estado, fx -> estado.copy(faixas = fx) }
@@ -211,7 +228,10 @@ class RelatoriosViewModel(private val repo: FinanceiroRepository) : ViewModel() 
         val ofertas: ResumoOfertas,
         val custoFixoMensal: Long,
         val diasTrabalhoMes: Int,
-        val custoKmCentavos: Long
+        val custoKmCentavos: Long,
+        val metaDiaria: Long,
+        val metaSemanal: Long,
+        val metaMensal: Long
     )
 
     companion object {

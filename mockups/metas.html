@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#4CC9F0;--verm:#FF5252;--amar:#FFC94D;--turq:#2DE2C5;--roxo:#BC8CFF;--lar:#F97316;--azul:#58A6FF;--txt:#fff;--sec:#8B949E;--cont:#21262D}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05070a;font-family:Inter,sans-serif;color:var(--txt);padding:40px 30px;width:1400px}
+h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
+.sub{color:var(--sec);font-size:16px;margin-bottom:12px}
+.ideia{display:flex;gap:16px;margin-bottom:28px}
+.ideia div{background:#11161d;border:1px solid #222a33;border-radius:14px;padding:12px 16px;font-size:14px;color:#c9d1d9;flex:1;line-height:1.45}
+.ideia b{color:#fff}
+.linha{display:flex;gap:34px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:14px}
+.rot{font-weight:700;font-size:18px;height:56px}.rot small{display:block;color:var(--sec);font-weight:400;font-size:13px;margin-top:4px;max-width:400px}
+.cel{width:400px;height:840px;border-radius:44px;background:var(--fundo);border:10px solid #1e232b;overflow:hidden;position:relative;box-shadow:0 30px 60px #0008}
+.sb{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:13px;color:var(--sec);font-weight:600}
+.pad{padding:10px 16px}
+.sg{font-family:'Space Grotesk';font-weight:700;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border-radius:20px;padding:14px;margin-bottom:10px}
+.dest{background:linear-gradient(135deg,#132536,#161C24 60%)}
+.lbl{font-size:10px;letter-spacing:1.2px;color:var(--sec);font-weight:600;text-transform:uppercase}
+.row{display:flex;align-items:center;gap:10px}
+.seg{display:flex;background:var(--alto);border-radius:12px;padding:4px;margin-bottom:12px}
+.seg div{flex:1;text-align:center;padding:8px 0;border-radius:9px;font-size:13px;font-weight:600;color:var(--sec)}
+.seg .on{background:var(--mais);color:#fff}
+.barra{height:8px;border-radius:5px;background:var(--mais);overflow:hidden}.barra i{display:block;height:100%;background:var(--lucro);border-radius:5px}
+.graf{position:relative;display:flex;align-items:flex-end;gap:6px;height:120px;margin-top:12px}
+.graf .b{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.graf .b i{width:100%;border-radius:5px;background:#2a5a78;display:block}
+.graf .b span{font-size:10px;color:var(--sec)}
+.meta{position:absolute;left:0;right:0;border-top:2px dashed #FFC94Daa}
+.meta em{position:absolute;right:0;top:-16px;font-size:9px;color:var(--amar);font-style:normal;font-weight:700}
+.chip{padding:7px 13px;border-radius:20px;background:var(--alto);color:var(--sec);font-size:12px;font-weight:600}.chip.on{background:var(--lucro);color:#04131b}
+.item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--cont)}.item:last-child{border:0}
+.qd{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center}
+.nav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:12px 0 18px;background:var(--card);border-top:1px solid var(--cont)}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sec)}.nav .on{color:var(--lucro)}
+.tag{font-size:10px;font-weight:800;padding:3px 7px;border-radius:6px;background:#122a40;color:var(--lucro)}
+</style></head><body>
+<h1>MotoristaPro · Metas num lugar só</h1>
+<div class="sub">Desenho para aprovar antes de mexer no app. Valores de exemplo.</div>
+<div class="ideia">
+ <div><b>Hoje:</b> as metas (hoje, semana, mês) aparecem em Finanças e o lucro de cada período aparece de novo em Atividade — a mesma informação em dois lugares.</div>
+ <div><b>Proposta:</b> <b>Finanças</b> fica só com o dinheiro do mês (entradas, saídas, gastos, extrato). <b>Atividade</b> vira o lugar das metas: cada período (Dia, Semana, Mês, Ano) mostra o lucro <b>junto com a meta daquele período</b>.</div>
+</div>
+<div class="linha">
+
+<!-- 1 FINANCAS -->
+<div class="col">
+<div class="rot">1 · Finanças (sem o cartão de metas)<small>Só dinheiro: lucro do mês, quanto entrou e saiu, para onde foi e o extrato</small></div>
+<div class="cel">
+ <div class="sb"><span>16:45</span><span>100%</span></div>
+ <div class="pad">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px"><div style="font-size:24px;font-weight:800">Finanças</div><div style="font-size:13px;color:var(--sec)">‹ <b style="color:#fff">Outubro</b> ›</div></div>
+  <div class="card dest">
+   <div class="lbl">Lucro do mês</div>
+   <div class="sg" style="font-size:36px">R$ 2.418<span style="font-size:22px;color:var(--sec)">,60</span></div>
+   <div class="row" style="gap:10px;margin-top:10px">
+    <div style="flex:1;background:#0f1a26;border-radius:12px;padding:9px 10px"><div class="lbl" style="font-size:9px">Entrou</div><div class="sg" style="color:var(--lucro);font-size:17px">↑ 4.102,00</div></div>
+    <div style="flex:1;background:#1e1416;border-radius:12px;padding:9px 10px"><div class="lbl" style="font-size:9px">Saiu</div><div class="sg" style="color:var(--verm);font-size:17px">↓ 1.683,40</div></div>
+   </div>
+   <div style="font-size:12px;color:var(--sec);margin-top:8px">84 corridas · 2.140 km · <span style="color:var(--lucro)">ver metas em Atividade ›</span></div>
+  </div>
+  <div class="card">
+   <div class="lbl" style="margin-bottom:10px">Gastos por categoria</div>
+   <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin-bottom:10px"><i style="flex:52;background:var(--lar)"></i><i style="flex:21;background:var(--azul)"></i><i style="flex:15;background:var(--turq)"></i><i style="flex:12;background:var(--roxo)"></i></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px">
+    <span class="row" style="gap:6px"><span style="color:var(--lar)">●</span>Combustível<b class="sg" style="margin-left:auto">875</b></span>
+    <span class="row" style="gap:6px"><span style="color:var(--azul)">●</span>Manutenção<b class="sg" style="margin-left:auto">354</b></span>
+    <span class="row" style="gap:6px"><span style="color:var(--turq)">●</span>Seguro<b class="sg" style="margin-left:auto">252</b></span>
+    <span class="row" style="gap:6px"><span style="color:var(--roxo)">●</span>Outros<b class="sg" style="margin-left:auto">202</b></span>
+   </div>
+  </div>
+  <div class="row" style="gap:8px;margin-bottom:10px"><span class="chip on">Tudo</span><span class="chip">Entradas</span><span class="chip">Saídas</span></div>
+  <div class="card" style="padding:2px 14px">
+   <div class="item"><div class="qd" style="background:#122a40;color:var(--lucro)">↑</div><div style="flex:1;font-size:14px;font-weight:600">Corridas do dia<div style="font-size:11px;color:var(--sec);font-weight:400">hoje · 11 corridas</div></div><b class="sg" style="color:var(--lucro)">+ 198,50</b></div>
+   <div class="item"><div class="qd" style="background:#33210f;color:var(--lar)">⛽</div><div style="flex:1;font-size:14px;font-weight:600">Combustível<div style="font-size:11px;color:var(--sec);font-weight:400">hoje · 34,5 L</div></div><b class="sg">− 200,00</b></div>
+   <div class="item"><div class="qd" style="background:#0f2236;color:var(--azul)">🔧</div><div style="flex:1;font-size:14px;font-weight:600">Troca de óleo<div style="font-size:11px;color:var(--sec);font-weight:400">12/out</div></div><b class="sg">− 189,00</b></div>
+  </div>
+ </div>
+ <div class="nav"><div>⌂<span>Início</span></div><div>☰<span>Corridas</span></div><div class="on">▭<span>Finanças</span></div><div>⌇<span>Atividade</span></div><div>●<span>Menu</span></div></div>
+</div></div>
+
+<!-- 2 ATIVIDADE SEMANA -->
+<div class="col">
+<div class="rot">2 · Atividade — Semana<small>O lucro da semana JUNTO com a meta da semana, e a linha da meta do dia no gráfico</small></div>
+<div class="cel">
+ <div class="sb"><span>16:45</span><span>100%</span></div>
+ <div class="pad">
+  <div style="font-size:24px;font-weight:800;margin-bottom:12px">Atividade</div>
+  <div class="seg"><div>Dia</div><div class="on">Semana</div><div>Mês</div><div>Ano</div></div>
+  <div class="card dest">
+   <div class="row" style="justify-content:space-between"><div class="lbl">Lucro na semana</div><span class="tag">32 corridas</span></div>
+   <div class="row" style="align-items:baseline;gap:8px"><div class="sg" style="font-size:34px">R$ 812<span style="font-size:20px;color:var(--sec)">,30</span></div><div style="font-size:13px;color:var(--sec)">de R$ 1.200</div></div>
+   <div class="barra" style="margin-top:8px"><i style="width:68%"></i></div>
+   <div class="row" style="justify-content:space-between;font-size:12px;color:var(--sec);margin-top:6px"><span><b style="color:var(--lucro)">68%</b> da meta da semana</span><span>faltam R$ 387,70</span></div>
+   <div class="graf">
+    <div class="meta" style="bottom:calc(16px + 66px)"><em>meta do dia R$ 200</em></div>
+    <div class="b"><i style="height:40px"></i><span>S</span></div>
+    <div class="b"><i style="height:72px;background:var(--lucro)"></i><span>T</span></div>
+    <div class="b"><i style="height:33px"></i><span>Q</span></div>
+    <div class="b"><i style="height:70px;background:var(--lucro)"></i><span>Q</span></div>
+    <div class="b"><i style="height:54px"></i><span>S</span></div>
+    <div class="b"><i style="height:4px;background:var(--mais)"></i><span>S</span></div>
+    <div class="b"><i style="height:4px;background:var(--mais)"></i><span>D</span></div>
+   </div>
+   <div style="font-size:11px;color:var(--sec);margin-top:8px"><span style="color:var(--lucro)">■</span> dia que bateu a meta · <span style="color:#2a5a78">■</span> não bateu</div>
+  </div>
+  <div class="row" style="gap:8px">
+   <div class="card" style="flex:1;text-align:center;padding:10px"><div class="lbl">Aceitas</div><div class="sg" style="font-size:20px;color:var(--lucro)">48</div></div>
+   <div class="card" style="flex:1;text-align:center;padding:10px"><div class="lbl">Recusadas</div><div class="sg" style="font-size:20px;color:var(--verm)">29</div></div>
+   <div class="card" style="flex:1;text-align:center;padding:10px"><div class="lbl">Online</div><div class="sg" style="font-size:20px">31h</div></div>
+  </div>
+  <div class="card"><div class="lbl" style="margin-bottom:6px">Quando rende mais</div><div style="font-size:12px;color:var(--sec)">mapa de calor (igual hoje)…</div></div>
+ </div>
+ <div class="nav"><div>⌂<span>Início</span></div><div>☰<span>Corridas</span></div><div>▭<span>Finanças</span></div><div class="on">⌇<span>Atividade</span></div><div>●<span>Menu</span></div></div>
+</div></div>
+
+<!-- 3 ATIVIDADE ANO -->
+<div class="col">
+<div class="rot">3 · Atividade — Ano<small>12 barras, uma por mês (hoje são 365 risquinhos ilegíveis). Sem corrida, o gráfico mostra um aviso em vez de ficar vazio</small></div>
+<div class="cel">
+ <div class="sb"><span>16:45</span><span>100%</span></div>
+ <div class="pad">
+  <div style="font-size:24px;font-weight:800;margin-bottom:12px">Atividade</div>
+  <div class="seg"><div>Dia</div><div>Semana</div><div>Mês</div><div class="on">Ano</div></div>
+  <div class="card dest">
+   <div class="row" style="justify-content:space-between"><div class="lbl">Lucro no ano</div><span class="tag">912 corridas</span></div>
+   <div class="row" style="align-items:baseline;gap:8px"><div class="sg" style="font-size:34px">R$ 49.980<span style="font-size:20px;color:var(--sec)">,00</span></div><div style="font-size:13px;color:var(--sec)">de R$ 60.000</div></div>
+   <div class="barra" style="margin-top:8px"><i style="width:83%"></i></div>
+   <div class="row" style="justify-content:space-between;font-size:12px;color:var(--sec);margin-top:6px"><span><b style="color:var(--lucro)">83%</b> da meta do ano</span><span>melhor mês: ago</span></div>
+   <div class="graf" style="gap:5px">
+    <div class="meta" style="bottom:calc(16px + 66px)"><em>meta do mês R$ 5.000</em></div>
+    <div class="b"><i style="height:52px"></i><span>J</span></div>
+    <div class="b"><i style="height:60px"></i><span>F</span></div>
+    <div class="b"><i style="height:70px;background:var(--lucro)"></i><span>M</span></div>
+    <div class="b"><i style="height:58px"></i><span>A</span></div>
+    <div class="b"><i style="height:74px;background:var(--lucro)"></i><span>M</span></div>
+    <div class="b"><i style="height:66px;background:var(--lucro)"></i><span>J</span></div>
+    <div class="b"><i style="height:80px;background:var(--lucro)"></i><span>J</span></div>
+    <div class="b"><i style="height:96px;background:var(--lucro)"></i><span>A</span></div>
+    <div class="b"><i style="height:72px;background:var(--lucro)"></i><span>S</span></div>
+    <div class="b"><i style="height:32px;border:1px dashed #4CC9F0;background:#4CC9F022"></i><span>O</span></div>
+    <div class="b"><i style="height:4px;background:var(--mais)"></i><span>N</span></div>
+    <div class="b"><i style="height:4px;background:var(--mais)"></i><span>D</span></div>
+   </div>
+   <div style="font-size:11px;color:var(--sec);margin-top:8px">outubro ainda em andamento</div>
+  </div>
+  <div class="lbl" style="margin:14px 2px 8px">Quando não tem corrida</div>
+  <div class="card dest">
+   <div class="lbl">Lucro no ano</div>
+   <div class="sg" style="font-size:34px">R$ 0<span style="font-size:20px;color:var(--sec)">,00</span></div>
+   <div style="height:90px;margin-top:10px;border-radius:12px;background:repeating-linear-gradient(90deg,#1c232c 0 18px,transparent 18px 24px);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--sec)">Nenhuma corrida registrada no ano</div>
+  </div>
+ </div>
+ <div class="nav"><div>⌂<span>Início</span></div><div>☰<span>Corridas</span></div><div>▭<span>Finanças</span></div><div class="on">⌇<span>Atividade</span></div><div>●<span>Menu</span></div></div>
+</div></div>
+
+</div></body></html>
