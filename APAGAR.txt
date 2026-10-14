@@ -1,19 +1,13 @@
-NADA PARA APAGAR NESTA VERSAO (4.1.0)
+NADA PARA APAGAR NESTA VERSAO (4.2.0)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-"Meu veiculo e custos" e o assistente de custo no visual novo (previa em
-mockups/previa-custos.png).
-
-Arquivos NOVOS (copiar):
-  app/src/test/java/com/motoristapro/custo/FatiasCustoTest.kt
+Corridas: logos dos apps de volta (sempre os 4), HOJE primeiro na fita de
+dias e "Nova corrida" como folha que sobe de baixo (previa em
+mockups/previa-corridas2.png).
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/custo/CalculadoraCusto.kt
-  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoScreen.kt
-  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoViewModel.kt
-  app/src/main/java/com/motoristapro/ui/componentes/Icones.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt
+  app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt
+  app/src/main/java/com/motoristapro/ui/componentes/Dialogos.kt

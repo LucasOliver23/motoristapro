@@ -1,5 +1,38 @@
 package com.motoristapro.ui.componentes
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.motoristapro.ui.theme.EstiloValor
+import com.motoristapro.ui.theme.Lima
+import com.motoristapro.ui.theme.Superficie
+import com.motoristapro.ui.theme.SuperficieAlta
+import com.motoristapro.ui.theme.SuperficieMaisAlta
+import com.motoristapro.ui.theme.TextoPrincipal
+import com.motoristapro.ui.theme.VermelhoPrejuizo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -115,7 +148,13 @@ fun DespesaDialog(
     )
 }
 
-/** Nova corrida (manual) / edição. */
+/**
+ * Nova corrida (manual) / edição: uma folha que sobe de baixo.
+ *
+ * O app é escolhido pelo LOGO (os chips de texto cortavam o nome no meio) e o
+ * R$/km e R$/hora da corrida aparecem enquanto o motorista digita — é a conta
+ * que ele faria de cabeça para saber se valeu.
+ */
 @Composable
 fun CorridaDialog(
     plataformas: List<Plataforma>,
@@ -141,7 +180,7 @@ fun CorridaDialog(
         mutableStateOf(inicial?.let { (it.distanciaMetros + it.deslocamentoMetros).campoKm() } ?: "")
     }
     var minutos by rememberSaveable { mutableStateOf(inicial?.let { (it.duracaoSegundos / 60).toString() } ?: "") }
-    var origem by rememberSaveable { mutableStateOf(inicial?.origem ?: "") }
+    var origem by rememberSaveable { mutableStateOf(inicial?.origem?.takeIf { it != "—" } ?: "") }
     var destino by rememberSaveable { mutableStateOf(inicial?.destino ?: "") }
     var tentou by rememberSaveable { mutableStateOf(false) }
 
@@ -151,58 +190,154 @@ fun CorridaDialog(
     val min = minutos.trim().toLongOrNull()?.takeIf { it > 0 }
     val plataformaAtual = plataformas.firstOrNull { it.id == plataformaId } ?: plataformas.first()
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (inicial == null) "Nova corrida" else "Editar corrida") },
-        text = {
+    val salvar = {
+        tentou = true
+        if (valorC != null && gorjetaC != null && metros != null && min != null) {
+            val base = inicial ?: Corrida(
+                plataformaId = plataformaAtual.id, origem = "", destino = "",
+                valorCentavos = valorC, distanciaMetros = metros, duracaoSegundos = min * 60,
+                inicioEm = System.currentTimeMillis()
+            )
+            onSalvar(
+                base.copy(
+                    plataformaId = plataformaAtual.id,
+                    valorCentavos = valorC,
+                    gorjetaCentavos = gorjetaC,
+                    distanciaMetros = metros,
+                    deslocamentoMetros = 0,
+                    duracaoSegundos = min * 60,
+                    origem = origem.trim().ifEmpty { "—" },
+                    destino = destino.trim()
+                )
+            )
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        // Fundo escuro que fecha ao toque; a folha por cima segura os próprios toques.
+        Box(
+            Modifier.fillMaxSize().clickable(
+                interactionSource = remember { MutableInteractionSource() }, indication = null
+            ) { onDismiss() },
+            contentAlignment = Alignment.BottomCenter
+        ) {
             Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
+                    .background(Superficie)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
+                    .imePadding()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                ChipsSelecao(
-                    opcoes = plataformas,
-                    selecionado = plataformaAtual,
-                    rotulo = { it.nome },
-                    onSelecionar = { plataformaId = it.id }
+                Box(
+                    Modifier.align(Alignment.CenterHorizontally).size(width = 40.dp, height = 4.dp)
+                        .clip(RoundedCornerShape(2.dp)).background(SuperficieMaisAlta)
                 )
-                CampoFormulario("Valor recebido (R$) *", valor, { valor = it }, erro = tentou && valorC == null)
-                CampoFormulario("Gorjeta (R$)", gorjeta, { gorjeta = it }, erro = gorjeta.isNotBlank() && gorjetaC == null)
-                CampoFormulario("Distância total (km) *", km, { km = it }, erro = tentou && metros == null)
+                Text(
+                    if (inicial == null) "Nova corrida" else "Editar corrida",
+                    fontSize = 22.sp, fontWeight = FontWeight.ExtraBold
+                )
+                Rotulo("De qual app")
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    plataformas.forEach { p ->
+                        val sel = p.id == plataformaAtual.id
+                        Column(
+                            Modifier.width(62.dp).clip(RoundedCornerShape(14.dp)).clickable { plataformaId = p.id }
+                                .padding(vertical = 4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                Modifier.size(50.dp).clip(RoundedCornerShape(15.dp))
+                                    .border(2.dp, if (sel) Lima else Color.Transparent, RoundedCornerShape(15.dp))
+                                    .padding(2.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (chaveDaMarca(p.nome) in MARCAS_COM_LOGO) {
+                                    LogoPlataforma(p.nome, tamanho = 44.dp)
+                                } else {
+                                    SeloIcone(Icones.Menu, TextoSecundario, tamanho = 44.dp)
+                                }
+                            }
+                            Text(
+                                p.nome, fontSize = 11.sp, maxLines = 1,
+                                color = if (sel) TextoPrincipal else TextoSecundario,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
                 CampoFormulario(
-                    "Duração (min) *", minutos, { minutos = it.filter(Char::isDigit) },
-                    erro = tentou && min == null
+                    "Valor recebido *", valor, { valor = it },
+                    erro = tentou && valorC == null, prefixo = "R$"
                 )
-                CampoFormulario("Origem", origem, { origem = it }, numerico = false)
-                CampoFormulario("Destino", destino, { destino = it }, numerico = false)
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                tentou = true
-                if (valorC != null && gorjetaC != null && metros != null && min != null) {
-                    val base = inicial ?: Corrida(
-                        plataformaId = plataformaAtual.id, origem = "", destino = "",
-                        valorCentavos = valorC, distanciaMetros = metros, duracaoSegundos = min * 60,
-                        inicioEm = System.currentTimeMillis()
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CampoFormulario(
+                        "Distância (km) *", km, { km = it },
+                        erro = tentou && metros == null, modifier = Modifier.weight(1f)
                     )
-                    onSalvar(
-                        base.copy(
-                            plataformaId = plataformaAtual.id,
-                            valorCentavos = valorC,
-                            gorjetaCentavos = gorjetaC,
-                            distanciaMetros = metros,
-                            deslocamentoMetros = 0,
-                            duracaoSegundos = min * 60,
-                            origem = origem.trim().ifEmpty { "—" },
-                            destino = destino.trim()
-                        )
+                    CampoFormulario(
+                        "Duração (min) *", minutos, { minutos = it.filter(Char::isDigit) },
+                        erro = tentou && min == null, modifier = Modifier.weight(1f)
                     )
                 }
-            }) { Text("Salvar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+                // R$/km e R$/h desta corrida, ao vivo.
+                if (valorC != null && valorC > 0 && metros != null) {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Lima.copy(alpha = 0.08f))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Esta corrida:", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                        Text("${(valorC * 1000 / metros).emReais()}/km", style = EstiloValor, fontSize = 15.sp, color = Lima)
+                        if (min != null) {
+                            Text("·", color = TextoSecundario)
+                            Text("${(valorC * 60 / min).emReais()}/h", style = EstiloValor, fontSize = 15.sp)
+                        }
+                    }
+                }
+                CampoFormulario(
+                    "Gorjeta (opcional)", gorjeta, { gorjeta = it },
+                    erro = gorjeta.isNotBlank() && gorjetaC == null, prefixo = "R$"
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CampoFormulario("Origem", origem, { origem = it }, numerico = false, modifier = Modifier.weight(1f))
+                    CampoFormulario("Destino", destino, { destino = it }, numerico = false, modifier = Modifier.weight(1f))
+                }
+                if (tentou && (valorC == null || metros == null || min == null)) {
+                    Text(
+                        "Preencha valor, distância e duração.",
+                        style = MaterialTheme.typography.bodySmall, color = VermelhoPrejuizo
+                    )
+                }
+                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SuperficieAlta, contentColor = TextoPrincipal)
+                    ) { Text("Cancelar", fontWeight = FontWeight.SemiBold) }
+                    Button(
+                        onClick = { salvar() },
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
+                    ) { Text(if (inicial == null) "Salvar corrida" else "Salvar", fontWeight = FontWeight.ExtraBold) }
+                }
+            }
+        }
+    }
 }
+
+/** As marcas que têm logo de verdade em res/drawable-nodpi; o resto ganha o ícone de pessoa. */
+private val MARCAS_COM_LOGO = setOf("uber", "99", "indrive", "ifood")
 
 /** Confirmação genérica de exclusão. */
 @Composable
