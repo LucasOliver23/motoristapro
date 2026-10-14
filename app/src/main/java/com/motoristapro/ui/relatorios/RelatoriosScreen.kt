@@ -1,5 +1,21 @@
 package com.motoristapro.ui.relatorios
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import com.motoristapro.ui.componentes.BarraMeta
+import com.motoristapro.ui.theme.SuperficieMaisAlta
+import java.time.LocalDate
+import androidx.compose.foundation.layout.fillMaxHeight
 import com.motoristapro.ui.componentes.Cartao
 import com.motoristapro.ui.componentes.CartaoDestaque
 import com.motoristapro.ui.componentes.Icones
@@ -147,12 +163,16 @@ private fun MapaDeCalor(e: RelatoriosUiState) {
 }
 
 /**
- * O cartão de cima: o lucro do período e o gráfico de cada dia, com o melhor
- * dia aceso. Responde "como foi a semana" antes de qualquer tabela.
+ * O cartão de cima: o lucro do período JUNTO com a meta daquele período (a
+ * semana com a meta da semana, o ano com a meta do mês × 12) e o gráfico com a
+ * linha tracejada da meta de cada barra. Era o que antes ficava espalhado entre
+ * Finanças ("metas de lucro") e aqui.
  */
 @Composable
 private fun LucroDoPeriodo(e: RelatoriosUiState) {
     val r = e.resumo
+    val meta = e.metaDoPeriodo
+    val lucro = r.lucroLiquidoCentavos
     CartaoDestaque {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Rotulo(
@@ -166,36 +186,150 @@ private fun LucroDoPeriodo(e: RelatoriosUiState) {
             )
             SeloTexto("${r.qtdCorridas} corridas", Lima)
         }
-        ValorComCentavos(
-            r.lucroLiquidoCentavos.emReais(), 30.sp,
-            cor = if (r.lucroLiquidoCentavos >= 0) TextoPrincipal else VermelhoPrejuizo
-        )
-        Text(
-            "${r.faturamentoCentavos.emReais()} faturado · " + String.format(PT, "%.0f km", r.kmRodados),
-            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-        )
-        if (e.lucroPorDia.size > 1) {
-            val valores = e.lucroPorDia.map { it.second / 100f }
-            val passo = when {
-                e.lucroPorDia.size <= 7 -> 1
-                e.lucroPorDia.size <= 15 -> 2
-                else -> 5
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ValorComCentavos(lucro.emReais(), 32.sp, cor = if (lucro >= 0) TextoPrincipal else VermelhoPrejuizo)
+            if (meta > 0) {
+                Text(
+                    "de ${meta.emReaisInteiros()}",
+                    style = MaterialTheme.typography.bodyMedium, color = TextoSecundario,
+                    modifier = Modifier.padding(bottom = 5.dp)
+                )
             }
-            val rotulos = e.lucroPorDia.mapIndexed { i, (d, _) ->
-                when {
-                    e.periodo == PeriodoRelatorio.SEMANAL -> LETRA_DO_DIA[d.dayOfWeek.value - 1]
-                    i % passo == 0 || i == e.lucroPorDia.lastIndex -> d.dayOfMonth.toString()
-                    else -> ""
-                }
+        }
+        if (meta > 0) {
+            BarraMeta(lucro.toFloat() / meta, Modifier.padding(top = 4.dp))
+            Row(Modifier.fillMaxWidth()) {
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(color = Lima, fontWeight = FontWeight.Bold)) {
+                            append("${(lucro.coerceAtLeast(0) * 100 / meta)}%")
+                        }
+                        append(
+                            " da meta " + when (e.periodo) {
+                                PeriodoRelatorio.DIARIO -> "do dia"
+                                PeriodoRelatorio.SEMANAL -> "da semana"
+                                PeriodoRelatorio.MENSAL -> "do mês"
+                                PeriodoRelatorio.ANUAL -> "do ano"
+                            }
+                        )
+                    },
+                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    if (lucro >= meta) "meta batida 🎉" else "faltam ${(meta - lucro).emReais()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (lucro >= meta) Lima else TextoSecundario
+                )
             }
-            val melhor = e.lucroPorDia.indices.maxByOrNull { e.lucroPorDia[it].second } ?: -1
-            GraficoBarras(
-                valores = valores, rotulos = rotulos, altura = 120.dp,
-                destaque = melhor, modifier = Modifier.padding(top = 6.dp)
+        } else {
+            Text(
+                "${r.faturamentoCentavos.emReais()} faturado · " + String.format(PT, "%.0f km", r.kmRodados),
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
             )
+        }
+
+        if (e.periodo != PeriodoRelatorio.DIARIO) {
+            val serie = SerieDoGrafico.montar(e.periodo, e.lucroPorDia, e.metaDiaria, e.metaMensal, LocalDate.now())
+            if (serie.vazia) {
+                SemCorrida(
+                    when (e.periodo) {
+                        PeriodoRelatorio.ANUAL -> "Nenhuma corrida registrada no ano"
+                        PeriodoRelatorio.MENSAL -> "Nenhuma corrida registrada no mês"
+                        else -> "Nenhuma corrida registrada na semana"
+                    }
+                )
+            } else {
+                GraficoComMeta(serie, Modifier.padding(top = 10.dp))
+                Text(
+                    if (serie.metaPorBarra > 0) {
+                        if (e.periodo == PeriodoRelatorio.ANUAL) "■ mês que bateu a meta · o mês atual ainda está em andamento"
+                        else "■ dia que bateu a meta do dia"
+                    } else "Defina a meta em Menu ▸ Meu veículo e custos para ver a linha da meta.",
+                    fontSize = 11.sp, color = TextoSecundario
+                )
+            }
         }
     }
 }
+
+/**
+ * Barras com a linha tracejada da meta: a barra que passou da meta fica acesa,
+ * a que não passou fica apagada, e a que ainda está correndo (hoje, mês atual)
+ * fica pontilhada. Negativo desce em vermelho.
+ */
+@Composable
+private fun GraficoComMeta(s: SerieDoGrafico, modifier: Modifier = Modifier) {
+    val acesa = Lima
+    val apagada = Lima.copy(alpha = 0.35f)
+    val vazia = SuperficieMaisAlta
+    val vermelho = VermelhoPrejuizo
+    val corMeta = AmareloAlerta
+    val medidor = rememberTextMeasurer()
+    val estiloMeta = TextStyle(color = corMeta, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+    Column(modifier.fillMaxWidth()) {
+        Canvas(Modifier.fillMaxWidth().height(120.dp)) {
+            val maior = maxOf(s.valores.maxOrNull() ?: 0L, s.metaPorBarra, 1L).toFloat()
+            val n = s.valores.size
+            val vao = 5.dp.toPx()
+            val largura = (size.width - vao * (n - 1)) / n
+            val alturaUtil = size.height - 14.dp.toPx()     // espaço para o texto da meta
+            s.valores.forEachIndexed { i, v ->
+                val x = i * (largura + vao)
+                val h = (kotlin.math.abs(v) / maior * alturaUtil).coerceAtLeast(3.dp.toPx())
+                val cor = when {
+                    v == 0L -> vazia
+                    v < 0 -> vermelho
+                    s.metaPorBarra > 0 && v >= s.metaPorBarra -> acesa
+                    s.metaPorBarra > 0 -> apagada
+                    else -> acesa
+                }
+                val topo = Offset(x, size.height - h)
+                if (i == s.emAndamento && v > 0 && (s.metaPorBarra == 0L || v < s.metaPorBarra)) {
+                    // Ainda correndo: contorno pontilhado em vez de barra cheia.
+                    drawRoundRect(acesa.copy(alpha = 0.15f), topo, Size(largura, h), CornerRadius(5.dp.toPx()))
+                    drawRoundRect(
+                        acesa, topo, Size(largura, h), CornerRadius(5.dp.toPx()),
+                        style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f)))
+                    )
+                } else {
+                    drawRoundRect(cor, topo, Size(largura, h), CornerRadius(5.dp.toPx()))
+                }
+            }
+            if (s.metaPorBarra > 0) {
+                val y = size.height - s.metaPorBarra / maior * alturaUtil
+                drawLine(
+                    corMeta.copy(alpha = 0.8f), Offset(0f, y), Offset(size.width, y),
+                    strokeWidth = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f))
+                )
+                val texto = medidor.measure("meta " + s.metaPorBarra.emReaisInteiros(), estiloMeta)
+                drawText(texto, topLeft = Offset(size.width - texto.size.width, (y - texto.size.height - 2.dp.toPx()).coerceAtLeast(0f)))
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            s.rotulos.forEach { r ->
+                Text(r, fontSize = 10.sp, color = TextoSecundario, textAlign = TextAlign.Center, modifier = Modifier.weight(1f), maxLines = 1)
+            }
+        }
+    }
+}
+
+/** No lugar do gráfico vazio: barrinhas apagadas e o aviso por cima. */
+@Composable
+private fun SemCorrida(texto: String) {
+    Box(
+        Modifier.fillMaxWidth().padding(top = 10.dp).height(90.dp).clip(RoundedCornerShape(12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(12) { Box(Modifier.weight(1f).fillMaxHeight().background(SuperficieAlta.copy(alpha = 0.6f))) }
+        }
+        Text(texto, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+    }
+}
+
+/** "R$ 1.200" — meta em reais inteiros: centavo de meta não ajuda ninguém. */
+private fun Long.emReaisInteiros(): String = "R$ " + String.format(PT, "%,d", this / 100)
 
 /** Segunda = S, terça = T... (java.time: segunda é 1). */
 private val LETRA_DO_DIA = listOf("S", "T", "Q", "Q", "S", "S", "D")
