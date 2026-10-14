@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#4CC9F0;--verm:#FF5252;--amar:#FFC94D;--turq:#2DE2C5;--roxo:#BC8CFF;--lar:#F97316;--azul:#58A6FF;--txt:#fff;--sec:#8B949E;--cont:#21262D}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05070a;font-family:Inter,sans-serif;color:var(--txt);padding:40px 30px;width:1820px}
+h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
+.sub{color:var(--sec);font-size:16px;margin-bottom:30px}
+.linha{display:flex;gap:34px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:14px}
+.rot{font-weight:700;font-size:18px;height:56px}.rot small{display:block;color:var(--sec);font-weight:400;font-size:13px;margin-top:4px;max-width:400px}
+.cel{width:400px;height:840px;border-radius:44px;background:var(--fundo);border:10px solid #1e232b;overflow:hidden;position:relative;box-shadow:0 30px 60px #0008}
+.sb{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:13px;color:var(--sec);font-weight:600}
+.pad{padding:10px 18px}
+.num{font-variant-numeric:tabular-nums}.sg{font-family:'Space Grotesk';font-weight:700}
+.card{background:var(--card);border-radius:20px;padding:14px;margin-bottom:10px}
+.dest{background:linear-gradient(135deg,#132536,#161C24 60%)}
+.lbl{font-size:11px;letter-spacing:1.2px;color:var(--sec);font-weight:600;text-transform:uppercase}
+.row{display:flex;align-items:center;gap:10px}
+.ico{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.qd{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chip{padding:5px 10px;border-radius:20px;background:var(--alto);color:var(--sec);font-size:12px;font-weight:600}
+.btn{background:var(--lucro);color:#04131b;font-weight:800;text-align:center;padding:14px;border-radius:14px}
+.btn2{background:var(--alto);color:#fff;font-weight:600;text-align:center;padding:14px;border-radius:14px}
+.item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--cont)}.item:last-child{border:0}
+.campo{background:var(--alto);border-radius:14px;padding:10px 14px;margin-top:8px}
+.campo .l{font-size:11px;color:var(--sec)}.campo .v{font-size:20px;margin-top:2px}
+.nav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:12px 0 18px;background:var(--card);border-top:1px solid var(--cont)}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sec)}.nav .on{color:var(--lucro)}
+.passos{display:flex;gap:6px;margin:6px 0 12px}
+.passo{flex:1;text-align:center}
+.passo .b{width:34px;height:34px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;background:var(--alto);color:var(--sec)}
+.passo.ok .b{background:#122a40;color:var(--lucro)}
+.passo.at .b{background:var(--lucro);color:#04131b}
+.passo span{display:block;font-size:10px;color:var(--sec);margin-top:4px}.passo.at span{color:#fff;font-weight:700}
+.tile{flex:1;background:var(--alto);border-radius:16px;padding:14px 8px;text-align:center;border:2px solid transparent}
+.tile.on{border-color:var(--lucro);background:#122a40}
+.tile .t{font-size:13px;font-weight:600;margin-top:6px}
+.vivo{position:absolute;left:14px;right:14px;bottom:86px;background:#0f1a26;border:1px solid #4CC9F044;border-radius:16px;padding:10px 14px}
+.antes{background:#2b1d1d;color:#ff8a8a;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;margin-left:6px}
+</style></head><body>
+<h1>MotoristaPro · "Meu veículo e custos" no visual novo</h1>
+<div class="sub">Desenho para aprovar antes de mexer no app. Valores de exemplo (Fan 160, 35 km/L, gasolina R$ 6,89).</div>
+<div class="linha">
+
+<!-- 1 RESUMO -->
+<div class="col">
+<div class="rot">1 · Meu veículo e custos<small>De onde vem o custo de cada km, numa barra colorida. Veículo, metas e custos fixos em cartões curtos</small></div>
+<div class="cel">
+ <div class="sb"><span>16:21</span><span>97%</span></div>
+ <div class="pad">
+  <div class="row" style="margin-bottom:12px"><svg class="ico" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg><div style="font-size:21px;font-weight:800">Meu veículo e custos</div></div>
+  <div class="card dest">
+   <div class="lbl">Seu custo por km</div>
+   <div class="sg num" style="font-size:42px">R$ 0,30<span style="font-size:20px;color:var(--sec)"> /km</span></div>
+   <div style="font-size:12px;color:var(--sec);margin-top:2px">É o que o app desconta de cada corrida para mostrar o lucro.</div>
+   <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin:12px 0 10px"><i style="flex:19;background:var(--lar)"></i><i style="flex:6;background:var(--azul)"></i><i style="flex:5;background:var(--roxo)"></i></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px">
+    <div><span style="color:var(--lar)">●</span> Combustível<div class="sg num" style="font-size:15px">0,19</div></div>
+    <div><span style="color:var(--azul)">●</span> Manutenção<div class="sg num" style="font-size:15px">0,06</div></div>
+    <div><span style="color:var(--roxo)">●</span> Fixos<div class="sg num" style="font-size:15px">0,05</div></div>
+   </div>
+  </div>
+  <div class="card row">
+   <div class="qd" style="background:#0f2236;color:var(--azul);width:46px;height:46px;border-radius:14px"><svg class="ico" style="width:26px;height:26px" viewBox="0 0 24 24"><circle cx="5.5" cy="17" r="3"/><circle cx="18.5" cy="17" r="3"/><path d="M5.5 17l4-7h5l4 7M9.5 10L8 6H5M14.5 10l1.5-4h3"/></svg></div>
+   <div style="flex:1"><div style="font-weight:700">Fan 160 2021</div>
+    <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap"><span class="chip">Moto</span><span class="chip">Gasolina</span><span class="chip">35 km/L</span><span class="chip">Quitada</span></div></div>
+   <span style="color:var(--sec)">›</span>
+  </div>
+  <div class="card">
+   <div class="row" style="justify-content:space-between;margin-bottom:8px"><div class="lbl">Suas metas de lucro</div><span style="font-size:12px;color:var(--lucro);font-weight:600">Editar</span></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+    <div style="background:var(--alto);border-radius:12px;padding:9px;text-align:center"><div class="lbl" style="font-size:9px">Por dia</div><div class="sg num" style="font-size:17px;color:var(--lucro)">200</div></div>
+    <div style="background:var(--alto);border-radius:12px;padding:9px;text-align:center"><div class="lbl" style="font-size:9px">Semana</div><div class="sg num" style="font-size:17px">1.200</div></div>
+    <div style="background:var(--alto);border-radius:12px;padding:9px;text-align:center"><div class="lbl" style="font-size:9px">Mês</div><div class="sg num" style="font-size:17px">5.000</div></div>
+   </div>
+   <div style="font-size:11px;color:var(--sec);margin-top:8px">26 dias por mês · a meta do dia é a barra do Início</div>
+  </div>
+  <div class="card" style="padding:4px 14px">
+   <div class="item"><div class="qd" style="background:#0f2a27;color:var(--turq)"><svg class="ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div style="flex:1;font-size:14px;font-weight:600">IPVA<div style="font-size:11px;color:var(--sec);font-weight:400">2% do valor · por ano</div></div><div class="sg num">50,00<span style="font-size:11px;color:var(--sec)">/mês</span></div></div>
+   <div class="item"><div class="qd" style="background:#261c3a;color:var(--roxo)"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div><div style="flex:1;font-size:14px;font-weight:600;color:var(--lucro)">Adicionar custo fixo</div></div>
+  </div>
+ </div>
+ <div class="nav"><div>⌂<span>Início</span></div><div>☰<span>Corridas</span></div><div>▭<span>Finanças</span></div><div>⌇<span>Atividade</span></div><div class="on">●<span>Menu</span></div></div>
+</div></div>
+
+<!-- 2 PASSO 1 -->
+<div class="col">
+<div class="rot">2 · Assistente — passo 1<small>5 passos com ícone e nome (hoje o passo 1 se chama "Custos fixos" mas pergunta o veículo). Escolhas em blocos grandes</small></div>
+<div class="cel">
+ <div class="sb"><span>16:21</span><span>97%</span></div>
+ <div class="pad">
+  <div class="row" style="justify-content:space-between"><svg class="ico" style="color:var(--sec)" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg><span style="font-size:13px;color:var(--sec)">Passo 1 de 5</span></div>
+  <div class="passos">
+   <div class="passo at"><div class="b"><svg class="ico" viewBox="0 0 24 24"><circle cx="5.5" cy="17" r="3"/><circle cx="18.5" cy="17" r="3"/><path d="M5.5 17l4-7h5l4 7"/></svg></div><span>Veículo</span></div>
+   <div class="passo"><div class="b"><svg class="ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span>Fixos</span></div>
+   <div class="passo"><div class="b"><svg class="ico" viewBox="0 0 24 24"><path d="M14.7 6.3l3-3a5 5 0 0 1-6 6l-7 7a2 2 0 0 1-3-3l7-7a5 5 0 0 1 6-6z"/></svg></div><span>Manutenção</span></div>
+   <div class="passo"><div class="b"><svg class="ico" viewBox="0 0 24 24"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17M2 22h14M15 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3"/></svg></div><span>Combustível</span></div>
+   <div class="passo"><div class="b"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div><span>Metas</span></div>
+  </div>
+  <div style="font-size:24px;font-weight:800">Qual é o seu veículo?</div>
+  <div style="font-size:13px;color:var(--sec);margin:4px 0 14px">Isso muda o desgaste e a depreciação.</div>
+  <div class="row" style="gap:10px">
+   <div class="tile"><svg class="ico" style="width:30px;height:30px;color:var(--sec)" viewBox="0 0 24 24"><path d="M5 17h14M6 17l1.5-6h9L18 17M7 17v2M17 17v2M4 11h16"/></svg><div class="t">Carro</div></div>
+   <div class="tile on"><svg class="ico" style="width:30px;height:30px;color:var(--lucro)" viewBox="0 0 24 24"><circle cx="5.5" cy="17" r="3"/><circle cx="18.5" cy="17" r="3"/><path d="M5.5 17l4-7h5l4 7M9.5 10L8 6H5M14.5 10l1.5-4h3"/></svg><div class="t">Moto</div></div>
+  </div>
+  <div class="lbl" style="margin:16px 0 8px">O que você faz</div>
+  <div class="row" style="gap:8px"><span class="chip" style="background:var(--lucro);color:#04131b;padding:8px 14px">Passageiros</span><span class="chip" style="padding:8px 14px">Entregas</span><span class="chip" style="padding:8px 14px">Os dois</span></div>
+  <div class="lbl" style="margin:16px 0 8px">Como conseguiu</div>
+  <div class="row" style="gap:8px"><span class="chip" style="background:var(--lucro);color:#04131b;padding:8px 14px">Quitado</span><span class="chip" style="padding:8px 14px">Financiado</span><span class="chip" style="padding:8px 14px">Alugado</span></div>
+  <div class="campo" style="margin-top:16px"><div class="l">Nome do veículo</div><div class="v">Fan 160 2021</div></div>
+  <div class="campo"><div class="l">Valor na tabela FIPE</div><div class="v sg num">R$ 15.000</div></div>
+ </div>
+ <div class="vivo row"><div style="flex:1"><div class="lbl" style="font-size:9px">Seu custo até aqui</div><div class="sg num" style="font-size:20px;color:var(--lucro)">R$ 0,02 /km</div></div><div style="font-size:11px;color:var(--sec);text-align:right">atualiza<br>enquanto digita</div></div>
+ <div style="position:absolute;left:14px;right:14px;bottom:18px" class="btn">Continuar</div>
+</div></div>
+
+<!-- 3 PASSO COMBUSTIVEL -->
+<div class="col">
+<div class="rot">3 · Assistente — combustível<small>Cada passo mostra quanto ele soma no custo por km, grande e no topo — não escondido no rodapé</small></div>
+<div class="cel">
+ <div class="sb"><span>16:21</span><span>97%</span></div>
+ <div class="pad">
+  <div class="row" style="justify-content:space-between"><svg class="ico" style="color:var(--sec)" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg><span style="font-size:13px;color:var(--sec)">Passo 4 de 5</span></div>
+  <div class="passos">
+   <div class="passo ok"><div class="b">✓</div><span>Veículo</span></div>
+   <div class="passo ok"><div class="b">✓</div><span>Fixos</span></div>
+   <div class="passo ok"><div class="b">✓</div><span>Manutenção</span></div>
+   <div class="passo at"><div class="b"><svg class="ico" viewBox="0 0 24 24"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17M2 22h14M15 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3"/></svg></div><span>Combustível</span></div>
+   <div class="passo"><div class="b"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div><span>Metas</span></div>
+  </div>
+  <div class="card dest row" style="margin-bottom:14px">
+   <div class="qd" style="background:#33210f;color:var(--lar);width:44px;height:44px"><svg class="ico" viewBox="0 0 24 24"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17M2 22h14M15 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3"/></svg></div>
+   <div style="flex:1"><div class="lbl">Combustível por km</div><div class="sg num" style="font-size:28px">R$ 0,19</div></div>
+   <div style="font-size:11px;color:var(--sec);text-align:right">6,89 ÷ 35</div>
+  </div>
+  <div class="lbl" style="margin-bottom:8px">Tipo</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+   <span class="chip" style="background:var(--lucro);color:#04131b;padding:10px;text-align:center">Gasolina</span><span class="chip" style="padding:10px;text-align:center">Etanol</span><span class="chip" style="padding:10px;text-align:center">Diesel</span>
+   <span class="chip" style="padding:10px;text-align:center">GNV</span><span class="chip" style="padding:10px;text-align:center">Elétrico</span><span class="chip" style="padding:10px;text-align:center">Híbrido</span>
+  </div>
+  <div class="campo" style="margin-top:14px"><div class="l">Preço do litro</div><div class="v sg num">R$ 6,89</div></div>
+  <div class="campo"><div class="l">Quantos km faz com 1 litro (no seu uso)</div>
+   <div class="row" style="margin-top:6px"><div class="v sg num" style="width:56px">35</div>
+    <div style="flex:1;height:8px;border-radius:5px;background:var(--mais);position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:62%;background:var(--lucro);border-radius:5px"></i><i style="position:absolute;left:62%;top:-6px;width:20px;height:20px;border-radius:50%;background:#fff;margin-left:-10px"></i></div></div>
+   <div style="font-size:11px;color:var(--sec);margin-top:6px">Moto 160 costuma fazer de 30 a 40 km/L</div>
+  </div>
+ </div>
+ <div class="vivo row"><div style="flex:1"><div class="lbl" style="font-size:9px">Seu custo até aqui</div><div class="sg num" style="font-size:20px;color:var(--lucro)">R$ 0,30 /km</div></div>
+  <div style="display:flex;height:8px;width:110px;border-radius:4px;overflow:hidden;gap:2px"><i style="flex:19;background:var(--lar)"></i><i style="flex:6;background:var(--azul)"></i><i style="flex:5;background:var(--roxo)"></i></div></div>
+ <div style="position:absolute;left:14px;right:14px;bottom:18px;display:flex;gap:10px"><div class="btn2" style="width:90px">Voltar</div><div class="btn" style="flex:1">Continuar</div></div>
+</div></div>
+
+<!-- 4 RESULTADO -->
+<div class="col">
+<div class="rot">4 · Resultado<small>O número final grande, a conta da meta em linguagem simples e um botão para usar no semáforo</small></div>
+<div class="cel" style="background:radial-gradient(circle at 50% 18%,#123354,#0D1117 55%)">
+ <div class="sb"><span>16:22</span><span>97%</span></div>
+ <div class="pad" style="text-align:center;padding-top:26px">
+  <div style="width:72px;height:72px;margin:0 auto;border-radius:50%;background:#122a40;border:3px solid var(--lucro);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" style="width:36px;height:36px;stroke:var(--lucro);fill:none;stroke-width:2.4;stroke-linecap:round"><path d="M20 6L9 17l-5-5"/></svg></div>
+  <div class="lbl" style="margin-top:16px">Seu custo real</div>
+  <div class="sg num" style="font-size:54px;color:var(--lucro)">R$ 0,30<span style="font-size:22px;color:var(--sec)">/km</span></div>
+  <div style="font-size:13px;color:var(--sec)">R$ 1.950 por mês para rodar 6.495 km</div>
+ </div>
+ <div class="pad">
+  <div class="card" style="margin-top:6px">
+   <div class="lbl" style="margin-bottom:8px">De onde vem</div>
+   <div class="row" style="font-size:13px;margin-bottom:7px"><span style="color:var(--lar)">●</span><span style="flex:1">Combustível</span><span class="sg num">0,19</span><span style="color:var(--sec);width:38px;text-align:right">63%</span></div>
+   <div class="row" style="font-size:13px;margin-bottom:7px"><span style="color:var(--azul)">●</span><span style="flex:1">Manutenção e pneus</span><span class="sg num">0,06</span><span style="color:var(--sec);width:38px;text-align:right">20%</span></div>
+   <div class="row" style="font-size:13px"><span style="color:var(--roxo)">●</span><span style="flex:1">IPVA e fixos</span><span class="sg num">0,05</span><span style="color:var(--sec);width:38px;text-align:right">17%</span></div>
+  </div>
+  <div class="card" style="background:#0f1a26">
+   <div style="font-size:14px;line-height:1.5">Para levar <b>R$ 200 por dia</b> rodando 250 km, aceite corridas a partir de <b style="color:var(--lucro)">R$ 1,10/km</b>.</div>
+   <div style="font-size:11px;color:var(--sec);margin-top:6px">R$ 0,30 de custo + R$ 0,80 de lucro por km</div>
+  </div>
+ </div>
+ <div style="position:absolute;left:14px;right:14px;bottom:76px" class="btn">Usar R$ 1,10/km no semáforo</div>
+ <div style="position:absolute;left:14px;right:14px;bottom:18px" class="btn2">Revisar os valores</div>
+</div></div>
+
+</div></body></html>
