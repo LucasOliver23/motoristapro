@@ -1,5 +1,8 @@
 package com.motoristapro.ui.corridas
 
+import com.motoristapro.ui.componentes.Segmentado
+import com.motoristapro.ui.componentes.CorSobreDestaque
+import com.motoristapro.ui.componentes.chaveDaMarca
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.TextButton
@@ -736,8 +739,9 @@ private fun LinhaEndereco(marca: String, texto: String, cor: Color, onVerNoMapa:
 private val FORMATO_DIA_CURTO = DateTimeFormatter.ofPattern("EEE", PT)
 
 /**
- * A fita do topo: os últimos 7 dias em pílulas (o de hoje escrito HOJE) e,
- * rolando para o lado, Semana / Mês / 30 dias. Um toque escolhe o período.
+ * A fita do topo: HOJE primeiro, à esquerda, e os 6 dias anteriores; rolando
+ * para o lado, Semana / Mês / 30 dias. Um toque escolhe o período.
+ * (Hoje no fim ficava fora da tela: era o dia mais usado e o mais escondido.)
  */
 @Composable
 private fun FitaDePilulas(
@@ -747,7 +751,7 @@ private fun FitaDePilulas(
     onPeriodo: (FiltroPeriodo) -> Unit
 ) {
     val hoje = LocalDate.now()
-    val dias = (6 downTo 0).map { hoje.minusDays(it.toLong()) }
+    val dias = (0..6).map { hoje.minusDays(it.toLong()) }
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -770,30 +774,90 @@ private fun FitaDePilulas(
     }
 }
 
-/** Todas / Aceitas / Recusadas e, na mesma linha, um filtro por app. */
+/**
+ * Os apps pelo LOGO, sempre os quatro (mesmo sem oferta no dia: fila que muda
+ * de tamanho obriga a reaprender onde fica cada um) e, embaixo, Todas /
+ * Aceitas / Recusadas contando só o app escolhido.
+ */
 @Composable
 private fun FiltrosDaLista(
     ofertas: OfertasUiState,
     onAceite: (FiltroAceite) -> Unit,
     onPlataforma: (String?) -> Unit
 ) {
+    val marcas = (MARCAS_CONHECIDAS + ofertas.plataformasVistas).distinct()
+    val escolhida = ofertas.plataforma
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Pilula("Todas", ofertas.aceite == FiltroAceite.TODAS && ofertas.plataforma == null) {
-            onAceite(FiltroAceite.TODAS)
-            if (ofertas.plataforma != null) onPlataforma(ofertas.plataforma)
+        LogoFiltro(
+            nome = "Todos", marca = null, quantas = 0,
+            selecionado = escolhida == null, apagado = false
+        ) { if (escolhida != null) onPlataforma(escolhida) }
+        marcas.forEach { marca ->
+            LogoFiltro(
+                nome = nomeDaMarca(marca), marca = marca,
+                quantas = ofertas.todas.count { chaveDaMarca(it.plataforma) == marca },
+                selecionado = escolhida == marca,
+                apagado = escolhida != null && escolhida != marca
+            ) { onPlataforma(marca) }
         }
-        Pilula("Aceitas ${ofertas.qtdAceitas}", ofertas.aceite == FiltroAceite.ACEITAS) {
-            onAceite(if (ofertas.aceite == FiltroAceite.ACEITAS) FiltroAceite.TODAS else FiltroAceite.ACEITAS)
+    }
+    val doApp = ofertas.todas.filter { escolhida == null || chaveDaMarca(it.plataforma) == escolhida }
+    val aceitas = doApp.count { it.registrada }
+    Segmentado(
+        opcoes = listOf("Todas ${doApp.size}", "Aceitas $aceitas", "Recusadas ${doApp.size - aceitas}"),
+        selecionado = ofertas.aceite.ordinal
+    ) { onAceite(FiltroAceite.entries[it]) }
+}
+
+/** Um logo da fila de filtro: borda azul quando escolhido, apagado quando outro foi escolhido. */
+@Composable
+private fun LogoFiltro(
+    nome: String,
+    marca: String?,
+    quantas: Int,
+    selecionado: Boolean,
+    apagado: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        Modifier.width(62.dp).alpha(if (apagado) 0.35f else 1f).clip(RoundedCornerShape(14.dp))
+            .clickable { onClick() }.padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box {
+            Box(
+                Modifier.size(50.dp).clip(RoundedCornerShape(15.dp))
+                    .border(2.dp, if (selecionado) Lima else Color.Transparent, RoundedCornerShape(15.dp))
+                    .padding(2.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (marca == null) {
+                    Box(
+                        Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)).background(SuperficieAlta),
+                        contentAlignment = Alignment.Center
+                    ) { Text("Todos", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold) }
+                } else {
+                    LogoPlataforma(marca, tamanho = 44.dp)
+                }
+            }
+            if (quantas > 0) {
+                Text(
+                    "$quantas",
+                    modifier = Modifier.align(Alignment.TopEnd).clip(RoundedCornerShape(9.dp)).background(Lima)
+                        .padding(horizontal = 5.dp),
+                    color = CorSobreDestaque, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold
+                )
+            }
         }
-        Pilula("Recusadas ${ofertas.qtdRecusadas}", ofertas.aceite == FiltroAceite.RECUSADAS) {
-            onAceite(if (ofertas.aceite == FiltroAceite.RECUSADAS) FiltroAceite.TODAS else FiltroAceite.RECUSADAS)
-        }
-        ofertas.plataformasVistas.forEach { marca ->
-            Pilula(nomeDaMarca(marca), ofertas.plataforma == marca) { onPlataforma(marca) }
-        }
+        Text(
+            nome, fontSize = 11.sp, maxLines = 1,
+            color = if (selecionado) TextoPrincipal else TextoSecundario,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
