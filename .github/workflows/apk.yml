@@ -81,7 +81,13 @@ jobs:
           REPO="${{ github.repository }}"
           TAG="v${{ steps.versao.outputs.nome }}"
           ARQ="MotoristaPro-${{ steps.versao.outputs.nome }}.apk"
-          NOTAS=$(git log -1 --pretty=%s | sed 's/"/\\"/g')
+          # Em merge de pull request o assunto e "Merge pull request #N...";
+          # o titulo de verdade (o que vai no aviso do app) e a 1a linha do corpo.
+          NOTAS=$(git log -1 --pretty=%s)
+          case "$NOTAS" in
+            "Merge pull request"*) NOTAS=$(git log -1 --pretty=%b | head -n 1) ;;
+          esac
+          NOTAS=$(printf '%s' "$NOTAS" | sed 's/"/\\"/g')
 
           cat > publicar/versao.json <<FIM
           {

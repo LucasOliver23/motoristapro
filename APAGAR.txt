@@ -1,21 +1,15 @@
-NADA PARA APAGAR NESTA VERSAO (4.0.0)
+NADA PARA APAGAR NESTA VERSAO (4.0.1)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Visual novo, parte 3: as telas com o FORMATO das previas (mockups/),
-nao so a cor. Tema escuro aplicado uma vez (volta em Menu > Aparencia).
+Atualizacao automatica: ao abrir o app ele procura versao nova no GitHub
+sozinho (no maximo a cada 10 min) e mostra o aviso "Atualizar agora".
 
 Arquivos NOVOS (copiar):
-  app/src/main/java/com/motoristapro/ui/componentes/VisualNovo.kt
+  app/src/main/java/com/motoristapro/atualizacao/AvisoAtualizacao.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/ui/theme/Tema.kt
-  app/src/main/java/com/motoristapro/ui/componentes/Componentes.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt
-  app/src/main/java/com/motoristapro/ui/corridas/CorridasViewModel.kt
-  app/src/main/java/com/motoristapro/ui/financas/FinancasScreen.kt
-  app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/MainActivity.kt
+  .github/workflows/apk.yml
