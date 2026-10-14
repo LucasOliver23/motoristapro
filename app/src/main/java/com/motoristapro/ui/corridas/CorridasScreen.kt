@@ -1,5 +1,6 @@
 package com.motoristapro.ui.corridas
 
+import com.motoristapro.ui.theme.EstiloValor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -532,8 +533,7 @@ private fun NumeroDaLista(rotulo: String, valor: String, cor: Color?, modifier: 
     ) {
         Text(
             valor,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleSmall.merge(EstiloValor),
             color = cor ?: MaterialTheme.colorScheme.onSurface,
             maxLines = 1
         )
@@ -590,7 +590,7 @@ private fun OfertaItem(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             o.valorCentavos.emReais(),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium.merge(EstiloValor),
                             fontWeight = FontWeight.Bold
                         )
                         Text(

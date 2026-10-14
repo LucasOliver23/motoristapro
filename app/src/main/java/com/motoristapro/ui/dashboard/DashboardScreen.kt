@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,6 +74,17 @@ import com.motoristapro.ui.componentes.CardPro
 import com.motoristapro.ui.NavegacaoRapida
 import com.motoristapro.ui.mais.AtalhoRedondo
 import com.motoristapro.ui.mais.SubTela
+import com.motoristapro.ui.componentes.Icones
+import com.motoristapro.ui.theme.AzulInfo
+import com.motoristapro.ui.theme.EstiloValor
+import com.motoristapro.ui.theme.Roxo
+import com.motoristapro.ui.theme.SuperficieAlta
+import com.motoristapro.ui.theme.TextoPrincipal
+import com.motoristapro.ui.theme.Turquesa
+import androidx.compose.foundation.background
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 
 private val FORMATO_DIA = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
 
@@ -98,6 +110,8 @@ fun DashboardRoute(
     val leitorOk by vm.leitorConectado.collectAsStateWithLifecycle()
     val gpsOk by vm.gpsRodando.collectAsStateWithLifecycle()
     val plataformas by vm.plataformas.collectAsStateWithLifecycle()
+    val sequencia by vm.sequencia.collectAsStateWithLifecycle()
+    val contexto = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
     var dialogDespesa by rememberSaveable { mutableStateOf<CategoriaDespesa?>(null) }
@@ -113,6 +127,17 @@ fun DashboardRoute(
     }
     LaunchedEffect(Unit) { vm.mensagens.collect { snackbar.showSnackbar(it) } }
 
+    // Comemoração: uma vez por dia, na hora em que o lucro passa da meta.
+    var comemorar by rememberSaveable { mutableStateOf(false) }
+    val bateuMeta = !estado.carregando && estado.config.metaLucroDiarioCentavos > 0 &&
+        estado.resumo.lucroLiquidoCentavos >= estado.config.metaLucroDiarioCentavos
+    LaunchedEffect(bateuMeta, estado.dia) {
+        if (bateuMeta && !ComemoracaoMetaPrefs.jaComemorou(contexto, estado.dia)) {
+            ComemoracaoMetaPrefs.marcar(contexto, estado.dia)
+            comemorar = true
+        }
+    }
+
     // Localização (+ notificações no Android 13+) antes de iniciar o turno.
     val permissoes = remember {
         buildList {
@@ -125,6 +150,16 @@ fun DashboardRoute(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { resultado ->
         vm.iniciarJornada(comGps = resultado[Manifest.permission.ACCESS_FINE_LOCATION] == true)
+    }
+
+    // Botão "Iniciar jornada" do widget: espera o Início carregar e segue o
+    // mesmo caminho do botão da tela (pede a localização e abre o turno).
+    val pedidoWidget by NavegacaoRapida.iniciarJornadaPedido.collectAsStateWithLifecycle()
+    LaunchedEffect(pedidoWidget, estado.carregando) {
+        if (pedidoWidget && !estado.carregando) {
+            NavegacaoRapida.iniciarJornadaPedido.value = false
+            if (estado.jornada == null) pedirPermissoes.launch(permissoes)
+        }
     }
 
     // O cabeçalho fala com a pessoa, não com o app: "Olá, Lucas" e, do lado, o
@@ -151,7 +186,7 @@ fun DashboardRoute(
                 // A ORDEM da tela é a ordem da pergunta do motorista: quanto
                 // sobrou hoje, de onde veio, registrar o que acabou de rolar e,
                 // por último, o relógio — que é para olhar, não para tocar.
-                LucroDoDia(estado, onVerFinancas = { irPara(Aba.FINANCAS) })
+                LucroDoDia(estado, agora, onVerFinancas = { irPara(Aba.FINANCAS) })
 
                 QuatroNumeros(estado)
 
@@ -167,14 +202,14 @@ fun DashboardRoute(
                 // únicos que o motorista mexe de verdade depois de configurar.
                 CardPro {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        AtalhoRedondo("🚦", "Semáforo\nde valores", Modifier.weight(1f)) {
+                        AtalhoRedondo(Icones.Semaforo, "Semáforo\nde valores", AmareloAlerta, Modifier.weight(1f)) {
                             irParaAjuste(SubTela.SEMAFORO, irPara)
                         }
-                        AtalhoRedondo("🚘", "Meu veículo\ne custos", Modifier.weight(1f)) {
+                        AtalhoRedondo(Icones.Veiculo, "Meu veículo\ne custos", AzulInfo, Modifier.weight(1f)) {
                             irParaAjuste(SubTela.VEICULO, irPara)
                         }
                         AtalhoRedondo(
-                            "🩺", "Checkup\ndo app", Modifier.weight(1f),
+                            Icones.Checkup, "Checkup\ndo app", Roxo, Modifier.weight(1f),
                             cor = if (leitorOk) null else VermelhoPrejuizo
                         ) {
                             irParaAjuste(SubTela.CHECKUP, irPara)
@@ -195,6 +230,17 @@ fun DashboardRoute(
                 Spacer(Modifier.height(8.dp))
             }
         }
+    }
+
+    if (comemorar) {
+        ComemoracaoMeta(
+            lucroCentavos = estado.resumo.lucroLiquidoCentavos,
+            segundosRodados = estado.jornadasEncerradas.segundos + (estado.jornada?.segundosRodando(agora) ?: 0),
+            sequencia = sequencia,
+            turnoAberto = estado.jornada != null,
+            onContinuar = { comemorar = false },
+            onEncerrar = { comemorar = false; vm.encerrarJornada() }
+        )
     }
 
     dialogDespesa?.let { categoria ->
@@ -221,7 +267,7 @@ fun DashboardRoute(
  * é essa a conta que o app existe para fazer.
  */
 @Composable
-private fun LucroDoDia(e: DashboardUiState, onVerFinancas: () -> Unit) {
+private fun LucroDoDia(e: DashboardUiState, agora: Long, onVerFinancas: () -> Unit) {
     val lucro = e.resumo.lucroLiquidoCentavos
     val cor = if (lucro >= 0) Lima else VermelhoPrejuizo
     CardPro(modifier = Modifier.clickable { onVerFinancas() }) {
@@ -234,10 +280,19 @@ private fun LucroDoDia(e: DashboardUiState, onVerFinancas: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
         )
+        // Centavos menores e apagados: o olho pega os reais primeiro, que é
+        // o que importa de relance. Space Grotesk só aqui, no número do dia.
+        val texto = lucro.emReais()
+        val virgula = texto.lastIndexOf(',')
         Text(
-            lucro.emReais(),
-            fontSize = 40.sp,
-            fontWeight = FontWeight.Bold,
+            buildAnnotatedString {
+                append(texto.substring(0, virgula))
+                withStyle(SpanStyle(fontSize = 26.sp, color = cor.copy(alpha = 0.6f))) {
+                    append(texto.substring(virgula))
+                }
+            },
+            style = EstiloValor,
+            fontSize = 44.sp,
             color = cor,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
@@ -262,6 +317,7 @@ private fun LucroDoDia(e: DashboardUiState, onVerFinancas: () -> Unit) {
                     fontWeight = FontWeight.Bold, color = Lima
                 )
             }
+            QuantoFalta(e, agora)
         } else {
             Text(
                 "Defina sua meta em Menu ▸ Meu veículo e custos.",
@@ -270,6 +326,68 @@ private fun LucroDoDia(e: DashboardUiState, onVerFinancas: () -> Unit) {
         }
     }
 }
+
+/**
+ * A linha "faltam R$ X; no seu ritmo, termina por volta das HHhMM".
+ *
+ * O ritmo usa o tempo de turno SEM as pausas: almoço de uma hora não pode
+ * derrubar o R$/hora e empurrar a previsão para a madrugada.
+ */
+@Composable
+private fun QuantoFalta(e: DashboardUiState, agora: Long) {
+    val jornada = e.jornada
+    val segundosRodados = e.jornadasEncerradas.segundos + (jornada?.segundosRodando(agora) ?: 0)
+    val previsao = PrevisaoMeta.calcular(
+        metaCentavos = e.config.metaLucroDiarioCentavos,
+        lucroCentavos = e.resumo.lucroLiquidoCentavos,
+        segundosRodados = segundosRodados,
+        turnoAndando = jornada != null && !jornada.pausada,
+        agoraMillis = agora
+    ) ?: return
+
+    val negrito = SpanStyle(fontWeight = FontWeight.Bold, color = TextoPrincipal)
+    val mensagem = buildAnnotatedString {
+        when (previsao) {
+            PrevisaoMeta.Batida -> withStyle(negrito) { append("Meta do dia batida! 🎉") }
+            is PrevisaoMeta.Falta -> {
+                append("Faltam ")
+                withStyle(negrito) { append(previsao.faltaCentavos.emReais()) }
+                append(" para a meta.")
+                val ritmo = previsao.ritmoCentavosHora
+                if (ritmo != null) {
+                    append(" No seu ritmo de ")
+                    withStyle(negrito) { append("${ritmo.emReais()}/h") }
+                    val chega = previsao.chegaEmMillis
+                    if (chega != null) {
+                        val hora = Instant.ofEpochMilli(chega).atZone(ZoneId.systemDefault())
+                        append(", termina por volta das ")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Turquesa)) {
+                            append(hora.format(FORMATO_PREVISAO))
+                        }
+                    }
+                    append(".")
+                }
+            }
+        }
+    }
+
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(SuperficieAlta)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            Icones.Relogio, contentDescription = null,
+            tint = if (previsao == PrevisaoMeta.Batida) Lima else Turquesa,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(mensagem, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+    }
+}
+
+/** "17h50": como o motorista fala a hora, sem os dois-pontos de relógio digital. */
+private val FORMATO_PREVISAO = DateTimeFormatter.ofPattern("HH'h'mm")
 
 /**
  * Os quatro números que respondem "como está o dia" sem rolar a tela.

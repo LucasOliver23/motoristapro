@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget "Lucro de hoje". So componentes que o RemoteViews aceita
+  (LinearLayout, TextView, ProgressBar) e fontes do sistema: o desenho
+  roda dentro do app da tela inicial, nao no nosso.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_raiz"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_fundo"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/app_name"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/widget_situacao"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#8B949E"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.1"
+        android:text="@string/widget_lucro_hoje"
+        android:textColor="#8B949E"
+        android:textSize="10sp" />
+
+    <TextView
+        android:id="@+id/widget_valor"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-condensed"
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold" />
+
+    <ProgressBar
+        android:id="@+id/widget_barra"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_marginTop="6dp"
+        android:max="100"
+        android:progressDrawable="@drawable/widget_barra" />
+
+    <TextView
+        android:id="@+id/widget_meta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#8B949E"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/widget_botao"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/widget_botao"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:textColor="#04131B"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</LinearLayout>

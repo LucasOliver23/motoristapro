@@ -111,6 +111,25 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
         .catch { e -> emit(DashboardUiState(carregando = false, erro = "Erro ao ler o banco: ${e.message}")) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
 
+    /**
+     * Dias seguidos batendo a meta, olhando os últimos [DIAS_DE_HISTORICO] dias.
+     * Só a tela de comemoração usa; se o banco falhar, ela aparece sem o cartão do fogo.
+     */
+    val sequencia: StateFlow<SequenciaMeta?> = Periodo.hoje()
+        .flatMapLatest { dia ->
+            val inicio = Periodo.dia(dia.minusDays(DIAS_DE_HISTORICO)).first
+            val fim = Periodo.dia(dia).second
+            combine(repo.lucroDiario(inicio, fim), repo.configuracao()) { dias, cfg ->
+                SequenciaMeta.calcular(
+                    dias.associate { LocalDate.parse(it.dia) to it.lucroLiquidoCentavos },
+                    cfg.metaLucroDiarioCentavos,
+                    dia
+                ) as SequenciaMeta?
+            }
+        }
+        .catch { emit(null) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     val leitorConectado: StateFlow<Boolean> = OfertaAccessibilityService.conectado
     val gpsRodando: StateFlow<Boolean> = JornadaService.rodando
 
@@ -185,6 +204,8 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
     }
 
     companion object {
+        private const val DIAS_DE_HISTORICO = 120L
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 DashboardViewModel(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as MotoristaApp)

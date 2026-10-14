@@ -1,5 +1,15 @@
 package com.motoristapro.ui.financas
 
+import com.motoristapro.ui.theme.EstiloValor
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.motoristapro.ui.componentes.Icones
+import com.motoristapro.ui.componentes.SeloIcone
+import com.motoristapro.ui.theme.Laranja
+import com.motoristapro.ui.theme.AzulInfo
+import com.motoristapro.ui.theme.Roxo
+import com.motoristapro.ui.theme.Turquesa
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -69,23 +79,12 @@ import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.theme.SuperficieAlta
 
-/** O selo de cada categoria de despesa. Um caractere, para achar a linha sem ler. */
-private fun iconeDe(c: CategoriaDespesa): String = when (c) {
-    CategoriaDespesa.COMBUSTIVEL -> "⛽"
-    CategoriaDespesa.MANUTENCAO -> "🔧"
-    CategoriaDespesa.SEGURO -> "🛡"
-    CategoriaDespesa.OUTROS -> "📌"
-}
-
-/** O quadradinho do selo, do mesmo tamanho em toda a aba. */
-@Composable
-private fun Selo(texto: String, modifier: Modifier = Modifier) {
-    Box(
-        modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(SuperficieAlta),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(texto, fontSize = 15.sp)
-    }
+/** O selo de cada categoria de despesa: ícone de traço na cor da categoria. */
+private fun iconeDeTraco(c: CategoriaDespesa): Pair<ImageVector, Color> = when (c) {
+    CategoriaDespesa.COMBUSTIVEL -> Icones.Combustivel to Laranja
+    CategoriaDespesa.MANUTENCAO -> Icones.Chave to AzulInfo
+    CategoriaDespesa.SEGURO -> Icones.Escudo to Turquesa
+    CategoriaDespesa.OUTROS -> Icones.Alfinete to Roxo
 }
 
 private val PT = Locale("pt", "BR")
@@ -132,7 +131,7 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
                 CardSecao(titulo = "RESULTADO DE $nomeDoMes", centralizado = true) {
                     Text(
                         r.lucroLiquidoCentavos.emReais(),
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.displaySmall.merge(EstiloValor),
                         fontWeight = FontWeight.Bold,
                         color = if (r.lucroLiquidoCentavos >= 0) Lima else VermelhoPrejuizo
                     )
@@ -174,15 +173,26 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
                     if (mes.porCategoria.isEmpty()) {
                         Text("Sem despesas neste mês.", color = TextoSecundario)
                     } else {
-                        // Linha com selo, nome e fatia — sem barra. A barra ocupava
-                        // meia tela para dizer o que o "%" já diz em dois dígitos.
+                        // Uma barra fina dividida pelas cores das categorias (o "para
+                        // onde foi o dinheiro" de relance) e, embaixo, a linha de cada uma.
                         val total = mes.porCategoria.sumOf { it.totalCentavos }.coerceAtLeast(1)
+                        Row(
+                            Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            mes.porCategoria.filter { it.totalCentavos > 0 }.forEach { c ->
+                                Box(
+                                    Modifier.weight(c.totalCentavos.toFloat()).fillMaxHeight()
+                                        .background(iconeDeTraco(c.categoria).second)
+                                )
+                            }
+                        }
                         mes.porCategoria.forEach { c ->
                             Row(
                                 Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Selo(iconeDe(c.categoria))
+                                iconeDeTraco(c.categoria).let { (icone, cor) -> SeloIcone(icone, cor) }
                                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                                     Text(c.categoria.rotulo, style = MaterialTheme.typography.bodyMedium)
                                     Text(
@@ -343,7 +353,7 @@ private fun DespesaItem(d: Despesa, onClick: () -> Unit, onExcluir: () -> Unit) 
         colors = CardDefaults.cardColors(containerColor = Superficie)
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Selo(iconeDe(d.categoria), Modifier.padding(end = 12.dp))
+            iconeDeTraco(d.categoria).let { (icone, cor) -> SeloIcone(icone, cor, Modifier.padding(end = 12.dp)) }
             Column(Modifier.weight(1f)) {
                 Text(d.categoria.rotulo, fontWeight = FontWeight.SemiBold)
                 val extra = buildList {

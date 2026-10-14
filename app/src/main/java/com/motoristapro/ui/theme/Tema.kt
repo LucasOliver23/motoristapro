@@ -11,6 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import com.motoristapro.R
 
 /**
  * Paleta: grafite azulado em três camadas (escuro) ou papel em três camadas (claro),
@@ -30,6 +34,12 @@ import androidx.compose.ui.text.TextStyle
 val FundoApp = Color(0xFF0D1117)
 val FundoCard = Color(0xFF161C24)
 val VerdeNeon = Color(0xFF39FF14)
+
+/**
+ * O destaque do visual novo (3.8.0): azul claro no lugar do verde neon.
+ * O neon cansava a vista à noite; o azul continua aceso no fundo preto sem gritar.
+ */
+val AzulClaro = Color(0xFF4CC9F0)
 val VermelhoDespesa = Color(0xFFFF5252)
 val FundoBotaoEscuro = Color(0xFF21262D)
 
@@ -52,9 +62,9 @@ private class Paleta(
 )
 
 private val ESCURA = Paleta(
-    // Paleta definida pelo Oliver: preto de painel, verde neon no dinheiro.
-    lucro = VerdeNeon,
-    lucroEscuro = Color(0xFF2ECC0F),
+    // Paleta definida pelo Oliver: preto de painel, azul claro no dinheiro.
+    lucro = AzulClaro,
+    lucroEscuro = Color(0xFF1E9BD7),
     prejuizo = VermelhoDespesa,
     alerta = Color(0xFFFFC94D),
     info = Color(0xFF58A6FF),
@@ -72,10 +82,11 @@ private val ESCURA = Paleta(
 )
 
 // No claro as cores de significado precisam ESCURECER: lima sobre branco não se lê.
-// O tom muda, o significado não — verde continua lucro, vermelho continua prejuízo.
+// O tom muda, o significado não — azul continua lucro, vermelho continua prejuízo.
 private val CLARA = Paleta(
-    lucro = Color(0xFF16A34A),
-    lucroEscuro = Color(0xFF15803D),
+    // Azul mais fechado: o azul claro some no fundo branco.
+    lucro = Color(0xFF0284C7),
+    lucroEscuro = Color(0xFF0369A1),
     prejuizo = Color(0xFFDC2626),
     alerta = Color(0xFFB45309),
     info = Color(0xFF2563EB),
@@ -105,6 +116,9 @@ val AmareloAlerta: Color get() = paletaAtual.value.alerta
 val AzulInfo: Color get() = paletaAtual.value.info
 val Turquesa: Color get() = paletaAtual.value.turquesa
 val Roxo: Color get() = paletaAtual.value.roxo
+
+/** Laranja de combustível e manutenção nos selos do Menu e de Finanças. Igual nos dois temas. */
+val Laranja = Color(0xFFF97316)
 
 val Fundo: Color get() = paletaAtual.value.fundo
 val Superficie: Color get() = paletaAtual.value.superficie
@@ -203,7 +217,7 @@ object PreferenciaTema {
 private val EsquemaEscuro = darkColorScheme(
     primary = ESCURA.lucro,
     onPrimary = ESCURA.fundo,
-    primaryContainer = Color(0xFF14301A),
+    primaryContainer = Color(0xFF122A40),
     onPrimaryContainer = ESCURA.lucro,
     secondary = ESCURA.turquesa,
     onSecondary = ESCURA.fundo,
@@ -231,7 +245,7 @@ private val EsquemaEscuro = darkColorScheme(
 private val EsquemaClaro = lightColorScheme(
     primary = CLARA.lucro,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFDFF3D0),
+    primaryContainer = Color(0xFFE0F2FE),
     onPrimaryContainer = CLARA.lucroEscuro,
     secondary = CLARA.turquesa,
     onSecondary = Color.White,
@@ -257,7 +271,35 @@ private val EsquemaClaro = lightColorScheme(
 )
 
 /**
- * Tipografia: a mesma família do sistema, mas com os ALGARISMOS DE LARGURA FIXA
+ * Fonte do texto: Inter (licença OFL), em res/font. Desenhada para tela, com o
+ * "1" e o "l" bem diferentes — ajuda a ler endereço e valor de relance.
+ */
+val FonteTexto = FontFamily(
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
+    Font(R.font.inter_bold, FontWeight.Bold),
+    Font(R.font.inter_extrabold, FontWeight.ExtraBold)
+)
+
+/**
+ * Fonte dos números grandes (lucro do dia, valor da oferta): Space Grotesk (OFL).
+ * Só nos valores de destaque — no texto corrido ela cansa.
+ */
+val FonteNumeros = FontFamily(
+    Font(R.font.space_grotesk_medium, FontWeight.Medium),
+    Font(R.font.space_grotesk_bold, FontWeight.Bold)
+)
+
+/** Estilo pronto para um valor de destaque: Space Grotesk, negrito, algarismos fixos. */
+val EstiloValor = TextStyle(
+    fontFamily = FonteNumeros,
+    fontWeight = FontWeight.Bold,
+    fontFeatureSettings = "tnum"
+)
+
+/**
+ * Tipografia: Inter em tudo, com os ALGARISMOS DE LARGURA FIXA
  * ("tnum") nos estilos usados para dinheiro.
  *
  * Sem isso, o 1 é mais estreito que o 8 e o valor "pula" de lado toda vez que o
@@ -265,16 +307,26 @@ private val EsquemaClaro = lightColorScheme(
  */
 private val Numeros = TextStyle(fontFeatureSettings = "tnum")
 
+private val Inter = TextStyle(fontFamily = FonteTexto)
+
 private val Tipografia = Typography().run {
     copy(
-        displayLarge = displayLarge.merge(Numeros),
-        displayMedium = displayMedium.merge(Numeros),
-        displaySmall = displaySmall.merge(Numeros),
-        headlineLarge = headlineLarge.merge(Numeros),
-        headlineMedium = headlineMedium.merge(Numeros),
-        headlineSmall = headlineSmall.merge(Numeros),
-        titleLarge = titleLarge.merge(Numeros),
-        bodyLarge = bodyLarge.merge(Numeros)
+        // display* no app são só números grandes: vão em Space Grotesk.
+        displayLarge = displayLarge.merge(EstiloValor),
+        displayMedium = displayMedium.merge(EstiloValor),
+        displaySmall = displaySmall.merge(EstiloValor),
+        headlineLarge = headlineLarge.merge(Inter).merge(Numeros),
+        headlineMedium = headlineMedium.merge(Inter).merge(Numeros),
+        headlineSmall = headlineSmall.merge(Inter).merge(Numeros),
+        titleLarge = titleLarge.merge(Inter).merge(Numeros),
+        titleMedium = titleMedium.merge(Inter),
+        titleSmall = titleSmall.merge(Inter),
+        bodyLarge = bodyLarge.merge(Inter).merge(Numeros),
+        bodyMedium = bodyMedium.merge(Inter),
+        bodySmall = bodySmall.merge(Inter),
+        labelLarge = labelLarge.merge(Inter),
+        labelMedium = labelMedium.merge(Inter),
+        labelSmall = labelSmall.merge(Inter)
     )
 }
 

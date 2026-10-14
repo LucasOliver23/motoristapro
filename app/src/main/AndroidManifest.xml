@@ -99,6 +99,18 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Widget "Lucro de hoje" na tela inicial. -->
+        <receiver
+            android:name=".widget.WidgetLucro"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_lucro_info" />
+        </receiver>
+
         <!-- Cronômetro + GPS do turno. -->
         <service
             android:name=".jornada.JornadaService"

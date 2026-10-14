@@ -1,5 +1,12 @@
 package com.motoristapro.ui.mais
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.motoristapro.ui.componentes.Icones
+import com.motoristapro.ui.componentes.SeloIcone
+import com.motoristapro.ui.theme.Laranja
+import com.motoristapro.ui.theme.AzulInfo
+import com.motoristapro.ui.theme.Roxo
+import com.motoristapro.ui.theme.Turquesa
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -1592,11 +1599,16 @@ private fun LinhaFerramenta(f: Ferramenta) {
         Modifier.fillMaxWidth().clickable { f.onClick() }.padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(SuperficieAlta),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(f.icone, fontSize = 15.sp)
+        val traco = iconeDeTraco(f.icone)
+        if (traco != null) {
+            SeloIcone(traco.first, traco.second)
+        } else {
+            Box(
+                Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(SuperficieAlta),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(f.icone, fontSize = 15.sp)
+            }
         }
         Column(Modifier.weight(1f).padding(start = 12.dp, end = 10.dp)) {
             Text(
@@ -1635,4 +1647,28 @@ private fun LinhaFerramenta(f: Ferramenta) {
             else -> Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
         }
     }
+}
+
+/**
+ * O ícone de traço (e a cor do assunto) de cada ajuste, a partir do selo
+ * antigo. Assim as linhas do Menu não mudam de lugar nem de texto — só o
+ * desenho. Selo sem par aqui continua aparecendo como antes.
+ */
+private fun iconeDeTraco(selo: String): Pair<ImageVector, Color>? = when (selo) {
+    "💰" -> Icones.Veiculo to AzulInfo
+    "🚦" -> Icones.Semaforo to AmareloAlerta
+    "🔧" -> Icones.Chave to Laranja
+    "🔔" -> Icones.Sino to AmareloAlerta
+    "👁" -> Icones.Olho to Lima
+    "🩺" -> Icones.Checkup to Roxo
+    "🔊" -> Icones.Som to Turquesa
+    "⚪" -> Icones.Bolha to Roxo
+    "⚠" -> Icones.Alerta to VermelhoPrejuizo
+    "🧭" -> Icones.Bussola to AzulInfo
+    "⭐" -> Icones.Estrela to AmareloAlerta
+    "☁" -> Icones.Nuvem to Turquesa
+    "📦" -> Icones.Caixa to Laranja
+    "🌓" -> Icones.Contraste to Roxo
+    "⚙" -> Icones.Engrenagem to TextoSecundario
+    else -> null
 }

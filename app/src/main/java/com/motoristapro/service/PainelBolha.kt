@@ -241,7 +241,7 @@ class PainelBolha(private val context: Context) {
         val COR_CONTORNO = 0xFF2C333D.toInt()
         val COR_TEXTO = 0xFFFFFFFF.toInt()
         val COR_APAGADO = 0xFF8B949E.toInt()
-        val COR_LIMA = 0xFF39FF14.toInt()
+        val COR_LIMA = 0xFF4CC9F0.toInt()   // azul claro do visual novo (nome mantido)
         val COR_VERMELHO = 0xFFFF5252.toInt()
     }
 }

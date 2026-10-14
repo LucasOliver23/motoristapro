@@ -220,8 +220,8 @@ class BolhaFlutuante(private val context: Context) {
         const val TAG = "MotoristaPro"
         /** Meio segundo de dedo parado na bolha já conta como "leia agora". */
         const val TEMPO_SEGURAR_MS = 500L
-        val COR_LIMA = 0xFFA3E635.toInt()
-        val COR_FUNDO = 0xEE0F1410.toInt()
+        val COR_LIMA = 0xFF4CC9F0.toInt()   // azul claro do visual novo (nome mantido)
+        val COR_FUNDO = 0xEE0D1117.toInt()
         val COR_FUNDO_NEGATIVO = 0xEE3A1212.toInt()
     }
 }

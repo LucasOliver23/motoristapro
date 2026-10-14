@@ -1,5 +1,6 @@
 package com.motoristapro.ui.componentes
 
+import com.motoristapro.ui.theme.EstiloValor
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -111,7 +112,7 @@ fun AnelJornada(
             )
             Text(
                 segundos.formatarCronometro(),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium.merge(EstiloValor),
                 fontWeight = FontWeight.Bold
             )
             if (detalhe != null) {

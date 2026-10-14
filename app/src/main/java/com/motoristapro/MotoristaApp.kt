@@ -12,6 +12,7 @@ import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.nuvem.SincronizacaoNuvem
 import com.motoristapro.resumo.ResumoDiarioWorker
 import com.motoristapro.service.AvisoLeitor
+import com.motoristapro.widget.WidgetLucro
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -47,6 +48,8 @@ class MotoristaApp : Application() {
                 .onFailure { Log.w("MotoristaPro", "Falha ao limpar ofertas antigas", it) }
         }
         escopoApp.launch { adotarNomeDaConta() }
+        // Widget da tela inicial acompanha cada corrida/despesa enquanto o app vive.
+        WidgetLucro.acompanhar(this, escopoApp)
     }
 
     /**
