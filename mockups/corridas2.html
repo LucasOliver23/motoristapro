@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#4CC9F0;--verm:#FF5252;--amar:#FFC94D;--txt:#fff;--sec:#8B949E;--cont:#21262D}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05070a;font-family:Inter,sans-serif;color:var(--txt);padding:40px 30px;width:1400px}
+h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
+.sub{color:var(--sec);font-size:16px;margin-bottom:30px}
+.linha{display:flex;gap:34px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:14px}
+.rot{font-weight:700;font-size:18px;height:56px}.rot small{display:block;color:var(--sec);font-weight:400;font-size:13px;margin-top:4px;max-width:400px}
+.cel{width:400px;height:840px;border-radius:44px;background:var(--fundo);border:10px solid #1e232b;overflow:hidden;position:relative;box-shadow:0 30px 60px #0008}
+.sb{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:13px;color:var(--sec);font-weight:600}
+.pad{padding:10px 16px}
+.sg{font-family:'Space Grotesk';font-weight:700;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border-radius:20px;padding:14px;margin-bottom:10px}
+.lbl{font-size:10px;letter-spacing:1.2px;color:var(--sec);font-weight:600;text-transform:uppercase}
+.row{display:flex;align-items:center;gap:10px}
+.dia{width:52px;flex-shrink:0;text-align:center;padding:7px 0;border-radius:12px;background:var(--alto)}
+.dia .c{font-size:10px;font-weight:700;color:var(--sec)}.dia .b{font-family:'Space Grotesk';font-weight:700;font-size:17px}
+.dia.on{background:var(--lucro)}.dia.on .c,.dia.on .b{color:#04131b}
+.apps{display:flex;gap:10px;margin:12px 0}
+.app{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+.app .l{width:48px;height:48px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:2px solid transparent}
+.app .l img{width:100%;height:100%;object-fit:cover}
+.app span{font-size:11px;color:var(--sec);font-weight:600}
+.app.on .l{border-color:var(--lucro)}.app.on span{color:#fff}
+.app.off{opacity:.35}
+.app .n{position:absolute;top:-4px;right:8px;background:var(--lucro);color:#04131b;font-size:10px;font-weight:800;border-radius:9px;padding:1px 6px}
+.seg{display:flex;background:var(--alto);border-radius:12px;padding:4px}
+.seg div{flex:1;text-align:center;padding:8px 0;border-radius:9px;font-size:13px;font-weight:600;color:var(--sec)}
+.seg .on{background:var(--mais);color:#fff}
+.of{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:18px;padding:12px 14px;margin-bottom:8px}
+.of img{width:34px;height:34px;border-radius:10px}
+.selo{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;display:inline-block;margin-top:3px}
+.nav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:12px 0 18px;background:var(--card);border-top:1px solid var(--cont)}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sec)}.nav .on{color:var(--lucro)}
+.fab{position:absolute;right:16px;bottom:86px;background:var(--lucro);color:#04131b;font-weight:800;padding:14px 18px;border-radius:16px}
+.campo{background:var(--alto);border-radius:14px;padding:10px 14px}
+.campo .l{font-size:11px;color:var(--sec)}.campo .v{font-size:20px;margin-top:2px}
+</style></head><body>
+<h1>MotoristaPro · Corridas: logos de volta e "Nova corrida"</h1>
+<div class="sub">Desenho para aprovar antes de mexer no app.</div>
+<div class="linha">
+
+<!-- 1 -->
+<div class="col">
+<div class="rot">1 · Topo de Corridas<small>HOJE primeiro, à esquerda (no app ele ficava escondido no fim). Os 4 apps sempre com o logo, mesmo sem oferta</small></div>
+<div class="cel">
+ <div class="sb"><span>16:40</span><span>100%</span></div>
+ <div class="pad">
+  <div class="row" style="justify-content:space-between;margin-bottom:10px"><div><div style="font-size:24px;font-weight:800">Corridas</div><div style="font-size:12px;color:var(--sec)">0 ofertas lidas hoje</div></div><span style="background:var(--alto);color:var(--sec);font-size:13px;font-weight:600;padding:8px 14px;border-radius:20px">Registradas</span></div>
+  <div class="row" style="gap:8px;overflow:hidden">
+   <div class="dia on"><div class="c">HOJE</div><div class="b">14</div></div>
+   <div class="dia"><div class="c">SEG</div><div class="b">13</div></div>
+   <div class="dia"><div class="c">DOM</div><div class="b">12</div></div>
+   <div class="dia"><div class="c">SÁB</div><div class="b">11</div></div>
+   <div class="dia"><div class="c">SEX</div><div class="b">10</div></div>
+   <div class="dia"><div class="c">QUI</div><div class="b">9</div></div>
+  </div>
+  <div class="apps">
+   <div class="app on"><div class="l" style="background:var(--alto);color:#fff;font-weight:800;font-size:13px">Todos</div><span>Todos</span></div>
+   <div class="app"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_uber.png"></div><span>Uber</span></div>
+   <div class="app"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_99.png"></div><span>99</span></div>
+   <div class="app"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_indrive.png"></div><span>inDrive</span></div>
+   <div class="app"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_ifood.png"></div><span>iFood</span></div>
+  </div>
+  <div class="seg"><div class="on">Todas 0</div><div>Aceitas 0</div><div>Recusadas 0</div></div>
+  <div class="card row" style="margin-top:12px;justify-content:space-between">
+   <div><div class="lbl">Lucro do dia</div><div class="sg" style="font-size:22px">R$ 0,00</div></div>
+   <div style="text-align:right"><div class="lbl">Corridas</div><div class="sg" style="font-size:22px">0</div></div>
+   <div style="text-align:right"><div class="lbl">R$/km</div><div class="sg" style="font-size:22px">—</div></div>
+  </div>
+  <div style="text-align:center;color:var(--sec);font-size:13px;margin-top:40px;line-height:1.6">
+   <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--mais);fill:none;stroke-width:2;stroke-linecap:round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><br>
+   Nenhuma oferta lida hoje.<br>Elas aparecem aqui assim que o leitor<br>mostrar a janela.</div>
+ </div>
+ <div class="fab">+ Corrida</div>
+ <div class="nav"><div>⌂<span>Início</span></div><div class="on">☰<span>Corridas</span></div><div>▭<span>Finanças</span></div><div>⌇<span>Atividade</span></div><div>●<span>Menu</span></div></div>
+</div></div>
+
+<!-- 2 -->
+<div class="col">
+<div class="rot">2 · Filtrando por app<small>Toque no logo: ele fica com borda azul e os outros apagados. O número no canto é quantas ofertas daquele app</small></div>
+<div class="cel">
+ <div class="sb"><span>18:20</span><span>71%</span></div>
+ <div class="pad">
+  <div class="row" style="justify-content:space-between;margin-bottom:10px"><div><div style="font-size:24px;font-weight:800">Corridas</div><div style="font-size:12px;color:var(--sec)">23 ofertas lidas hoje</div></div><span style="background:var(--alto);color:var(--sec);font-size:13px;font-weight:600;padding:8px 14px;border-radius:20px">Registradas</span></div>
+  <div class="row" style="gap:8px;overflow:hidden">
+   <div class="dia on"><div class="c">HOJE</div><div class="b">14</div></div>
+   <div class="dia"><div class="c">SEG</div><div class="b">13</div></div>
+   <div class="dia"><div class="c">DOM</div><div class="b">12</div></div>
+   <div class="dia"><div class="c">SÁB</div><div class="b">11</div></div>
+   <div class="dia"><div class="c">SEX</div><div class="b">10</div></div>
+   <div class="dia"><div class="c">QUI</div><div class="b">9</div></div>
+  </div>
+  <div class="apps">
+   <div class="app off"><div class="l" style="background:var(--alto);color:#fff;font-weight:800;font-size:13px">Todos</div><span>Todos</span></div>
+   <div class="app on"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_uber.png"></div><span>Uber</span><b class="n">14</b></div>
+   <div class="app off"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_99.png"></div><span>99</span><b class="n">6</b></div>
+   <div class="app off"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_indrive.png"></div><span>inDrive</span><b class="n">3</b></div>
+   <div class="app off"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_ifood.png"></div><span>iFood</span></div>
+  </div>
+  <div class="seg"><div class="on">Todas 14</div><div>Aceitas 5</div><div>Recusadas 9</div></div>
+  <div class="card row" style="margin-top:12px;justify-content:space-between">
+   <div><div class="lbl">Lucro do dia</div><div class="sg" style="font-size:22px">R$ 142,80</div></div>
+   <div style="text-align:right"><div class="lbl">Corridas</div><div class="sg" style="font-size:22px">5</div></div>
+   <div style="text-align:right"><div class="lbl">R$/km</div><div class="sg" style="font-size:22px">1,94</div></div>
+  </div>
+  <div class="of"><img src="../app/src/main/res/drawable-nodpi/logo_uber.png"><div style="flex:1"><div style="font-size:13px;font-weight:600">Centro → Aeroporto</div><div style="font-size:12px;color:var(--sec)">14:21 · 11,2 km · R$ 2,22/km</div></div><div style="text-align:right"><div class="sg" style="font-size:17px">R$ 24,90</div><span class="selo" style="background:#122a40;color:var(--lucro)">BOA</span></div></div>
+  <div class="of"><img src="../app/src/main/res/drawable-nodpi/logo_uber.png"><div style="flex:1"><div style="font-size:13px;font-weight:600">Savassi → Pampulha</div><div style="font-size:12px;color:var(--sec)">13:48 · 8,7 km · R$ 1,08/km</div></div><div style="text-align:right"><div class="sg" style="font-size:17px">R$ 9,40</div><span class="selo" style="background:#2b1d1d;color:var(--verm)">RUIM</span></div></div>
+ </div>
+ <div class="fab">+ Corrida</div>
+ <div class="nav"><div>⌂<span>Início</span></div><div class="on">☰<span>Corridas</span></div><div>▭<span>Finanças</span></div><div>⌇<span>Atividade</span></div><div>●<span>Menu</span></div></div>
+</div></div>
+
+<!-- 3 -->
+<div class="col">
+<div class="rot">3 · Nova corrida<small>Folha que sobe de baixo: app pelo logo (nada cortado), valor grande, km e minutos lado a lado e o R$/km já calculado</small></div>
+<div class="cel">
+ <div class="sb"><span>16:41</span><span>100%</span></div>
+ <div style="position:absolute;inset:40px 0 0 0;background:#0008"></div>
+ <div style="position:absolute;left:0;right:0;bottom:0;top:130px;background:var(--card);border-radius:26px 26px 0 0;padding:12px 16px">
+  <div style="width:40px;height:4px;border-radius:2px;background:var(--mais);margin:0 auto 12px"></div>
+  <div style="font-size:22px;font-weight:800;margin-bottom:12px">Nova corrida</div>
+  <div class="lbl" style="margin-bottom:8px">De qual app</div>
+  <div class="apps" style="margin:0 0 14px">
+   <div class="app on"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_uber.png"></div><span>Uber</span></div>
+   <div class="app"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_99.png"></div><span>99</span></div>
+   <div class="app"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_indrive.png"></div><span>inDrive</span></div>
+   <div class="app"><div class="l"><img src="../app/src/main/res/drawable-nodpi/logo_ifood.png"></div><span>iFood</span></div>
+   <div class="app"><div class="l" style="background:var(--alto)"><svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:#8B949E;fill:none;stroke-width:2;stroke-linecap:round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><span>Particular</span></div>
+  </div>
+  <div class="campo" style="margin-bottom:8px"><div class="l">Valor recebido</div><div class="v sg" style="font-size:30px">R$ 24,90</div></div>
+  <div class="row" style="gap:8px;margin-bottom:8px">
+   <div class="campo" style="flex:1"><div class="l">Distância (km)</div><div class="v sg">11,2</div></div>
+   <div class="campo" style="flex:1"><div class="l">Duração (min)</div><div class="v sg">22</div></div>
+  </div>
+  <div class="row" style="gap:8px;margin-bottom:8px;background:#0f1a26;border-radius:12px;padding:10px 12px;font-size:13px">
+   <span style="color:var(--sec)">Esta corrida:</span><b class="sg" style="color:var(--lucro)">R$ 2,22/km</b><span style="color:var(--sec)">·</span><b class="sg">R$ 67,90/h</b>
+  </div>
+  <div class="campo" style="margin-bottom:8px"><div class="l">Gorjeta (opcional)</div><div class="v" style="color:var(--sec);font-size:16px">R$ 0,00</div></div>
+  <div class="row" style="gap:8px">
+   <div class="campo" style="flex:1"><div class="l">Origem</div><div style="font-size:14px;color:var(--sec);margin-top:4px">opcional</div></div>
+   <div class="campo" style="flex:1"><div class="l">Destino</div><div style="font-size:14px;color:var(--sec);margin-top:4px">opcional</div></div>
+  </div>
+  <div class="row" style="gap:10px;position:absolute;left:16px;right:16px;bottom:22px">
+   <div style="width:110px;background:var(--alto);text-align:center;padding:14px;border-radius:14px;font-weight:600">Cancelar</div>
+   <div style="flex:1;background:var(--lucro);color:#04131b;text-align:center;padding:14px;border-radius:14px;font-weight:800">Salvar corrida</div>
+  </div>
+ </div>
+</div></div>
+
+</div></body></html>
