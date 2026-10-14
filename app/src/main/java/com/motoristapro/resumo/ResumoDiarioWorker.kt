@@ -17,6 +17,7 @@ import com.motoristapro.data.repository.Periodo
 import com.motoristapro.data.repository.emReais
 import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.ui.MainActivity
+import com.motoristapro.ui.formatarDuracao
 import kotlinx.coroutines.flow.first
 import java.time.Duration
 import java.time.LocalDate
@@ -24,7 +25,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 
-/** Todo dia às 22h: notificação com faturamento, despesas, lucro e corridas do dia. */
+/** Todo dia às 22h: notificação com o lucro do dia, a % da meta, R$/km e as horas de jornada. */
 class ResumoDiarioWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     @SuppressLint("MissingPermission")
@@ -42,15 +43,36 @@ class ResumoDiarioWorker(context: Context, params: WorkerParameters) : Coroutine
             ctx, 2, Intent(ctx, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        val titulo = "Hoje: lucro de ${r.lucroLiquidoCentavos.emReais()}"
-        val texto = "${r.qtdCorridas} corridas • ${r.faturamentoCentavos.emReais()} faturado • " +
-            "${r.despesasCentavos.emReais()} de despesas • ${"%.1f".format(r.kmRodados)} km"
+        // Lucro com a meta do dia, R$/km e horas de jornada: o dia inteiro numa olhada.
+        val cfg = repo.configuracao().first()
+        val meta = cfg.metaLucroDiarioCentavos
+        val lucro = r.lucroLiquidoCentavos
+        val agora = System.currentTimeMillis()
+        val segundos = runCatching {
+            repo.totaisJornadasEncerradas(ini, fim).first().segundos +
+                (repo.obterJornadaAtiva()?.segundosRodando(agora) ?: 0L)
+        }.getOrDefault(0L)
+
+        val titulo = "💰 Lucro do dia: ${lucro.emReais()}" +
+            if (meta > 0) " (${(lucro.coerceAtLeast(0) * 100 / meta)}% da meta)" else ""
+        val linha1 = buildList {
+            add("${r.qtdCorridas} corrida(s)")
+            if (r.metrosRodados > 0) add("${r.ganhoPorKmCentavos.emReais()}/km")
+            if (segundos >= 60) add("${segundos.formatarDuracao()} de jornada")
+        }.joinToString(" · ")
+        val linha2 = when {
+            meta <= 0 -> "${r.faturamentoCentavos.emReais()} faturado · ${r.despesasCentavos.emReais()} de despesas"
+            lucro >= meta -> "Meta de ${meta.emReais()} batida! 🎉"
+            else -> "Faltaram ${(meta - lucro).emReais()} para a meta de ${meta.emReais()}."
+        }
+        val texto = "$linha1\n$linha2"
 
         val notificacao = NotificationCompat.Builder(ctx, Notificacoes.CANAL_RESUMO)
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
             .setContentTitle(titulo)
-            .setContentText(texto)
+            .setContentText(linha1)
             .setStyle(NotificationCompat.BigTextStyle().bigText(texto))
+            .addAction(0, "VER O DIA", abrir)
             .setContentIntent(abrir)
             .setAutoCancel(true)
             .build()

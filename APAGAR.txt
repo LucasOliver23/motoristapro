@@ -1,11 +1,13 @@
-NADA PARA APAGAR NESTA VERSAO (4.3.1)
+NADA PARA APAGAR NESTA VERSAO (4.4.0)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Inicio sem os botoes "+ Corrida" e "+ Despesa" (ficam so nas abas
-Corridas e Financas, onde ja existiam).
+Menu enxuto com nome e foto da conta Google, e resumo das 22h com a meta
+(previa em mockups/previa-menu2.png).
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
+  app/src/main/java/com/motoristapro/auth/AutenticacaoManager.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/resumo/ResumoDiarioWorker.kt

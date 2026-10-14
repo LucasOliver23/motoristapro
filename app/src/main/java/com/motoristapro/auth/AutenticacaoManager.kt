@@ -25,7 +25,13 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.asStateFlow
 
 /** Quem está logado. null = ninguém. */
-data class Usuario(val uid: String, val email: String?, val nome: String?)
+data class Usuario(
+    val uid: String,
+    val email: String?,
+    val nome: String?,
+    /** Foto da conta Google (null em login por e-mail e senha). */
+    val fotoUrl: String? = null
+)
 
 /**
  * Login com email/senha e com Google (Firebase Authentication).
@@ -188,7 +194,14 @@ class AutenticacaoManager(private val context: Context) {
     }
 
     private fun converter(u: com.google.firebase.auth.FirebaseUser) =
-        Usuario(uid = u.uid, email = u.email, nome = u.displayName)
+        Usuario(
+            uid = u.uid,
+            email = u.email,
+            // Em alguns aparelhos o nome e a foto vêm só no provedor (Google), não no usuário.
+            nome = u.displayName?.takeIf { it.isNotBlank() }
+                ?: u.providerData.firstNotNullOfOrNull { it.displayName?.takeIf { n -> n.isNotBlank() } },
+            fotoUrl = (u.photoUrl ?: u.providerData.firstNotNullOfOrNull { it.photoUrl })?.toString()
+        )
 
     /** Mensagem amigável para os erros mais comuns do Firebase. */
     fun mensagemDeErro(e: Throwable): String {

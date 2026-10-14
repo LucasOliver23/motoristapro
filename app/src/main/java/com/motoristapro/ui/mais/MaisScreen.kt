@@ -1,5 +1,11 @@
 package com.motoristapro.ui.mais
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.foundation.border
 import com.motoristapro.custo.CalculadoraCusto
 import com.motoristapro.custo.DadosCusto
 import com.motoristapro.custo.FatiasCusto
@@ -293,6 +299,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             PerfilLinha(
                 cfg = cfg,
                 email = usuario?.email ?: usuario?.nome,
+                nomeDaConta = usuario?.nome,
+                fotoDaConta = usuario?.fotoUrl,
                 selo = when (acesso.situacao) {
                     SituacaoAcesso.ASSINATURA_ATIVA -> "PRO · ${acesso.diasDeAssinatura} dias"
                     SituacaoAcesso.TESTE_ATIVO -> "TESTE · ${acesso.diasDeTeste} dias"
@@ -305,51 +313,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             ) { sub = SubTela.PERFIL }
 
             ListaFerramentas(
-                titulo = "MEU TRABALHO",
-                itens = listOf(
-                    Ferramenta(
-                        titulo = "Meu veículo e custos",
-                        icone = "💰",
-                        estado = if (cfg.custoKmCentavos > 0) "${cfg.custoKmCentavos.campo()}/km de custo"
-                        else "toque para calcular",
-                        aceso = cfg.custoKmCentavos > 0,
-                        onClick = { sub = SubTela.VEICULO }
-                    ),
-                    Ferramenta(
-                        titulo = "Semáforo de valores",
-                        icone = "🚦",
-                        estado = "aceitar acima de ${"%.2f".format(PT, faixas.kmBoa)}/km · " +
-                            "${estilo.campos.size} números no cartão",
-                        semaforo = true,
-                        onClick = { sub = SubTela.SEMAFORO }
-                    ),
-                    Ferramenta(
-                        titulo = "Manutenção",
-                        icone = "🔧",
-                        estado = when {
-                            manutencoes.isEmpty() -> "nenhum item cadastrado"
-                            odometro <= 0L -> "informe o km ao abastecer"
-                            else -> maisUrgente(manutencoes)!!.let { item ->
-                                "${item.nome.lowercase(PT)} ${textoDaManutencao(item, odometro)}"
-                            }
-                        },
-                        aceso = manutencoes.isNotEmpty() && odometro > 0 &&
-                            maisUrgente(manutencoes)!!.faltamKm(odometro) > 500,
-                        alerta = manutencoes.isNotEmpty() && odometro > 0 &&
-                            maisUrgente(manutencoes)!!.faltamKm(odometro) <= 500,
-                        onClick = { sub = SubTela.MANUTENCAO }
-                    ),
-                    Ferramenta(
-                        titulo = "Resumo do dia às 22h",
-                        icone = "🔔",
-                        estado = "faturamento, despesas e lucro",
-                        ligado = resumo,
-                        onClick = { vm.definirResumo(!resumo) }
-                    ),
-                )
-            )
-
-            ListaFerramentas(
                 titulo = "LEITOR DE OFERTAS",
                 itens = listOf(
                     Ferramenta(
@@ -359,15 +322,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         aceso = leitorOk,
                         alerta = !leitorOk,
                         onClick = { sub = SubTela.LEITOR }
-                    ),
-                    Ferramenta(
-                        titulo = "Checkup do app",
-                        icone = "🩺",
-                        estado = if (leitorOk && notificacoesOk && bateriaOk) "tudo funcionando"
-                        else "tem coisa para liberar",
-                        aceso = leitorOk && notificacoesOk && bateriaOk,
-                        alerta = !leitorOk,
-                        onClick = { sub = SubTela.CHECKUP }
                     ),
                     Ferramenta(
                         titulo = "Aviso por voz",
@@ -396,6 +350,35 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         icone = "🧭",
                         estado = navegacao.rotulo.lowercase(PT),
                         onClick = { sub = SubTela.NAVEGACAO }
+                    ),
+                )
+            )
+
+            ListaFerramentas(
+                titulo = "MEU TRABALHO",
+                itens = listOf(
+                    Ferramenta(
+                        titulo = "Manutenção",
+                        icone = "🔧",
+                        estado = when {
+                            manutencoes.isEmpty() -> "óleo, pneus e revisão por km"
+                            odometro <= 0L -> "informe o km ao abastecer"
+                            else -> maisUrgente(manutencoes)!!.let { item ->
+                                "${item.nome.lowercase(PT)} ${textoDaManutencao(item, odometro)}"
+                            }
+                        },
+                        aceso = manutencoes.isNotEmpty() && odometro > 0 &&
+                            maisUrgente(manutencoes)!!.faltamKm(odometro) > 500,
+                        alerta = manutencoes.isNotEmpty() && odometro > 0 &&
+                            maisUrgente(manutencoes)!!.faltamKm(odometro) <= 500,
+                        onClick = { sub = SubTela.MANUTENCAO }
+                    ),
+                    Ferramenta(
+                        titulo = "Resumo do dia às 22h",
+                        icone = "🔔",
+                        estado = if (resumo) "notificação com o lucro do dia" else "desligado",
+                        ligado = resumo,
+                        onClick = { vm.definirResumo(!resumo) }
                     ),
                 )
             )
@@ -431,12 +414,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         icone = "📦",
                         estado = "arquivo de backup e CSV",
                         onClick = { sub = SubTela.BACKUP }
-                    ),
-                    Ferramenta(
-                        titulo = "Aparência do app",
-                        icone = "🌓",
-                        estado = PreferenciaTema.modo.rotulo.lowercase(PT),
-                        onClick = { sub = SubTela.APARENCIA }
                     ),
                     Ferramenta(
                         titulo = "Versão do app",
@@ -1448,20 +1425,19 @@ private fun SeletorDeTema(context: android.content.Context) {
 private fun PerfilLinha(
     cfg: Configuracao,
     email: String?,
+    nomeDaConta: String? = null,
+    fotoDaConta: String? = null,
     selo: String? = null,
     seloAceso: Boolean = false,
     onClick: () -> Unit
 ) {
-    val nome = cfg.nomeMotorista?.takeIf { it.isNotBlank() } ?: "Motorista"
+    // O nome digitado no app manda; sem ele, vale o da conta Google.
+    val nome = cfg.nomeMotorista?.takeIf { it.isNotBlank() }
+        ?: nomeDaConta?.takeIf { it.isNotBlank() } ?: "Motorista"
     CartaoDestaque(Modifier.clickable { onClick() }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Avatar aceso, com a inicial: é a primeira coisa do Menu, como no desenho.
-            Box(
-                Modifier.size(52.dp).clip(CircleShape).background(Lima),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(nome.first().uppercase(), color = CorSobreDestaque, style = EstiloValor, fontSize = 22.sp)
-            }
+            FotoDaConta(fotoDaConta, nome.first().uppercase())
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(nome, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
                 // O e-mail identifica a conta, o veículo identifica a conta de
@@ -1814,3 +1790,50 @@ private fun CustosFixosCard(
         }
     }
 }
+
+
+/**
+ * A foto da conta Google, redonda e com borda azul. Baixada uma vez e guardada
+ * em cache; sem foto (login por e-mail, sem internet) fica a inicial do nome.
+ */
+@Composable
+private fun FotoDaConta(url: String?, inicial: String) {
+    val contexto = LocalContext.current
+    var foto by remember(url) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(url) {
+        if (url.isNullOrBlank()) return@LaunchedEffect
+        foto = withContext(Dispatchers.IO) { baixarFoto(contexto, url) }
+    }
+    Box(
+        Modifier.size(56.dp).clip(CircleShape).background(Lima).border(2.dp, Lima, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        val bmp = foto
+        if (bmp != null) {
+            Image(
+                bmp.asImageBitmap(), contentDescription = "Foto da conta",
+                contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().clip(CircleShape)
+            )
+        } else {
+            Text(inicial, color = CorSobreDestaque, style = EstiloValor, fontSize = 22.sp)
+        }
+    }
+}
+
+/** Baixa (ou lê do cache) a foto do perfil. Qualquer falha devolve null e fica a inicial. */
+private fun baixarFoto(contexto: android.content.Context, url: String): android.graphics.Bitmap? = runCatching {
+    val arquivo = java.io.File(contexto.cacheDir, "foto_conta_${url.hashCode()}.img")
+    if (!arquivo.exists()) {
+        val conexao = (java.net.URL(url).openConnection() as java.net.HttpURLConnection).apply {
+            connectTimeout = 10_000
+            readTimeout = 10_000
+        }
+        try {
+            if (conexao.responseCode !in 200..299) return null
+            conexao.inputStream.use { entrada -> arquivo.outputStream().use { entrada.copyTo(it) } }
+        } finally {
+            conexao.disconnect()
+        }
+    }
+    android.graphics.BitmapFactory.decodeFile(arquivo.path)
+}.getOrNull()
