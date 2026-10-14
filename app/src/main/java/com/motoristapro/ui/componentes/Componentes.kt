@@ -77,7 +77,7 @@ fun TelaAba(
             TopAppBar(
                 title = {
                     Column {
-                        Text(titulo, fontWeight = FontWeight.Bold)
+                        Text(titulo, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.4).sp)
                         if (subtitulo != null) {
                             Text(subtitulo, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
                         }

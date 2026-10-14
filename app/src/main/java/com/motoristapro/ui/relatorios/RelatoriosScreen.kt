@@ -1,5 +1,16 @@
 package com.motoristapro.ui.relatorios
 
+import com.motoristapro.ui.componentes.Cartao
+import com.motoristapro.ui.componentes.CartaoDestaque
+import com.motoristapro.ui.componentes.Icones
+import com.motoristapro.ui.componentes.NumeroCentral
+import com.motoristapro.ui.componentes.Rotulo
+import com.motoristapro.ui.componentes.Segmentado
+import com.motoristapro.ui.componentes.SeloTexto
+import com.motoristapro.ui.componentes.ValorComCentavos
+import com.motoristapro.ui.theme.TextoPrincipal
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -68,20 +79,10 @@ private val PT = Locale("pt", "BR")
  */
 @Composable
 private fun MapaDeCalor(e: RelatoriosUiState) {
-    CardSecao {
+    Cartao(espaco = 8) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Melhores horários",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Box(
-                Modifier.padding(start = 8.dp).clip(RoundedCornerShape(99.dp))
-                    .background(Lima.copy(alpha = 0.16f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-            ) {
-                Text("NOVO", style = MaterialTheme.typography.labelSmall, color = Lima, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-            }
+            Rotulo("Quando rende mais", Modifier.weight(1f))
+            Text("R$/km", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
         }
         if (e.mapa.isEmpty()) {
             Text(
@@ -89,7 +90,7 @@ private fun MapaDeCalor(e: RelatoriosUiState) {
                     "melhor por km — contando até as corridas que você recusou.",
                 style = MaterialTheme.typography.bodySmall, color = TextoSecundario
             )
-            return@CardSecao
+            return@Cartao
         }
 
         val porCasa = e.mapa.associateBy { it.diaSemana to it.faixa }
@@ -103,73 +104,101 @@ private fun MapaDeCalor(e: RelatoriosUiState) {
             colunas.forEach { f ->
                 Text(
                     "${f * 2}h",
-                    style = MaterialTheme.typography.labelSmall,
                     color = TextoSecundario,
-                    fontSize = 8.sp,
+                    fontSize = 9.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
                 )
             }
         }
-        DIAS_DA_SEMANA.forEachIndexed { indice, sigla ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    sigla,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextoSecundario,
-                    fontSize = 8.sp,
-                    modifier = Modifier.width(30.dp)
-                )
+        // Segunda primeiro, como o motorista pensa a semana.
+        listOf(1, 2, 3, 4, 5, 6, 0).forEach { indice ->
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(DIAS_DA_SEMANA[indice], color = TextoSecundario, fontSize = 9.sp, modifier = Modifier.width(30.dp))
                 colunas.forEach { f ->
                     val casa = porCasa[indice to f]
                     val forca = if (casa == null || teto == piso) 0f
                     else ((casa.reaisKmCentavos - piso).toFloat() / (teto - piso)).coerceIn(0f, 1f)
                     Box(
-                        Modifier.weight(1f).padding(1.dp).height(20.dp)
+                        Modifier.weight(1f).padding(1.5.dp).height(18.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (casa == null) Contorno
-                                else Lima.copy(alpha = 0.25f + 0.75f * forca)
-                            )
+                            .background(if (casa == null) SuperficieAlta else Lima.copy(alpha = 0.2f + 0.8f * forca))
                     )
                 }
             }
         }
-        // Legenda: a escala de verde e, do outro lado, o melhor pedaço da semana.
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("menos", style = MaterialTheme.typography.labelSmall, color = TextoSecundario, fontSize = 8.sp)
-            listOf(0.25f, 0.45f, 0.65f, 0.85f, 1f).forEach { a ->
-                Box(
-                    Modifier.padding(horizontal = 1.dp).width(14.dp).height(8.dp)
-                        .clip(RoundedCornerShape(2.dp)).background(Lima.copy(alpha = a))
-                )
-            }
-            Text(
-                "mais R$/km",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextoSecundario,
-                fontSize = 8.sp,
-                modifier = Modifier.padding(start = 3.dp)
-            )
-            Box(Modifier.weight(1f))
-            e.melhorCasa?.let { melhor ->
+        e.melhorCasa?.let { melhor ->
+            Row(
+                Modifier.fillMaxWidth().padding(top = 4.dp).clip(RoundedCornerShape(10.dp))
+                    .background(Lima.copy(alpha = 0.10f)).padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icones.Raio, contentDescription = null, tint = Lima, modifier = Modifier.size(16.dp))
                 Text(
-                    "${DIAS_DA_SEMANA[melhor.diaSemana]} ${melhor.faixa * 2}h",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Lima,
-                    fontWeight = FontWeight.Bold
+                    "Melhor horário: ${DIAS_DA_SEMANA[melhor.diaSemana].lowercase(PT)} às ${melhor.faixa * 2}h · " +
+                        "${melhor.reaisKmCentavos.emReais()}/km",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
-        e.melhorCasa?.let { melhor ->
-            Text(
-                "Melhor: ${DIAS_DA_SEMANA[melhor.diaSemana]} às ${melhor.faixa * 2}h • " +
-                    "${melhor.reaisKmCentavos.emReais()}/km em ${melhor.ofertas} oferta(s)",
-                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+    }
+}
+
+/**
+ * O cartão de cima: o lucro do período e o gráfico de cada dia, com o melhor
+ * dia aceso. Responde "como foi a semana" antes de qualquer tabela.
+ */
+@Composable
+private fun LucroDoPeriodo(e: RelatoriosUiState) {
+    val r = e.resumo
+    CartaoDestaque {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Rotulo(
+                when (e.periodo) {
+                    PeriodoRelatorio.DIARIO -> "Lucro hoje"
+                    PeriodoRelatorio.SEMANAL -> "Lucro na semana"
+                    PeriodoRelatorio.MENSAL -> "Lucro no mês"
+                    PeriodoRelatorio.ANUAL -> "Lucro no ano"
+                },
+                Modifier.weight(1f)
+            )
+            SeloTexto("${r.qtdCorridas} corridas", Lima)
+        }
+        ValorComCentavos(
+            r.lucroLiquidoCentavos.emReais(), 30.sp,
+            cor = if (r.lucroLiquidoCentavos >= 0) TextoPrincipal else VermelhoPrejuizo
+        )
+        Text(
+            "${r.faturamentoCentavos.emReais()} faturado · " + String.format(PT, "%.0f km", r.kmRodados),
+            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+        )
+        if (e.lucroPorDia.size > 1) {
+            val valores = e.lucroPorDia.map { it.second / 100f }
+            val passo = when {
+                e.lucroPorDia.size <= 7 -> 1
+                e.lucroPorDia.size <= 15 -> 2
+                else -> 5
+            }
+            val rotulos = e.lucroPorDia.mapIndexed { i, (d, _) ->
+                when {
+                    e.periodo == PeriodoRelatorio.SEMANAL -> LETRA_DO_DIA[d.dayOfWeek.value - 1]
+                    i % passo == 0 || i == e.lucroPorDia.lastIndex -> d.dayOfMonth.toString()
+                    else -> ""
+                }
+            }
+            val melhor = e.lucroPorDia.indices.maxByOrNull { e.lucroPorDia[it].second } ?: -1
+            GraficoBarras(
+                valores = valores, rotulos = rotulos, altura = 120.dp,
+                destaque = melhor, modifier = Modifier.padding(top = 6.dp)
             )
         }
     }
 }
+
+/** Segunda = S, terça = T... (java.time: segunda é 1). */
+private val LETRA_DO_DIA = listOf("S", "T", "Q", "Q", "S", "S", "D")
 
 private val DIAS_DA_SEMANA = listOf("DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB")
 
@@ -278,53 +307,35 @@ fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosView
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ChipsSelecao(
-                opcoes = PeriodoRelatorio.entries.toList(),
-                selecionado = e.periodo,
-                rotulo = { it.rotulo },
-                onSelecionar = vm::selecionar
-            )
+            Segmentado(
+                opcoes = listOf("Dia", "Semana", "Mês", "Ano"),
+                selecionado = e.periodo.ordinal
+            ) { vm.selecionar(PeriodoRelatorio.entries[it]) }
 
-            // A ordem é a da pergunta: quanto tempo rendeu quanto, quando vale
-            // sair, e como foi dia a dia. O detalhamento vem depois disso.
+            // A ordem é a da pergunta: quanto rendeu, quando vale sair e como
+            // foi o tempo ligado. O detalhamento vem depois disso.
             val r = e.resumo
-            ResumoConectado(e)
+            LucroDoPeriodo(e)
 
             MapaDeCalor(e)
 
-            // ---------------- lucro por dia
-            CardSecao(titulo = "LUCRO POR DIA") {
-                val valores = e.lucroPorDia.map { it.second / 100f }
-                val passo = when {
-                    e.lucroPorDia.size <= 7 -> 1
-                    e.lucroPorDia.size <= 15 -> 2
-                    else -> 5
-                }
-                val rotulos = e.lucroPorDia.mapIndexed { i, (d, _) ->
-                    if (i % passo == 0 || i == e.lucroPorDia.lastIndex) d.dayOfMonth.toString() else ""
-                }
-                GraficoBarras(valores = valores, rotulos = rotulos)
-                val melhorDia = e.lucroPorDia.maxByOrNull { it.second }
-                if (melhorDia != null && melhorDia.second > 0) {
-                    Text(
-                        "Melhor dia: ${melhorDia.first.dayOfMonth}/${melhorDia.first.monthValue} • ${melhorDia.second.emReais()}",
-                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                    )
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                NumeroCentral(
+                    "Aceitas", if (e.ofertas.total > 0) "${e.corridasAceitas}" else "${r.qtdCorridas}",
+                    Modifier.weight(1f), cor = Lima
+                )
+                NumeroCentral(
+                    "Recusadas", if (e.ofertas.total > 0) "${e.corridasRecusadas}" else "—",
+                    Modifier.weight(1f), cor = VermelhoPrejuizo
+                )
+                NumeroCentral(
+                    "Online",
+                    if (e.segundosConectado > 0) e.segundosConectado.formatarDuracao() else "—",
+                    Modifier.weight(1f)
+                )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Metrica(
-                    "Lucro", r.lucroLiquidoCentavos.emReais(), Modifier.weight(1f),
-                    cor = if (r.lucroLiquidoCentavos >= 0) Lima else VermelhoPrejuizo,
-                    detalhe = "${r.faturamentoCentavos.emReais()} faturado",
-                    centralizado = true
-                )
-                Metrica(
-                    "Corridas", "${r.qtdCorridas}", Modifier.weight(1f),
-                    detalhe = String.format(PT, "%.0f km", r.kmRodados), centralizado = true
-                )
-            }
+            ResumoConectado(e)
 
             // ---------------- o quadro do período (tempo, corridas, dinheiro)
             QuadroDoPeriodo(e)

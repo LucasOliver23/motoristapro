@@ -1,5 +1,9 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.componentes.CartaoDestaque
+import com.motoristapro.ui.componentes.CorSobreDestaque
+import com.motoristapro.ui.componentes.SeloTexto
+import com.motoristapro.ui.theme.EstiloValor
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.motoristapro.ui.componentes.Icones
 import com.motoristapro.ui.componentes.SeloIcone
@@ -228,7 +232,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     }
     LaunchedEffect(Unit) { vm.mensagens.collect { snackbar.showSnackbar(it) } }
 
-    TelaAba(titulo = "Menu", subtitulo = "Veículo, leitor de ofertas e conta", snackbar = snackbar) { padding ->
+    TelaAba(titulo = "Menu", snackbar = snackbar) { padding ->
         val cfg = config
         if (cfg == null) {
             Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) { CircularProgressIndicator(color = Lima) }
@@ -272,19 +276,15 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                 cfg = cfg,
                 email = usuario?.email ?: usuario?.nome,
                 selo = when (acesso.situacao) {
-                    SituacaoAcesso.ASSINATURA_ATIVA -> "ASSINANTE\n${acesso.diasDeAssinatura} dias"
-                    SituacaoAcesso.TESTE_ATIVO -> "TESTE\n${acesso.diasDeTeste} dias"
-                    SituacaoAcesso.TESTE_ACABOU -> "TESTE\nacabou"
-                    SituacaoAcesso.ASSINATURA_VENCIDA -> "ASSINATURA\nvencida"
+                    SituacaoAcesso.ASSINATURA_ATIVA -> "PRO · ${acesso.diasDeAssinatura} dias"
+                    SituacaoAcesso.TESTE_ATIVO -> "TESTE · ${acesso.diasDeTeste} dias"
+                    SituacaoAcesso.TESTE_ACABOU -> "TESTE ACABOU"
+                    SituacaoAcesso.ASSINATURA_VENCIDA -> "VENCIDA"
                     else -> null
                 },
                 seloAceso = acesso.situacao == SituacaoAcesso.ASSINATURA_ATIVA ||
                     acesso.situacao == SituacaoAcesso.TESTE_ATIVO
             ) { sub = SubTela.PERFIL }
-
-            // Aparência direto aqui, sem entrar em tela nenhuma: é a primeira
-            // coisa que todo mundo procura e estava escondida a dois toques.
-            SeletorDeTema(context)
 
             ListaFerramentas(
                 titulo = "MEU TRABALHO",
@@ -428,6 +428,9 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     ),
                 )
             )
+
+            // Escuro / Claro / Do sistema direto aqui, sem entrar em tela nenhuma.
+            SeletorDeTema(context)
 
             Spacer(Modifier.height(8.dp))
         }
@@ -1471,59 +1474,31 @@ private fun PerfilLinha(
     onClick: () -> Unit
 ) {
     val nome = cfg.nomeMotorista?.takeIf { it.isNotBlank() } ?: "Motorista"
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = Superficie),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            Modifier.fillMaxWidth().clickable { onClick() }.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    CartaoDestaque(Modifier.clickable { onClick() }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Avatar aceso, com a inicial: é a primeira coisa do Menu, como no desenho.
             Box(
-                Modifier.size(46.dp).clip(CircleShape).background(SuperficieAlta),
+                Modifier.size(52.dp).clip(CircleShape).background(Lima),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    nome.first().uppercase(),
-                    color = Lima,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(nome.first().uppercase(), color = CorSobreDestaque, style = EstiloValor, fontSize = 22.sp)
             }
-            Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(nome, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                // Duas linhas, como no desenho: o e-mail identifica a conta, o
-                // veículo identifica a conta de custo. São coisas diferentes.
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(nome, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+                // O e-mail identifica a conta, o veículo identifica a conta de
+                // custo. São coisas diferentes, por isso as duas linhas.
                 if (!email.isNullOrBlank()) {
-                    Text(email, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                    Text(email, style = MaterialTheme.typography.bodySmall, color = TextoSecundario, maxLines = 1)
                 }
                 Text(
                     cfg.veiculoNome?.takeIf { it.isNotBlank() }
                         ?: if (email.isNullOrBlank()) "Toque para completar seus dados" else "veículo não informado",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextoSecundario
+                    color = TextoSecundario,
+                    maxLines = 1
                 )
             }
-            if (selo != null) {
-                val cor = if (seloAceso) Lima else AmareloAlerta
-                Box(
-                    Modifier.clip(RoundedCornerShape(12.dp))
-                        .background(cor.copy(alpha = 0.16f))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        selo,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = cor,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 12.sp
-                    )
-                }
-            }
-            Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
+            if (selo != null) SeloTexto(selo, if (seloAceso) Lima else AmareloAlerta)
         }
     }
 }

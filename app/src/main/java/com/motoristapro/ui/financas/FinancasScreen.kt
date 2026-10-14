@@ -1,5 +1,15 @@
 package com.motoristapro.ui.financas
 
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import com.motoristapro.ui.componentes.BarraMeta
+import com.motoristapro.ui.componentes.Cartao
+import com.motoristapro.ui.componentes.CartaoDestaque
+import com.motoristapro.ui.componentes.DivisorLista
+import com.motoristapro.ui.componentes.Pilula
+import com.motoristapro.ui.componentes.Rotulo
+import com.motoristapro.ui.componentes.ValorComCentavos
+import com.motoristapro.ui.theme.TextoPrincipal
 import com.motoristapro.ui.theme.EstiloValor
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -106,8 +116,8 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
 
     TelaAba(
         titulo = "Finanças",
-        subtitulo = "Entradas, saídas e metas",
         snackbar = snackbar,
+        acoes = { SeletorMes(mes.mes, vm::mesAnterior, vm::proximoMes) },
         fab = {
             ExtendedFloatingActionButton(
                 onClick = { nova = true },
@@ -123,126 +133,19 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { SeletorMes(mes.mes, vm::mesAnterior, vm::proximoMes) }
+            item { CartaoDoMes(mes, metas.config.metaLucroMensalCentavos) }
 
-            item {
-                val r = mes.resumo
-                val nomeDoMes = mes.mes.format(FORMATO_SO_MES).uppercase(PT)
-                CardSecao(titulo = "RESULTADO DE $nomeDoMes", centralizado = true) {
-                    Text(
-                        r.lucroLiquidoCentavos.emReais(),
-                        style = MaterialTheme.typography.displaySmall.merge(EstiloValor),
-                        fontWeight = FontWeight.Bold,
-                        color = if (r.lucroLiquidoCentavos >= 0) Lima else VermelhoPrejuizo
-                    )
-                    LinhaValor("Faturamento", r.faturamentoCentavos.emReais())
-                    LinhaValor("Despesas lançadas", "- " + r.despesasCentavos.emReais(), cor = VermelhoPrejuizo)
-                    if (mes.custoFixoMensal > 0) {
-                        LinhaValor("Custos fixos do mês", "- " + mes.custoFixoMensal.emReais(), cor = VermelhoPrejuizo)
-                        LinhaValor(
-                            "Lucro real", mes.lucroRealCentavos.emReais(),
-                            cor = if (mes.lucroRealCentavos >= 0) Lima else VermelhoPrejuizo, negrito = true
-                        )
-                    }
-                    LinhaValor("Corridas", "${r.qtdCorridas}")
-                    LinhaValor("Km rodados", String.format(PT, "%.1f km", r.kmRodados))
-                }
-            }
-
-            item {
-                val cfg = metas.config
-                CardSecao(titulo = "METAS DE LUCRO") {
-                    ProgressoMeta("Hoje", metas.hoje, cfg.metaLucroDiarioCentavos, metas.hoje.emReais(), cfg.metaLucroDiarioCentavos.emReais())
-                    ProgressoMeta("Esta semana", metas.semana, cfg.metaLucroSemanalCentavos, metas.semana.emReais(), cfg.metaLucroSemanalCentavos.emReais())
-                    ProgressoMeta("Este mês", metas.mes, cfg.metaLucroMensalCentavos, metas.mes.emReais(), cfg.metaLucroMensalCentavos.emReais())
-                    // Só leitura, de propósito: a meta mensal é definida UMA vez no
-                    // assistente de custos, e a diária e a semanal saem dela. Poder
-                    // editar aqui também deixaria dois números discordando.
-                    Text(
-                        if (cfg.metaLucroMensalCentavos > 0)
-                            "Meta do mês: ${cfg.metaLucroMensalCentavos.emReais()} — definida em " +
-                                "Mais ▸ Meu veículo e custos. A diária e a semanal saem dela."
-                        else "Defina sua meta em Mais ▸ Meu veículo e custos.",
-                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                    )
-                }
-            }
-
-            item {
-                CardSecao(titulo = "DESPESAS POR CATEGORIA") {
-                    if (mes.porCategoria.isEmpty()) {
-                        Text("Sem despesas neste mês.", color = TextoSecundario)
-                    } else {
-                        // Uma barra fina dividida pelas cores das categorias (o "para
-                        // onde foi o dinheiro" de relance) e, embaixo, a linha de cada uma.
-                        val total = mes.porCategoria.sumOf { it.totalCentavos }.coerceAtLeast(1)
-                        Row(
-                            Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            mes.porCategoria.filter { it.totalCentavos > 0 }.forEach { c ->
-                                Box(
-                                    Modifier.weight(c.totalCentavos.toFloat()).fillMaxHeight()
-                                        .background(iconeDeTraco(c.categoria).second)
-                                )
-                            }
-                        }
-                        mes.porCategoria.forEach { c ->
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                iconeDeTraco(c.categoria).let { (icone, cor) -> SeloIcone(icone, cor) }
-                                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                                    Text(c.categoria.rotulo, style = MaterialTheme.typography.bodyMedium)
-                                    Text(
-                                        "${c.totalCentavos * 100 / total}% das despesas",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = TextoSecundario
-                                    )
-                                }
-                                Text(
-                                    c.totalCentavos.emReais(),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            item { CartaoCategorias(mes) }
 
             item {
                 // Entradas e saídas no MESMO extrato. A corrida registrada entra
                 // sozinha (vem da aba Corridas) e a despesa entra na mão — mas
                 // para quem olha é um extrato só, em ordem de tempo.
-                Column(Modifier.padding(top = 4.dp)) {
-                    Text(
-                        "Lançamentos",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = TextoSecundario
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            "+ ${mes.totalEntradasCentavos.emReais()}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Lima, fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "- ${mes.totalSaidasCentavos.emReais()}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = VermelhoPrejuizo, fontWeight = FontWeight.Bold
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FiltroLancamento.entries.forEach { f ->
+                        Pilula(f.rotulo, mes.filtro == f) { vm.filtrarLancamentos(f) }
                     }
                 }
-            }
-            item {
-                ChipsSelecao(
-                    opcoes = FiltroLancamento.entries.toList(),
-                    selecionado = mes.filtro,
-                    rotulo = { it.rotulo },
-                    onSelecionar = vm::filtrarLancamentos
-                )
             }
             val lancamentos = mes.lancamentos
             if (lancamentos.isEmpty()) {
@@ -256,13 +159,41 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
                     )
                 }
             }
-            items(lancamentos, key = { chaveDoLancamento(it) }) { l ->
-                when (l) {
-                    is Lancamento.Entrada -> EntradaItem(l.corrida)
-                    is Lancamento.Saida -> DespesaItem(
-                        l.despesa,
-                        onClick = { editando = l.despesa },
-                        onExcluir = { excluir = l.despesa }
+            itemsIndexed(lancamentos, key = { _, l -> chaveDoLancamento(l) }) { i, l ->
+                // Cada linha é um pedaço do mesmo cartão: canto redondo só na
+                // primeira e na última, linha fina entre elas.
+                val forma = RoundedCornerShape(
+                    topStart = if (i == 0) 20.dp else 0.dp, topEnd = if (i == 0) 20.dp else 0.dp,
+                    bottomStart = if (i == lancamentos.lastIndex) 20.dp else 0.dp,
+                    bottomEnd = if (i == lancamentos.lastIndex) 20.dp else 0.dp
+                )
+                Column(Modifier.fillMaxWidth().clip(forma).background(Superficie).padding(horizontal = 14.dp)) {
+                    if (i > 0) DivisorLista()
+                    when (l) {
+                        is Lancamento.Entrada -> EntradaItem(l.corrida)
+                        is Lancamento.Saida -> DespesaItem(
+                            l.despesa,
+                            onClick = { editando = l.despesa },
+                            onExcluir = { excluir = l.despesa }
+                        )
+                    }
+                }
+            }
+
+            item {
+                val cfg = metas.config
+                Cartao(Modifier.padding(top = 8.dp), espaco = 10) {
+                    Rotulo("Metas de lucro")
+                    ProgressoMeta("Hoje", metas.hoje, cfg.metaLucroDiarioCentavos, metas.hoje.emReais(), cfg.metaLucroDiarioCentavos.emReais())
+                    ProgressoMeta("Esta semana", metas.semana, cfg.metaLucroSemanalCentavos, metas.semana.emReais(), cfg.metaLucroSemanalCentavos.emReais())
+                    ProgressoMeta("Este mês", metas.mes, cfg.metaLucroMensalCentavos, metas.mes.emReais(), cfg.metaLucroMensalCentavos.emReais())
+                    // Só leitura, de propósito: a meta mensal é definida UMA vez no
+                    // assistente de custos, e a diária e a semanal saem dela.
+                    Text(
+                        if (cfg.metaLucroMensalCentavos > 0)
+                            "A meta do mês é definida em Menu ▸ Meu veículo e custos. A diária e a semanal saem dela."
+                        else "Defina sua meta em Menu ▸ Meu veículo e custos.",
+                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
                     )
                 }
             }
@@ -301,40 +232,30 @@ private fun chaveDoLancamento(l: Lancamento): String = when (l) {
 private fun EntradaItem(item: CorridaComPlataforma) {
     val c = item.corrida
     val data = Instant.ofEpochMilli(c.inicioEm).atZone(ZoneId.systemDefault()).format(FORMATO_DATA)
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = Superficie)
-    ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            // O logo do app, não um carrinho genérico: é por ele que o motorista
-            // reconhece a entrada sem ler o nome.
-            LogoPlataforma(item.plataformaNome, tamanho = 34.dp, modifier = Modifier.padding(end = 12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(item.plataformaNome, fontWeight = FontWeight.SemiBold)
-                Text(
-                    listOf(data, String.format(PT, "%.1f km", c.kmTotal)).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-                )
-            }
+    Row(Modifier.fillMaxWidth().padding(vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+        // O logo do app, não um ícone genérico: é por ele que o motorista
+        // reconhece a entrada sem ler o nome.
+        LogoPlataforma(item.plataformaNome, tamanho = 36.dp)
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text("Corrida · ${item.plataformaNome}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             Text(
-                "+ " + c.receitaCentavos.emReais(),
-                fontWeight = FontWeight.Bold, color = Lima
+                listOf(data, String.format(PT, "%.1f km", c.kmTotal)).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
             )
         }
+        Text("+ " + c.receitaCentavos.emReais().removePrefix("R$ "), style = EstiloValor, fontSize = 16.sp, color = Lima)
     }
 }
 
 @Composable
 private fun SeletorMes(mes: YearMonth, onAnterior: () -> Unit, onProximo: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    // Compacto, no canto da barra de cima ("‹ Outubro ›"), como no desenho.
+    Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onAnterior) { Icon(Icons.Filled.KeyboardArrowLeft, contentDescription = "Mês anterior") }
         Text(
-            mes.format(FORMATO_MES).replaceFirstChar { it.uppercase() },
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.titleMedium,
+            (if (mes.year == YearMonth.now().year) mes.format(FORMATO_SO_MES) else mes.format(FORMATO_MES))
+                .replaceFirstChar { it.uppercase() },
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold
         )
         IconButton(onClick = onProximo, enabled = mes.isBefore(YearMonth.now())) {
@@ -346,26 +267,103 @@ private fun SeletorMes(mes: YearMonth, onAnterior: () -> Unit, onProximo: () -> 
 @Composable
 private fun DespesaItem(d: Despesa, onClick: () -> Unit, onExcluir: () -> Unit) {
     val data = Instant.ofEpochMilli(d.dataEm).atZone(ZoneId.systemDefault()).format(FORMATO_DATA)
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = Superficie)
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            iconeDeTraco(d.categoria).let { (icone, cor) -> SeloIcone(icone, cor, Modifier.padding(end = 12.dp)) }
-            Column(Modifier.weight(1f)) {
-                Text(d.categoria.rotulo, fontWeight = FontWeight.SemiBold)
-                val extra = buildList {
-                    add(data)
-                    d.litrosMl?.let { add(String.format(PT, "%.1f L", it / 1000.0)) }
-                    d.descricao?.let { add(it) }
-                }.joinToString(" • ")
-                Text(extra, style = MaterialTheme.typography.bodySmall, color = TextoSecundario, maxLines = 1)
+        iconeDeTraco(d.categoria).let { (icone, cor) -> SeloIcone(icone, cor, tamanho = 36.dp) }
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text(d.descricao?.takeIf { it.isNotBlank() } ?: d.categoria.rotulo,
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            val extra = buildList {
+                add(data)
+                d.litrosMl?.let { add(String.format(PT, "%.1f L", it / 1000.0)) }
+                if (!d.descricao.isNullOrBlank()) add(d.categoria.rotulo)
+            }.joinToString(" · ")
+            Text(extra, style = MaterialTheme.typography.bodySmall, color = TextoSecundario, maxLines = 1)
+        }
+        Text("− " + d.valorCentavos.emReais().removePrefix("R$ "), style = EstiloValor, fontSize = 16.sp)
+        IconButton(onClick = onExcluir) {
+            Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+// ------------------------------------------------------------------ visual novo (4.0)
+
+/** O cartão de cima: lucro do mês, quanto entrou, quanto saiu e a meta do mês. */
+@Composable
+private fun CartaoDoMes(mes: MesUiState, metaMensal: Long) {
+    val r = mes.resumo
+    val temFixo = mes.custoFixoMensal > 0
+    val lucro = if (temFixo) mes.lucroRealCentavos else r.lucroLiquidoCentavos
+    CartaoDestaque {
+        Rotulo(if (temFixo) "Lucro real do mês" else "Lucro do mês")
+        ValorComCentavos(lucro.emReais(), 38.sp, cor = if (lucro >= 0) TextoPrincipal else VermelhoPrejuizo)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("↑ " + r.faturamentoCentavos.emReais(), style = MaterialTheme.typography.bodySmall, color = Lima)
+            Text(
+                "↓ " + (r.despesasCentavos + mes.custoFixoMensal).emReais(),
+                style = MaterialTheme.typography.bodySmall, color = VermelhoPrejuizo
+            )
+        }
+        if (metaMensal > 0) {
+            BarraMeta(lucro.toFloat() / metaMensal, Modifier.padding(top = 6.dp))
+            Row(Modifier.fillMaxWidth()) {
+                Text(
+                    "${(lucro.coerceAtLeast(0) * 100 / metaMensal)}% da meta do mês",
+                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                )
+                Box(Modifier.weight(1f))
+                Text(metaMensal.emReais(), style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
             }
-            Text("- " + d.valorCentavos.emReais(), color = VermelhoPrejuizo, fontWeight = FontWeight.Bold)
-            IconButton(onClick = onExcluir) {
-                Icon(Icons.Filled.Delete, contentDescription = "Excluir", tint = TextoSecundario)
+        }
+        val detalhe = buildList {
+            add("${r.qtdCorridas} corridas")
+            add(String.format(PT, "%.0f km", r.kmRodados))
+            if (temFixo) add("custos fixos ${mes.custoFixoMensal.emReais()}")
+        }.joinToString(" · ")
+        Text(detalhe, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+    }
+}
+
+/** Para onde foi o dinheiro: uma barra dividida pelas cores e a legenda em duas colunas. */
+@Composable
+private fun CartaoCategorias(mes: MesUiState) {
+    Cartao(espaco = 12) {
+        Rotulo("Gastos por categoria")
+        val cats = mes.porCategoria.filter { it.totalCentavos > 0 }
+        if (cats.isEmpty()) {
+            Text("Sem despesas neste mês.", style = MaterialTheme.typography.bodyMedium, color = TextoSecundario)
+            return@Cartao
+        }
+        Row(
+            Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            cats.forEach { c ->
+                Box(
+                    Modifier.weight(c.totalCentavos.toFloat()).fillMaxHeight()
+                        .background(iconeDeTraco(c.categoria).second)
+                )
+            }
+        }
+        cats.chunked(2).forEach { par ->
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                par.forEach { c ->
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(iconeDeTraco(c.categoria).second))
+                        Text(
+                            c.categoria.rotulo, style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f).padding(start = 6.dp), maxLines = 1
+                        )
+                        Text(
+                            c.totalCentavos.emReais().removePrefix("R$ "),
+                            style = EstiloValor, fontSize = 13.sp
+                        )
+                    }
+                }
+                if (par.size == 1) Box(Modifier.weight(1f))
             }
         }
     }
