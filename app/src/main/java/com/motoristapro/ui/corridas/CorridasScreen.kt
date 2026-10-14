@@ -1,5 +1,16 @@
 package com.motoristapro.ui.corridas
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.unit.sp
+import com.motoristapro.ui.componentes.Cartao
+import com.motoristapro.ui.componentes.DivisorLista
+import com.motoristapro.ui.componentes.Pilula
+import com.motoristapro.ui.componentes.PilulaDia
+import com.motoristapro.ui.componentes.Rotulo
+import com.motoristapro.ui.componentes.SeloTexto
+import com.motoristapro.ui.theme.TextoPrincipal
 import com.motoristapro.ui.theme.EstiloValor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -118,10 +129,20 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
     val coresPorId = remember(plataformas) { plataformas.associate { it.id to corPlataforma(it.corHex) } }
 
     TelaAba(
-        titulo = if (modo == ModoLista.OFERTAS) "Histórico" else "Corridas",
-        subtitulo = if (modo == ModoLista.CORRIDAS) "${estado.resumo.qtdCorridas} no período"
-        else "${ofertas.resumo.total} ofertas no período",
+        titulo = "Corridas",
+        subtitulo = if (modo == ModoLista.CORRIDAS) "${estado.resumo.qtdCorridas} registradas no período"
+        else "${ofertas.resumo.total} ofertas lidas no período",
         snackbar = snackbar,
+        // Ofertas lidas x corridas registradas: troca no canto, sem ocupar uma linha da tela.
+        acoes = {
+            Pilula(
+                if (modo == ModoLista.OFERTAS) "Registradas" else "Ofertas",
+                selecionada = false,
+                modifier = Modifier.padding(end = 12.dp)
+            ) {
+                vm.selecionarModo(if (modo == ModoLista.OFERTAS) ModoLista.CORRIDAS else ModoLista.OFERTAS)
+            }
+        },
         fab = {
             ExtendedFloatingActionButton(
                 onClick = { nova = true },
@@ -137,63 +158,37 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            item {
-                ChipsSelecao(
-                    opcoes = ModoLista.entries.toList(),
-                    selecionado = modo,
-                    rotulo = { it.rotulo },
-                    onSelecionar = vm::selecionarModo
-                )
-            }
-            item {
-                ChipsSelecao(
-                    opcoes = FiltroPeriodo.entries.toList(),
-                    selecionado = estado.filtro,
-                    rotulo = { it.rotulo },
-                    onSelecionar = vm::selecionar
-                )
-            }
+            item { FitaDePilulas(estado.dia, estado.filtro, onDia = vm::escolherDia, onPeriodo = vm::selecionar) }
             if (modo == ModoLista.OFERTAS) {
-                // A fita de dias primeiro: o motorista procura por DIA ("quanto
-                // rolou na quinta?") antes de procurar por plataforma.
-                item { FitaDeDias(ofertas.todas) }
                 item {
-                    FilaDePlataformas(
-                        plataformas = ofertas.plataformasVistas,
-                        escolhida = ofertas.plataforma,
-                        quantidadeTotal = ofertas.todas.size,
-                        onEscolher = vm::filtrarPlataforma
+                    FiltrosDaLista(
+                        ofertas = ofertas,
+                        onAceite = vm::filtrarAceite,
+                        onPlataforma = vm::filtrarPlataforma
                     )
                 }
-                item {
-                    SegmentoAceite(
-                        atual = ofertas.aceite,
-                        todas = ofertas.todas.size,
-                        aceitas = ofertas.qtdAceitas,
-                        recusadas = ofertas.qtdRecusadas,
-                        onEscolher = vm::filtrarAceite
-                    )
-                }
-                item { ResumoOfertasCard(ofertas, onLimparSuspeitas = { vm.limparSuspeitas() }) }
+                item { ResumoDoDia(estado, ofertas, onLimparSuspeitas = { vm.limparSuspeitas() }) }
                 if (ofertas.ofertas.isEmpty()) {
                     item {
                         Vazio(
                             if (ofertas.todas.isEmpty())
                                 "Nenhuma oferta lida neste período.\nAs ofertas aparecem aqui assim que o leitor mostra a janela."
-                            else "Nenhuma oferta com esses filtros.\nToque no selo da plataforma de novo para ver todas."
+                            else "Nenhuma oferta com esses filtros.\nToque em \"Todas\" para ver tudo."
                         )
                     }
                 }
-                // Agrupado por dia, com o total do dia no cabecalho: e assim que
-                // o motorista procura ("quanto rolou na quinta?").
+                // Com um dia só na tela o cabeçalho do dia é repetição; em
+                // Semana/Mês ele volta, com o total de cada dia.
                 val porDia = ofertas.ofertas.groupBy { diaDa(it.recebidaEm) }
                 porDia.forEach { (dia, doDia) ->
-                    item(key = "d$dia") {
-                        CabecalhoDoDia(
-                            dia = dia,
-                            totalCentavos = doDia.filterNot { it.leituraSuspeita }.sumOf { it.valorCentavos },
-                            quantas = doDia.size
-                        )
+                    if (estado.dia == null) {
+                        item(key = "d$dia") {
+                            CabecalhoDoDia(
+                                dia = dia,
+                                totalCentavos = doDia.filterNot { it.leituraSuspeita }.sumOf { it.valorCentavos },
+                                quantas = doDia.size
+                            )
+                        }
                     }
                     items(doDia, key = { "o" + it.id }) { oferta ->
                         OfertaItem(
@@ -574,59 +569,45 @@ private fun OfertaItem(
         "MEDIA" -> AmareloAlerta
         else -> VermelhoPrejuizo
     }
-    Card(
-        modifier = Modifier.fillMaxWidth().border(1.dp, Contorno, RoundedCornerShape(18.dp)),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Superficie)
+    // Fechado: uma linha só, como no desenho. Aberto (toque): os números, o
+    // lucro, os endereços e a lixeira — nada do que existia se perdeu.
+    var aberto by rememberSaveable(o.id) { mutableStateOf(false) }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Superficie)
+            .clickable { aberto = !aberto }.padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-
-            // ---- linha de cima: app, valor, hora e a cor do semaforo
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // O pacote cru, não o nome bonito: um app novo que o leitor
-                // ainda não conhece perde o apelido, mas não perde o logo.
-                LogoPlataforma(o.plataforma, tamanho = 36.dp)
-                Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            o.valorCentavos.emReais(),
-                            style = MaterialTheme.typography.titleMedium.merge(EstiloValor),
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            " · $hora",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextoSecundario
-                        )
-                    }
-                    val partes = mutableListOf(String.format(PT, "%.1f km", o.km))
-                    if (o.minutos > 0) partes += "${o.minutos} min"
-                    if (o.paradas > 1) partes += "${o.paradas} entregas"
-                    Text(
-                        partes.joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextoSecundario
-                    )
-                }
-                Surface(shape = RoundedCornerShape(10.dp), color = cor.copy(alpha = 0.18f)) {
-                    Text(
-                        when (o.classificacao) { "BOA" -> "Boa"; "MEDIA" -> "Atenção"; else -> "Ruim" },
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = cor,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                // Leitura torta se apaga daqui: é esta lista que alimenta as
-                // médias e os melhores horários.
-                IconButton(onClick = onExcluir) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = "Excluir leitura",
-                        tint = if (o.leituraSuspeita) AmareloAlerta else TextoSecundario
-                    )
-                }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // O pacote cru, não o nome bonito: um app novo que o leitor
+            // ainda não conhece perde o apelido, mas não perde o logo.
+            LogoPlataforma(o.plataforma, tamanho = 34.dp)
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(
+                    trajeto(o),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val partes = mutableListOf(hora, String.format(PT, "%.1f km", o.km))
+                if (o.metros > 0) partes += "${o.reaisPorKmCentavos.emReais()}/km"
+                Text(
+                    partes.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextoSecundario,
+                    maxLines = 1
+                )
             }
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(o.valorCentavos.emReais(), style = EstiloValor, fontSize = 17.sp)
+                SeloTexto(
+                    when (o.classificacao) { "BOA" -> "BOA"; "MEDIA" -> "MÉDIA"; else -> "RUIM" },
+                    if (o.leituraSuspeita) AmareloAlerta else cor
+                )
+            }
+        }
+
+        if (!aberto) return@Column
 
             if (o.leituraSuspeita) {
                 Text(
@@ -694,12 +675,35 @@ private fun OfertaItem(
                 }
             }
 
-            if (o.registrada) {
-                Text("registrada ✓", style = MaterialTheme.typography.labelSmall, color = Lima)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (o.registrada) "registrada ✓" else "não registrada",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (o.registrada) Lima else TextoSecundario,
+                    modifier = Modifier.weight(1f)
+                )
+                // Leitura torta se apaga daqui: é esta lista que alimenta as
+                // médias e os melhores horários.
+                TextButton(onClick = onExcluir) {
+                    Text("Excluir leitura", color = if (o.leituraSuspeita) AmareloAlerta else TextoSecundario)
+                }
             }
-        }
     }
 }
+
+/** "Centro → Aeroporto" quando o leitor pegou os endereços; senão, o app e os km. */
+private fun trajeto(o: OfertaRecebida): String {
+    val origem = o.origem?.takeIf { it.isNotBlank() }?.let(::encurtar)
+    val destino = o.destino?.takeIf { it.isNotBlank() }?.let(::encurtar)
+    return when {
+        origem != null && destino != null -> "$origem → $destino"
+        origem != null -> origem
+        else -> "Oferta de " + String.format(PT, "%.1f km", o.km)
+    }
+}
+
+/** Só o começo do endereço (rua ou bairro), que é o que cabe numa linha. */
+private fun encurtar(endereco: String): String = endereco.split(",", " - ").first().trim()
 @Composable
 private fun LinhaEndereco(marca: String, texto: String, cor: Color, onVerNoMapa: () -> Unit) {
     Row(
@@ -724,5 +728,125 @@ private fun LinhaEndereco(marca: String, texto: String, cor: Color, onVerNoMapa:
             color = Lima,
             modifier = Modifier.padding(start = 6.dp)
         )
+    }
+}
+
+// ------------------------------------------------------------------ visual novo (4.0)
+
+private val FORMATO_DIA_CURTO = DateTimeFormatter.ofPattern("EEE", PT)
+
+/**
+ * A fita do topo: os últimos 7 dias em pílulas (o de hoje escrito HOJE) e,
+ * rolando para o lado, Semana / Mês / 30 dias. Um toque escolhe o período.
+ */
+@Composable
+private fun FitaDePilulas(
+    dia: LocalDate?,
+    filtro: FiltroPeriodo,
+    onDia: (LocalDate) -> Unit,
+    onPeriodo: (FiltroPeriodo) -> Unit
+) {
+    val hoje = LocalDate.now()
+    val dias = (6 downTo 0).map { hoje.minusDays(it.toLong()) }
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        dias.forEach { d ->
+            PilulaDia(
+                cima = if (d == hoje) "HOJE" else d.format(FORMATO_DIA_CURTO).take(3).uppercase(PT),
+                baixo = "${d.dayOfMonth}",
+                selecionada = d == dia,
+                modifier = Modifier.width(52.dp)
+            ) { onDia(d) }
+        }
+        listOf(FiltroPeriodo.SEMANA, FiltroPeriodo.MES, FiltroPeriodo.TRINTA_DIAS).forEach { f ->
+            PilulaDia(
+                cima = "VER",
+                baixo = f.rotulo,
+                selecionada = dia == null && filtro == f
+            ) { onPeriodo(f) }
+        }
+    }
+}
+
+/** Todas / Aceitas / Recusadas e, na mesma linha, um filtro por app. */
+@Composable
+private fun FiltrosDaLista(
+    ofertas: OfertasUiState,
+    onAceite: (FiltroAceite) -> Unit,
+    onPlataforma: (String?) -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Pilula("Todas", ofertas.aceite == FiltroAceite.TODAS && ofertas.plataforma == null) {
+            onAceite(FiltroAceite.TODAS)
+            if (ofertas.plataforma != null) onPlataforma(ofertas.plataforma)
+        }
+        Pilula("Aceitas ${ofertas.qtdAceitas}", ofertas.aceite == FiltroAceite.ACEITAS) {
+            onAceite(if (ofertas.aceite == FiltroAceite.ACEITAS) FiltroAceite.TODAS else FiltroAceite.ACEITAS)
+        }
+        Pilula("Recusadas ${ofertas.qtdRecusadas}", ofertas.aceite == FiltroAceite.RECUSADAS) {
+            onAceite(if (ofertas.aceite == FiltroAceite.RECUSADAS) FiltroAceite.TODAS else FiltroAceite.RECUSADAS)
+        }
+        ofertas.plataformasVistas.forEach { marca ->
+            Pilula(nomeDaMarca(marca), ofertas.plataforma == marca) { onPlataforma(marca) }
+        }
+    }
+}
+
+private fun nomeDaMarca(chave: String): String = when (chave) {
+    "uber" -> "Uber"
+    "99" -> "99"
+    "ifood" -> "iFood"
+    "indrive" -> "inDrive"
+    else -> chave.substringAfterLast('.').replaceFirstChar { it.uppercase() }
+}
+
+/**
+ * O resumo de cima: lucro, corridas e R$/km das corridas REGISTRADAS no período
+ * e, embaixo, o que o leitor viu passar (ofertas e média por km).
+ */
+@Composable
+private fun ResumoDoDia(estado: CorridasUiState, ofertas: OfertasUiState, onLimparSuspeitas: () -> Unit) {
+    val r = estado.resumo
+    Cartao(espaco = 10) {
+        Row(Modifier.fillMaxWidth()) {
+            Column(Modifier.weight(1.4f)) {
+                Rotulo(if (estado.dia == LocalDate.now()) "Lucro do dia" else "Lucro no período")
+                Text(
+                    r.lucroLiquidoCentavos.emReais(), style = EstiloValor, fontSize = 22.sp,
+                    color = if (r.lucroLiquidoCentavos >= 0) TextoPrincipal else VermelhoPrejuizo, maxLines = 1
+                )
+            }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                Rotulo("Corridas")
+                Text("${r.qtdCorridas}", style = EstiloValor, fontSize = 22.sp)
+            }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                Rotulo("R$/km")
+                Text(
+                    if (r.metrosRodados > 0) r.ganhoPorKmCentavos.emReais().removePrefix("R$ ") else "—",
+                    style = EstiloValor, fontSize = 22.sp
+                )
+            }
+        }
+        if (ofertas.todas.isNotEmpty()) {
+            DivisorLista()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${ofertas.qtdNaLista} ofertas lidas · média ${ofertas.mediaPorKmCentavos.emReais()}/km",
+                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario,
+                    modifier = Modifier.weight(1f)
+                )
+                if (ofertas.qtdSuspeitas > 0) {
+                    TextButton(onClick = onLimparSuspeitas) {
+                        Text("Limpar ${ofertas.qtdSuspeitas} com erro", color = AmareloAlerta)
+                    }
+                }
+            }
+        }
     }
 }

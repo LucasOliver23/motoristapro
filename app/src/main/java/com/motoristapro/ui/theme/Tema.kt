@@ -177,8 +177,10 @@ object PreferenciaTema {
      */
     fun carregar(c: Context) {
         val p = prefs(c)
-        if (!p.getBoolean(KEY_PADRAO_NOVO, false)) {
-            p.edit().putBoolean(KEY_PADRAO_NOVO, true).remove(KEY).apply()
+        // O visual novo (4.0) foi desenhado no escuro: quem estava no claro
+        // passa para o escuro UMA vez, e pode voltar em Menu ▸ Aparência.
+        if (!p.getBoolean(KEY_PADRAO_NOVO, false) || !p.getBoolean(KEY_VISUAL_NOVO, false)) {
+            p.edit().putBoolean(KEY_PADRAO_NOVO, true).putBoolean(KEY_VISUAL_NOVO, true).remove(KEY).apply()
             aplicar(c, ModoTema.ESCURO)
             return
         }
@@ -210,6 +212,9 @@ object PreferenciaTema {
 
     /** Marca que o padrão escuro já foi aplicado uma vez neste aparelho. */
     private const val KEY_PADRAO_NOVO = "padrao_escuro_aplicado"
+
+    /** Marca que o escuro do visual novo (4.0) já foi aplicado uma vez. */
+    private const val KEY_VISUAL_NOVO = "visual_novo_4_aplicado"
 }
 
 // ------------------------------------------------------------------ esquemas

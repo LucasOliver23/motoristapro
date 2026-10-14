@@ -1,5 +1,21 @@
 package com.motoristapro.ui.dashboard
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.motoristapro.ui.componentes.BarraMeta
+import com.motoristapro.ui.componentes.Cartao
+import com.motoristapro.ui.componentes.CartaoDestaque
+import com.motoristapro.ui.componentes.MetricaCompacta
+import com.motoristapro.ui.componentes.Rotulo
+import com.motoristapro.ui.componentes.ValorComCentavos
+import com.motoristapro.ui.theme.Fundo
+import com.motoristapro.ui.theme.Superficie
+import com.motoristapro.ui.theme.SuperficieMaisAlta
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -190,30 +206,27 @@ fun DashboardRoute(
 
                 QuatroNumeros(estado)
 
+                // Os três ajustes que decidem tudo o que o app calcula, na tela
+                // de abrir — e não a dois ou três toques dentro do Menu. São os
+                // únicos que o motorista mexe de verdade depois de configurar.
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    BlocoAtalho(Icones.Semaforo, "Semáforo", AmareloAlerta, Modifier.weight(1f)) {
+                        irParaAjuste(SubTela.SEMAFORO, irPara)
+                    }
+                    BlocoAtalho(Icones.Veiculo, "Veículo", AzulInfo, Modifier.weight(1f)) {
+                        irParaAjuste(SubTela.VEICULO, irPara)
+                    }
+                    BlocoAtalho(
+                        Icones.Checkup, "Checkup", if (leitorOk) Roxo else VermelhoPrejuizo, Modifier.weight(1f)
+                    ) {
+                        irParaAjuste(SubTela.CHECKUP, irPara)
+                    }
+                }
+
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     BotaoPro("+ Corrida", Modifier.weight(1f)) { dialogCorrida = true }
                     BotaoProEscuro("+ Despesa", Modifier.weight(1f), corDoTexto = Lima) {
                         dialogDespesa = CategoriaDespesa.COMBUSTIVEL
-                    }
-                }
-
-                // Os três ajustes que decidem tudo o que o app calcula, na tela
-                // de abrir — e não a dois ou três toques dentro do Menu. São os
-                // únicos que o motorista mexe de verdade depois de configurar.
-                CardPro {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        AtalhoRedondo(Icones.Semaforo, "Semáforo\nde valores", AmareloAlerta, Modifier.weight(1f)) {
-                            irParaAjuste(SubTela.SEMAFORO, irPara)
-                        }
-                        AtalhoRedondo(Icones.Veiculo, "Meu veículo\ne custos", AzulInfo, Modifier.weight(1f)) {
-                            irParaAjuste(SubTela.VEICULO, irPara)
-                        }
-                        AtalhoRedondo(
-                            Icones.Checkup, "Checkup\ndo app", Roxo, Modifier.weight(1f),
-                            cor = if (leitorOk) null else VermelhoPrejuizo
-                        ) {
-                            irParaAjuste(SubTela.CHECKUP, irPara)
-                        }
                     }
                 }
 
@@ -269,53 +282,19 @@ fun DashboardRoute(
 @Composable
 private fun LucroDoDia(e: DashboardUiState, agora: Long, onVerFinancas: () -> Unit) {
     val lucro = e.resumo.lucroLiquidoCentavos
-    val cor = if (lucro >= 0) Lima else VermelhoPrejuizo
-    CardPro(modifier = Modifier.clickable { onVerFinancas() }) {
-        Text(
-            "LUCRO LÍQUIDO DE HOJE",
-            style = MaterialTheme.typography.labelMedium,
-            color = TextoSecundario,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.8.sp,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
-        // Centavos menores e apagados: o olho pega os reais primeiro, que é
-        // o que importa de relance. Space Grotesk só aqui, no número do dia.
-        val texto = lucro.emReais()
-        val virgula = texto.lastIndexOf(',')
-        Text(
-            buildAnnotatedString {
-                append(texto.substring(0, virgula))
-                withStyle(SpanStyle(fontSize = 26.sp, color = cor.copy(alpha = 0.6f))) {
-                    append(texto.substring(virgula))
-                }
-            },
-            style = EstiloValor,
-            fontSize = 44.sp,
-            color = cor,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
-        if (e.config.metaLucroDiarioCentavos > 0) {
-            LinearProgressIndicator(
-                progress = { e.progressoMeta },
-                modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(99.dp)),
-                color = Lima,
-                trackColor = Contorno,
-                drawStopIndicator = {}
-            )
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    val meta = e.config.metaLucroDiarioCentavos
+    CartaoDestaque(Modifier.clickable { onVerFinancas() }) {
+        Rotulo("Lucro líquido de hoje")
+        ValorComCentavos(lucro.emReais(), 46.sp, cor = if (lucro >= 0) TextoPrincipal else VermelhoPrejuizo)
+        if (meta > 0) {
+            BarraMeta(e.progressoMeta, Modifier.padding(top = 4.dp))
+            Row(Modifier.fillMaxWidth()) {
                 Text(
-                    "Meta do dia: ${e.config.metaLucroDiarioCentavos.emReais()}",
+                    "${(lucro.coerceAtLeast(0) * 100 / meta)}% da meta",
                     style = MaterialTheme.typography.bodySmall, color = TextoSecundario
                 )
                 Box(Modifier.weight(1f))
-                Text(
-                    "${(e.progressoMeta * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold, color = Lima
-                )
+                Text(meta.emReais(), style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
             }
             QuantoFalta(e, agora)
         } else {
@@ -372,7 +351,7 @@ private fun QuantoFalta(e: DashboardUiState, agora: Long) {
     }
 
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(SuperficieAlta)
+        Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(12.dp)).background(Fundo.copy(alpha = 0.55f))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -400,33 +379,16 @@ private fun QuatroNumeros(e: DashboardUiState) {
     val r = e.resumo
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Metrica(
-                "Faturamento", r.faturamentoCentavos.emReais(), Modifier.weight(1f),
-                detalhe = "${r.qtdCorridas} corrida(s)", centralizado = true
-            )
-            Metrica(
-                "Despesas", r.despesasCentavos.emReais(), Modifier.weight(1f),
-                cor = VermelhoPrejuizo, detalhe = "lançadas hoje", centralizado = true
-            )
+            MetricaCompacta("Faturamento", r.faturamentoCentavos.emReais(), Modifier.weight(1f))
+            MetricaCompacta("Despesas", r.despesasCentavos.emReais(), Modifier.weight(1f), cor = VermelhoPrejuizo)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Metrica(
+            MetricaCompacta(
                 "R$ por km",
                 if (r.metrosRodados > 0) r.ganhoPorKmCentavos.emReais() else "—",
-                Modifier.weight(1f),
-                cor = if (r.metrosRodados > 0) Lima else TextoSecundario,
-                detalhe = e.config.custoKmCentavos.takeIf { it > 0 }?.let { "custo ${it.emReais()}/km" },
-                centralizado = true
+                Modifier.weight(1f)
             )
-            Metrica(
-                "Taxa de aceite",
-                e.taxaDeAceite?.let { "$it%" } ?: "—",
-                Modifier.weight(1f),
-                detalhe = if (e.ofertas.total > 0)
-                    "${e.ofertas.registradas} de ${e.ofertas.total} ofertas"
-                else "o leitor ainda não viu oferta",
-                centralizado = true
-            )
+            MetricaCompacta("Aceite", e.taxaDeAceite?.let { "$it%" } ?: "—", Modifier.weight(1f))
         }
     }
 }
@@ -466,86 +428,109 @@ private fun JornadaCard(
     onRetomarGps: () -> Unit
 ) {
     val jornada = estado.jornada
-    if (jornada == null) {
-        CardSecao(titulo = "JORNADA") {
-            val trabalhadoHoje = estado.segundosTrabalhados(agora)
-            Text(
-                if (trabalhadoHoje > 0) "Hoje: ${trabalhadoHoje.formatarDuracao()} trabalhadas" else "Turno parado",
-                style = MaterialTheme.typography.bodyLarge
+    Cartao(espaco = 10) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            val segundos = jornada?.segundosRodando(agora) ?: estado.segundosTrabalhados(agora)
+            AnelPequeno(
+                fracao = segundos.toFloat() / TURNO_DE_REFERENCIA_SEG,
+                cor = when {
+                    jornada?.pausada == true -> AmareloAlerta
+                    segundos > TURNO_DE_REFERENCIA_SEG -> AmareloAlerta
+                    else -> Turquesa
+                }
             )
-            BotaoPro("▶  Iniciar jornada", Modifier.fillMaxWidth(), onClick = onIniciar)
-        }
-        return
-    }
-
-    val segundosTurno = jornada.segundosRodando(agora)
-    val inicio = Instant.ofEpochMilli(jornada.inicioEm).atZone(ZoneId.systemDefault())
-        .format(FORMATO_INICIO)
-
-    // O anel enche em relação a um turno de 8 h. É escala, não meta: o número
-    // que vale é a hora no meio, e a cor avisa quando o dia está esticando.
-    val referencia = TURNO_DE_REFERENCIA_SEG
-
-    CartaoJornada(
-        segundos = segundosTurno,
-        segundosDeReferencia = referencia,
-        segundosEmCorrida = estado.resumo.segundosEmCorrida,
-        faturamentoCentavos = estado.resumo.faturamentoCentavos,
-        inicioTexto = if (jornada.pausada) "pausada • começou $inicio" else "começou $inicio",
-        pausada = jornada.pausada
-    ) {
-        // Os dois botões lado a lado, como no desenho. Encerrar em vermelho
-        // suave: é a ação que não tem volta, e o olho tem que diferenciar dela
-        // na hora de parar dez minutos para almoçar.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(
-                onClick = onPausar,
-                modifier = Modifier.weight(1f).height(46.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
+            Column(Modifier.weight(1f)) {
+                Rotulo(
+                    when {
+                        jornada == null -> "Jornada"
+                        jornada.pausada -> "Jornada · pausada"
+                        else -> "Jornada · desde " + Instant.ofEpochMilli(jornada.inicioEm)
+                            .atZone(ZoneId.systemDefault()).format(FORMATO_INICIO)
+                    }
+                )
                 Text(
-                    if (jornada.pausada) "Retomar" else "Pausar",
-                    fontWeight = FontWeight.Bold,
-                    color = if (jornada.pausada) Lima else MaterialTheme.colorScheme.onSurface
+                    if (jornada == null && segundos == 0L) "Parada" else segundos.formatarDuracao(),
+                    style = EstiloValor, fontSize = 22.sp, color = TextoPrincipal
                 )
             }
-            OutlinedButton(
-                onClick = onEncerrar,
-                modifier = Modifier.weight(1f).height(46.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Encerrar", fontWeight = FontWeight.Bold, color = VermelhoPrejuizo)
+            if (jornada != null) {
+                BotaoPequeno(if (jornada.pausada) "Retomar" else "Pausar", if (jornada.pausada) Lima else TextoPrincipal, onPausar)
+                BotaoPequeno("Encerrar", VermelhoPrejuizo, onEncerrar)
             }
         }
-
-        // Km e combustível em uma linha fina, sem roubar o lugar do relógio.
-        val gasto = estado.config.custoCombustivelKmCentavos
-            ?.let { Math.round(jornada.metrosGps / 1000.0 * it) }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                String.format(Locale("pt", "BR"), "%.1f km pelo GPS", jornada.metrosGps / 1000.0),
-                style = MaterialTheme.typography.labelSmall, color = TextoSecundario
-            )
-            Box(Modifier.weight(1f))
-            if (gasto != null) {
+        if (jornada == null) {
+            BotaoPro("▶  Iniciar jornada", Modifier.fillMaxWidth(), onClick = onIniciar)
+        } else {
+            // Km e combustível numa linha fina, sem roubar o lugar do relógio.
+            val gasto = estado.config.custoCombustivelKmCentavos
+                ?.let { Math.round(jornada.metrosGps / 1000.0 * it) }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "${gasto.emReais()} de combustível",
+                    String.format(Locale("pt", "BR"), "%.1f km pelo GPS", jornada.metrosGps / 1000.0),
                     style = MaterialTheme.typography.labelSmall, color = TextoSecundario
                 )
+                Box(Modifier.weight(1f))
+                if (gasto != null) {
+                    Text(
+                        "${gasto.emReais()} de combustível",
+                        style = MaterialTheme.typography.labelSmall, color = TextoSecundario
+                    )
+                }
+            }
+            if (!gpsRodando) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.LocationOn, contentDescription = null, tint = AmareloAlerta)
+                    Text(
+                        "GPS pausado",
+                        color = AmareloAlerta,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f).padding(start = 4.dp)
+                    )
+                    TextButton(onClick = onRetomarGps) { Text("Retomar GPS", color = Lima) }
+                }
             }
         }
-        if (!gpsRodando) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.LocationOn, contentDescription = null, tint = AmareloAlerta)
-                Text(
-                    "GPS pausado",
-                    color = AmareloAlerta,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                )
-                TextButton(onClick = onRetomarGps) { Text("Retomar GPS", color = Lima) }
-            }
-        }
+    }
+}
+
+/** O anel pequeno da jornada (54 dp): enche em relação a um turno de 8 h. */
+@Composable
+private fun AnelPequeno(fracao: Float, cor: Color) {
+    val trilho = SuperficieMaisAlta
+    Canvas(Modifier.size(54.dp)) {
+        val traco = 6.dp.toPx()
+        val area = Size(size.width - traco, size.height - traco)
+        val canto = Offset(traco / 2, traco / 2)
+        drawArc(trilho, 0f, 360f, false, canto, area, style = Stroke(traco))
+        val f = fracao.coerceIn(0f, 1f)
+        if (f > 0f) drawArc(cor, -90f, 360f * f, false, canto, area, style = Stroke(traco, cap = StrokeCap.Round))
+    }
+}
+
+/** Botão baixinho do cartão da jornada (Pausar / Encerrar). */
+@Composable
+private fun BotaoPequeno(texto: String, cor: Color, onClick: () -> Unit) {
+    Text(
+        texto,
+        modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(SuperficieAlta)
+            .clickable { onClick() }.padding(horizontal = 12.dp, vertical = 9.dp),
+        color = cor,
+        fontWeight = FontWeight.SemiBold,
+        style = MaterialTheme.typography.labelLarge
+    )
+}
+
+/** Um dos três atalhos do Início: ícone colorido em cima, nome embaixo, num bloco só dele. */
+@Composable
+private fun BlocoAtalho(icone: ImageVector, rotulo: String, cor: Color, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.clip(RoundedCornerShape(16.dp)).background(Superficie).clickable { onClick() }
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Icon(icone, contentDescription = null, tint = cor, modifier = Modifier.size(24.dp))
+        Text(rotulo, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
     }
 }
 

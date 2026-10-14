@@ -110,6 +110,8 @@ data class OfertasUiState(
 
 data class CorridasUiState(
     val filtro: FiltroPeriodo = FiltroPeriodo.HOJE,
+    /** Dia escolhido na fita de dias; null quando o filtro é Semana/Mês/30 dias. */
+    val dia: LocalDate? = LocalDate.now(),
     val corridas: List<CorridaComPlataforma> = emptyList(),
     val resumo: ResumoPeriodo = ResumoPeriodo.VAZIO,
     val carregando: Boolean = true
@@ -120,11 +122,22 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
 
     private val filtro = MutableStateFlow(FiltroPeriodo.HOJE)
 
-    val uiState: StateFlow<CorridasUiState> = filtro
-        .flatMapLatest { f ->
-            val (ini, fim) = f.intervalo()
+    /**
+     * Um dia da fita de dias (o visual novo abre em HOJE). Quando o motorista
+     * escolhe Semana/Mês/30 dias, fica null e vale o [filtro].
+     */
+    private val dia = MutableStateFlow<LocalDate?>(LocalDate.now())
+
+    private val periodo = combine(filtro, dia) { f, d -> f to d }
+
+    private fun intervalo(f: FiltroPeriodo, d: LocalDate?): Pair<Long, Long> =
+        if (d != null) Periodo.dia(d) else f.intervalo()
+
+    val uiState: StateFlow<CorridasUiState> = periodo
+        .flatMapLatest { (f, d) ->
+            val (ini, fim) = intervalo(f, d)
             combine(repo.corridasDoPeriodo(ini, fim), repo.resumoDoPeriodo(ini, fim)) { lista, resumo ->
-                CorridasUiState(filtro = f, corridas = lista, resumo = resumo, carregando = false)
+                CorridasUiState(filtro = f, dia = d, corridas = lista, resumo = resumo, carregando = false)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CorridasUiState())
@@ -150,9 +163,9 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
 
     fun filtrarAceite(f: FiltroAceite) { filtroAceite.value = f }
 
-    val ofertasState: StateFlow<OfertasUiState> = filtro
-        .flatMapLatest { f ->
-            val (ini, fim) = f.intervalo()
+    val ofertasState: StateFlow<OfertasUiState> = periodo
+        .flatMapLatest { (f, d) ->
+            val (ini, fim) = intervalo(f, d)
             combine(
                 repo.ofertasDoPeriodo(ini, fim),
                 repo.resumoOfertas(ini, fim),
@@ -165,7 +178,15 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
         .combine(filtroAceite) { estado, a -> estado.copy(aceite = a) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OfertasUiState())
 
-    fun selecionar(f: FiltroPeriodo) { filtro.value = f }
+    fun selecionar(f: FiltroPeriodo) {
+        filtro.value = f
+        dia.value = null
+    }
+
+    /** Toque numa pílula da fita de dias. */
+    fun escolherDia(d: LocalDate) {
+        dia.value = d
+    }
 
     fun selecionarModo(m: ModoLista) { _modo.value = m }
 
@@ -189,7 +210,7 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
     /** Apaga de uma vez todas as leituras com R$/km impossível do período filtrado. */
     fun limparSuspeitas() {
         viewModelScope.launch {
-            val (ini, fim) = filtro.value.intervalo()
+            val (ini, fim) = intervalo(filtro.value, dia.value)
             runCatching { repo.limparOfertasSuspeitas(ini, fim) }
                 .onSuccess { quantas ->
                     _mensagens.send(
