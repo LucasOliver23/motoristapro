@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#39FF14;--lucro2:#7CE38B;--verm:#FF5252;--amar:#FFC94D;--azul:#58A6FF;--turq:#2DE2C5;--roxo:#BC8CFF;--txt:#fff;--sec:#8B949E;--cont:#21262D}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05070a;font-family:Inter,sans-serif;color:var(--txt);padding:40px 30px;width:1820px}
+h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
+.sub{color:var(--sec);font-size:16px;margin-bottom:34px}
+.linha{display:flex;gap:34px;align-items:flex-start}
+.col{display:flex;flex-direction:column;align-items:center;gap:14px}
+.rot{font-weight:700;font-size:18px}.rot small{display:block;color:var(--sec);font-weight:400;font-size:13px;margin-top:4px;text-align:center;max-width:400px}
+.tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:#2b1d1d;color:#ff8a8a;margin-left:6px;vertical-align:middle}
+.tag.n{background:#13301a;color:var(--lucro)}
+.cel{width:400px;height:840px;border-radius:44px;background:var(--fundo);border:10px solid #1e232b;overflow:hidden;position:relative;box-shadow:0 30px 60px #0008}
+.sb{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:13px;color:var(--sec);font-weight:600}
+.pad{padding:14px 18px}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.card{background:var(--card);border-radius:20px;padding:16px;margin-bottom:12px}
+.lbl{font-size:11px;letter-spacing:1.2px;color:var(--sec);font-weight:600}
+.ico{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{background:var(--alto);border-radius:14px;padding:11px 12px}
+.mini .v{font-size:19px;font-weight:700;margin-top:3px}
+.barra{height:10px;border-radius:6px;background:var(--mais);overflow:hidden;margin-top:10px}
+.barra i{display:block;height:100%;border-radius:6px}
+.nav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:12px 0 18px;background:var(--card);border-top:1px solid var(--cont)}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sec)}
+.nav .on{color:var(--lucro)}
+/* versão antiga simplificada */
+.velho{font-family:Roboto,sans-serif}
+.velho .emoji{font-size:26px;text-align:center}
+</style></head><body>
+<h1>MotoristaPro · prévia do visual novo</h1>
+<div class="sub">Isto é só um desenho, ainda não mexi no app. Os valores são de exemplo.</div>
+<div class="linha">
+
+<!-- 1 HOJE -->
+<div class="col">
+<div class="rot">1 · Início hoje <span class="tag">ATUAL</span><small>Fonte padrão, ícones emoji, números mudam de largura</small></div>
+<div class="cel velho">
+ <div class="sb"><span>14:32</span><span>87%</span></div>
+ <div class="pad">
+  <div style="font-size:22px;font-weight:700">Olá, Lucas</div>
+  <div style="color:var(--sec);font-size:13px;margin-bottom:14px">terça-feira, 14 de outubro</div>
+  <div class="card"><div class="lbl">LUCRO LÍQUIDO DE HOJE</div>
+   <div style="font-size:40px;font-weight:700;color:var(--lucro);margin-top:6px">R$ 142,80</div>
+   <div style="color:var(--sec);font-size:13px">Meta: R$ 250,00</div>
+   <div class="barra"><i style="width:57%;background:var(--lucro)"></i></div></div>
+  <div class="g2" style="margin-bottom:12px">
+   <div class="mini"><div class="lbl">Faturamento</div><div class="v">R$ 198,50</div></div>
+   <div class="mini"><div class="lbl">Despesas</div><div class="v" style="color:var(--verm)">R$ 55,70</div></div>
+   <div class="mini"><div class="lbl">R$ por km</div><div class="v">R$ 1,94</div></div>
+   <div class="mini"><div class="lbl">Taxa de aceite</div><div class="v">62%</div></div>
+  </div>
+  <div class="card" style="display:flex;justify-content:space-around">
+   <div><div class="emoji">🚦</div><div style="font-size:11px;color:var(--sec);text-align:center">Semáforo<br>de valores</div></div>
+   <div><div class="emoji">🚘</div><div style="font-size:11px;color:var(--sec);text-align:center">Meu veículo<br>e custos</div></div>
+   <div><div class="emoji">🩺</div><div style="font-size:11px;color:var(--sec);text-align:center">Checkup<br>do app</div></div>
+  </div>
+  <div class="card"><div class="lbl">JORNADA</div><div style="margin-top:6px">Hoje: 4h25 trabalhadas</div></div>
+ </div>
+ <div class="nav"><div class="on">●<span>Início</span></div><div>●<span>Corridas</span></div><div>●<span>Finanças</span></div><div>●<span>Menu</span></div></div>
+</div></div>
+
+<!-- 2 NOVO -->
+<div class="col">
+<div class="rot">2 · Início novo <span class="tag n">PROPOSTA</span><small>Fonte Inter com números fixos, ícones de traço fino, previsão de "quanto falta"</small></div>
+<div class="cel">
+ <div class="sb"><span>14:32</span><span>87%</span></div>
+ <div class="pad">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+   <div><div style="font-size:22px;font-weight:800;letter-spacing:-.4px">Olá, Lucas</div>
+   <div style="color:var(--sec);font-size:13px">terça, 14 de outubro</div></div>
+   <div style="display:flex;align-items:center;gap:6px;background:#13301a;color:var(--lucro);font-size:11px;font-weight:700;padding:6px 10px;border-radius:20px"><span style="width:7px;height:7px;border-radius:50%;background:var(--lucro)"></span>LEITOR ON</div>
+  </div>
+  <div class="card" style="background:linear-gradient(160deg,#17251b,#161C24 60%)">
+   <div class="lbl">LUCRO LÍQUIDO DE HOJE</div>
+   <div class="num" style="font-family:'Space Grotesk';font-size:46px;font-weight:700;margin-top:4px;letter-spacing:-1px">R$ 142<span style="color:var(--sec);font-size:28px">,80</span></div>
+   <div class="barra"><i style="width:57%;background:linear-gradient(90deg,#2ECC0F,var(--lucro))"></i></div>
+   <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--sec);margin-top:6px"><span class="num">57% da meta</span><span class="num">R$ 250</span></div>
+   <div style="margin-top:12px;background:#0f1a12;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center">
+    <svg class="ico" style="color:var(--turq)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    <div style="font-size:13px;line-height:1.35">Faltam <b class="num">R$ 107,20</b>. No seu ritmo de <b class="num">R$ 32/h</b>, termina por volta das <b style="color:var(--turq)">17h50</b>.</div>
+   </div>
+  </div>
+  <div class="g2" style="margin-bottom:12px">
+   <div class="mini"><div class="lbl">FATURAMENTO</div><div class="v num">R$ 198,50</div></div>
+   <div class="mini"><div class="lbl">DESPESAS</div><div class="v num" style="color:var(--verm)">R$ 55,70</div></div>
+   <div class="mini"><div class="lbl">R$ POR KM</div><div class="v num">R$ 1,94</div></div>
+   <div class="mini"><div class="lbl">ACEITE</div><div class="v num">62%</div></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:12px">
+   <div class="mini" style="flex:1;text-align:center"><svg class="ico" style="color:var(--amar);width:24px;height:24px" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="3"/><circle cx="12" cy="7" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17" r="1.5"/></svg><div style="font-size:11px;color:var(--sec);margin-top:4px">Semáforo</div></div>
+   <div class="mini" style="flex:1;text-align:center"><svg class="ico" style="color:var(--azul);width:24px;height:24px" viewBox="0 0 24 24"><path d="M5 17h14M6 17l1.5-6h9L18 17M7 17v2M17 17v2"/><circle cx="8" cy="14" r=".5"/><circle cx="16" cy="14" r=".5"/></svg><div style="font-size:11px;color:var(--sec);margin-top:4px">Veículo</div></div>
+   <div class="mini" style="flex:1;text-align:center"><svg class="ico" style="color:var(--roxo);width:24px;height:24px" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><div style="font-size:11px;color:var(--sec);margin-top:4px">Checkup</div></div>
+  </div>
+  <div class="card" style="display:flex;align-items:center;gap:14px">
+   <svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="23" stroke="#2B323B" stroke-width="6" fill="none"/><circle cx="27" cy="27" r="23" stroke="#2DE2C5" stroke-width="6" fill="none" stroke-dasharray="95 144" stroke-linecap="round" transform="rotate(-90 27 27)"/></svg>
+   <div style="flex:1"><div class="lbl">JORNADA</div><div class="num" style="font-size:20px;font-weight:700">4h25</div></div>
+   <div style="background:var(--alto);padding:8px 12px;border-radius:12px;font-size:13px;font-weight:600">Pausar</div>
+  </div>
+ </div>
+ <div class="nav">
+  <div class="on"><svg class="ico" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Início</span></div>
+  <div><svg class="ico" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Corridas</span></div>
+  <div><svg class="ico" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M16 12h.01M2 10h20"/></svg><span>Finanças</span></div>
+  <div><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Menu</span></div>
+ </div>
+</div></div>
+
+<!-- 3 META BATIDA -->
+<div class="col">
+<div class="rot">3 · Meta batida <span class="tag n">NOVO</span><small>Comemoração + sequência de dias + vibração</small></div>
+<div class="cel" style="background:radial-gradient(circle at 50% 30%,#163a15,#0D1117 65%)">
+ <div class="sb"><span>18:04</span><span>41%</span></div>
+ <div style="position:absolute;inset:0;pointer-events:none">
+  <!-- confete -->
+  <i style="position:absolute;left:40px;top:90px;width:10px;height:5px;background:var(--lucro);transform:rotate(30deg)"></i>
+  <i style="position:absolute;left:300px;top:120px;width:10px;height:5px;background:var(--amar);transform:rotate(-20deg)"></i>
+  <i style="position:absolute;left:90px;top:200px;width:8px;height:8px;border-radius:50%;background:var(--turq)"></i>
+  <i style="position:absolute;left:330px;top:250px;width:10px;height:5px;background:var(--roxo);transform:rotate(60deg)"></i>
+  <i style="position:absolute;left:60px;top:330px;width:10px;height:5px;background:var(--azul);transform:rotate(10deg)"></i>
+  <i style="position:absolute;left:250px;top:70px;width:8px;height:8px;border-radius:50%;background:var(--lucro)"></i>
+  <i style="position:absolute;left:180px;top:150px;width:10px;height:5px;background:var(--verm);transform:rotate(-40deg)"></i>
+ </div>
+ <div style="text-align:center;padding:90px 24px 0">
+  <div style="width:110px;height:110px;margin:0 auto;border-radius:50%;background:#13301a;border:3px solid var(--lucro);display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px #39ff1455">
+   <svg viewBox="0 0 24 24" style="width:56px;height:56px;stroke:var(--lucro);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6L9 17l-5-5"/></svg></div>
+  <div style="font-family:'Space Grotesk';font-size:30px;font-weight:700;margin-top:24px">Meta do dia batida!</div>
+  <div class="num" style="font-family:'Space Grotesk';font-size:52px;font-weight:700;color:var(--lucro);margin-top:8px">R$ 253,40</div>
+  <div style="color:var(--sec);margin-top:4px">em 7h12 de jornada · <span class="num">R$ 35,20/h</span></div>
+  <div class="card" style="margin-top:34px;text-align:left;display:flex;align-items:center;gap:14px">
+   <div style="font-size:34px">🔥</div>
+   <div><div style="font-weight:700;font-size:17px">5 dias seguidos</div><div style="color:var(--sec);font-size:13px">Seu recorde é 8. Faltam 3!</div></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:6px">
+   <span style="width:34px;height:34px;border-radius:10px;background:var(--lucro);color:#000;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">S</span>
+   <span style="width:34px;height:34px;border-radius:10px;background:var(--lucro);color:#000;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">T</span>
+   <span style="width:34px;height:34px;border-radius:10px;background:var(--lucro);color:#000;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">Q</span>
+   <span style="width:34px;height:34px;border-radius:10px;background:var(--lucro);color:#000;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">Q</span>
+   <span style="width:34px;height:34px;border-radius:10px;background:var(--lucro);color:#000;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">S</span>
+   <span style="width:34px;height:34px;border-radius:10px;background:var(--alto);color:var(--sec);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">S</span>
+   <span style="width:34px;height:34px;border-radius:10px;background:var(--alto);color:var(--sec);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center">D</span>
+  </div>
+  <div style="margin-top:40px;background:var(--lucro);color:#000;font-weight:800;padding:16px;border-radius:14px">Continuar rodando</div>
+  <div style="margin-top:12px;color:var(--sec);font-weight:600">Encerrar o dia</div>
+ </div>
+</div></div>
+
+<!-- 4 WIDGET -->
+<div class="col">
+<div class="rot">4 · Widget na tela do celular <span class="tag n">NOVO</span><small>Lucro e meta sem abrir o app, com botão de iniciar jornada</small></div>
+<div class="cel" style="background:linear-gradient(170deg,#1b2a4a,#3a2350 55%,#12151c)">
+ <div class="sb" style="color:#ddd"><span>07:58</span><span>100%</span></div>
+ <div style="text-align:center;color:#fff;margin-top:40px"><div style="font-size:64px;font-weight:300" class="num">07:58</div><div style="font-size:15px;opacity:.8">terça, 14 de outubro</div></div>
+ <!-- widget grande -->
+ <div style="margin:36px 18px 0;background:rgba(13,17,23,.88);border-radius:28px;padding:18px;backdrop-filter:blur(10px);border:1px solid #ffffff14">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+   <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><span style="width:22px;height:22px;border-radius:7px;background:var(--lucro);color:#000;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900">M</span>MotoristaPro</div>
+   <div style="font-size:11px;color:var(--sec)">ontem: <span class="num" style="color:var(--lucro2)">R$ 231</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;margin-top:14px">
+   <svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="35" stroke="#2B323B" stroke-width="9" fill="none"/><circle cx="42" cy="42" r="35" stroke="#39FF14" stroke-width="9" fill="none" stroke-dasharray="0 220" stroke-linecap="round" transform="rotate(-90 42 42)"/><text x="42" y="47" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-weight="700" font-size="16">0%</text></svg>
+   <div><div class="lbl">LUCRO DE HOJE</div><div class="num" style="font-family:'Space Grotesk';font-size:30px;font-weight:700">R$ 0,00</div><div style="font-size:12px;color:var(--sec)">meta R$ 250</div></div>
+  </div>
+  <div style="margin-top:14px;background:var(--lucro);color:#000;font-weight:800;text-align:center;padding:13px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px">
+   <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#000"><path d="M7 4l13 8-13 8z"/></svg>Iniciar jornada</div>
+ </div>
+ <!-- widgets pequenos -->
+ <div style="display:flex;gap:12px;margin:14px 18px 0">
+  <div style="flex:1;background:rgba(13,17,23,.88);border-radius:22px;padding:14px;border:1px solid #ffffff14">
+   <div class="lbl">SEMANA</div><div class="num" style="font-family:'Space Grotesk';font-size:22px;font-weight:700;margin-top:4px">R$ 812</div>
+   <div style="display:flex;gap:4px;align-items:flex-end;height:34px;margin-top:8px">
+    <i style="flex:1;height:60%;background:var(--lucro);border-radius:3px"></i><i style="flex:1;height:90%;background:var(--lucro);border-radius:3px"></i><i style="flex:1;height:45%;background:var(--lucro);border-radius:3px"></i><i style="flex:1;height:100%;background:var(--lucro);border-radius:3px"></i><i style="flex:1;height:8%;background:var(--mais);border-radius:3px"></i><i style="flex:1;height:8%;background:var(--mais);border-radius:3px"></i><i style="flex:1;height:8%;background:var(--mais);border-radius:3px"></i></div>
+  </div>
+  <div style="flex:1;background:rgba(13,17,23,.88);border-radius:22px;padding:14px;border:1px solid #ffffff14">
+   <div class="lbl">ÓLEO</div><div class="num" style="font-family:'Space Grotesk';font-size:22px;font-weight:700;margin-top:4px;color:var(--amar)">480 km</div>
+   <div style="font-size:12px;color:var(--sec);margin-top:4px">para a troca</div>
+   <div class="barra"><i style="width:84%;background:var(--amar)"></i></div>
+  </div>
+ </div>
+ <!-- dock -->
+ <div style="position:absolute;bottom:26px;left:30px;right:30px;display:flex;justify-content:space-between">
+  <span style="width:56px;height:56px;border-radius:18px;background:#000"></span><span style="width:56px;height:56px;border-radius:18px;background:#F2C230"></span><span style="width:56px;height:56px;border-radius:18px;background:#4CC26A"></span><span style="width:56px;height:56px;border-radius:18px;background:#3b82f6"></span>
+ </div>
+</div></div>
+
+</div>
+</body></html>
