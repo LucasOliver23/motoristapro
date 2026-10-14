@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.motoristapro.MotoristaApp
+import com.motoristapro.atualizacao.AvisoAtualizacao
 import com.motoristapro.auth.LoginScreen
 import com.motoristapro.service.leitorOfertasAtivo
 import com.motoristapro.ui.assinatura.AssinaturaScreen
@@ -85,6 +86,8 @@ class MainActivity : ComponentActivity() {
             MotoristaTema {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     AppComLogin()
+                    // Versão nova no GitHub: avisa sozinho ao abrir o app.
+                    AvisoAtualizacao()
                 }
             }
         }
