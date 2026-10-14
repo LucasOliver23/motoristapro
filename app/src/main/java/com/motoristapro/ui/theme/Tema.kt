@@ -117,6 +117,9 @@ val AzulInfo: Color get() = paletaAtual.value.info
 val Turquesa: Color get() = paletaAtual.value.turquesa
 val Roxo: Color get() = paletaAtual.value.roxo
 
+/** Laranja de combustível e manutenção nos selos do Menu e de Finanças. Igual nos dois temas. */
+val Laranja = Color(0xFFF97316)
+
 val Fundo: Color get() = paletaAtual.value.fundo
 val Superficie: Color get() = paletaAtual.value.superficie
 val SuperficieAlta: Color get() = paletaAtual.value.superficieAlta
@@ -308,9 +311,10 @@ private val Inter = TextStyle(fontFamily = FonteTexto)
 
 private val Tipografia = Typography().run {
     copy(
-        displayLarge = displayLarge.merge(Inter).merge(Numeros),
-        displayMedium = displayMedium.merge(Inter).merge(Numeros),
-        displaySmall = displaySmall.merge(Inter).merge(Numeros),
+        // display* no app são só números grandes: vão em Space Grotesk.
+        displayLarge = displayLarge.merge(EstiloValor),
+        displayMedium = displayMedium.merge(EstiloValor),
+        displaySmall = displaySmall.merge(EstiloValor),
         headlineLarge = headlineLarge.merge(Inter).merge(Numeros),
         headlineMedium = headlineMedium.merge(Inter).merge(Numeros),
         headlineSmall = headlineSmall.merge(Inter).merge(Numeros),

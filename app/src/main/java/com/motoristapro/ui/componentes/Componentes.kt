@@ -1,6 +1,13 @@
 package com.motoristapro.ui.componentes
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
+import com.motoristapro.ui.theme.EstiloValor
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -111,7 +118,21 @@ fun CardPro(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -
     }
 }
 
-/** Botão principal: verde neon com texto preto. É a ação que o dedo procura. */
+/**
+ * O selo de uma linha de lista (Menu, extrato): ícone de traço na cor do
+ * assunto, sobre um quadradinho da mesma cor bem apagada.
+ */
+@Composable
+fun SeloIcone(icone: ImageVector, cor: Color, modifier: Modifier = Modifier, tamanho: Dp = 34.dp) {
+    Box(
+        modifier.size(tamanho).clip(RoundedCornerShape(10.dp)).background(cor.copy(alpha = 0.14f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icone, contentDescription = null, tint = cor, modifier = Modifier.size(tamanho * 0.53f))
+    }
+}
+
+/** Botão principal: azul claro com texto escuro. É a ação que o dedo procura. */
 @Composable
 fun BotaoPro(
     texto: String,
@@ -126,7 +147,7 @@ fun BotaoPro(
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Lima,
-            // Preto, não branco: sobre o verde neon o branco não tem contraste.
+            // Escuro, não branco: sobre o azul claro o branco não tem contraste.
             contentColor = Color(0xFF0D1117)
         )
     ) { Text(texto, fontWeight = FontWeight.Bold) }
@@ -211,11 +232,18 @@ fun Metrica(
             verticalArrangement = Arrangement.spacedBy(2.dp),
             horizontalAlignment = if (centralizado) Alignment.CenterHorizontally else Alignment.Start
         ) {
-            Text(rotulo, style = MaterialTheme.typography.labelMedium, color = TextoSecundario)
+            // Rótulo em caixa alta e espaçado, número em Space Grotesk: o olho
+            // separa "o que é" de "quanto é" sem precisar ler os dois.
+            Text(
+                rotulo.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = TextoSecundario,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp
+            )
             Text(
                 valor,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge.merge(EstiloValor),
                 color = cor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
