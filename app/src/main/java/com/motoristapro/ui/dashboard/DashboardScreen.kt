@@ -130,8 +130,6 @@ fun DashboardRoute(
     val contexto = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
-    var dialogDespesa by rememberSaveable { mutableStateOf<CategoriaDespesa?>(null) }
-    var dialogCorrida by rememberSaveable { mutableStateOf(false) }
 
     // Relógio para o cronômetro do turno (1 s).
     var agora by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -223,13 +221,8 @@ fun DashboardRoute(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    BotaoPro("+ Corrida", Modifier.weight(1f)) { dialogCorrida = true }
-                    BotaoProEscuro("+ Despesa", Modifier.weight(1f), corDoTexto = Lima) {
-                        dialogDespesa = CategoriaDespesa.COMBUSTIVEL
-                    }
-                }
-
+                // Sem "+ Corrida / + Despesa" aqui: eram os mesmos botões das
+                // abas Corridas e Finanças, e o Início é para olhar o dia.
                 JornadaCard(
                     estado = estado,
                     agora = agora,
@@ -253,21 +246,6 @@ fun DashboardRoute(
             turnoAberto = estado.jornada != null,
             onContinuar = { comemorar = false },
             onEncerrar = { comemorar = false; vm.encerrarJornada() }
-        )
-    }
-
-    dialogDespesa?.let { categoria ->
-        DespesaDialog(
-            categoriaInicial = categoria,
-            onDismiss = { dialogDespesa = null },
-            onSalvar = { vm.salvarDespesa(it); dialogDespesa = null }
-        )
-    }
-    if (dialogCorrida) {
-        CorridaDialog(
-            plataformas = plataformas,
-            onDismiss = { dialogCorrida = false },
-            onSalvar = { vm.salvarCorrida(it); dialogCorrida = false }
         )
     }
 }

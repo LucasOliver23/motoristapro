@@ -1,18 +1,11 @@
-NADA PARA APAGAR NESTA VERSAO (4.3.0)
+NADA PARA APAGAR NESTA VERSAO (4.3.1)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Metas num lugar so (previa em mockups/previa-metas.png): Financas fica so
-com o dinheiro do mes; Atividade mostra o lucro de cada periodo junto com a
-meta daquele periodo e o grafico com a linha da meta. Ano em 12 barras.
-
-Arquivos NOVOS (copiar):
-  app/src/main/java/com/motoristapro/ui/relatorios/SerieDoGrafico.kt
-  app/src/test/java/com/motoristapro/ui/relatorios/SerieDoGraficoTest.kt
+Inicio sem os botoes "+ Corrida" e "+ Despesa" (ficam so nas abas
+Corridas e Financas, onde ja existiam).
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/ui/financas/FinancasScreen.kt
-  app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt
-  app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosViewModel.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
