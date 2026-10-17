@@ -14,6 +14,7 @@ import com.motoristapro.ui.componentes.PilulaDia
 import com.motoristapro.ui.componentes.Rotulo
 import com.motoristapro.ui.componentes.SeloTexto
 import com.motoristapro.ui.theme.TextoPrincipal
+import com.motoristapro.ui.theme.Laranja
 import com.motoristapro.ui.theme.EstiloValor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -224,7 +225,8 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
                     item = item,
                     cor = coresPorId[item.corrida.plataformaId] ?: Lima,
                     onClick = { editando = item.corrida },
-                    onExcluir = { excluir = item }
+                    onExcluir = { excluir = item },
+                    onVerNoMapa = { endereco -> escopo.launch { AcoesOferta.abrirLocal(contexto, endereco) } }
                 )
             }
         }
@@ -257,7 +259,13 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
 }
 
 @Composable
-private fun CorridaItem(item: CorridaComPlataforma, cor: Color, onClick: () -> Unit, onExcluir: () -> Unit) {
+private fun CorridaItem(
+    item: CorridaComPlataforma,
+    cor: Color,
+    onClick: () -> Unit,
+    onExcluir: () -> Unit,
+    onVerNoMapa: (String) -> Unit
+) {
     val c = item.corrida
     val km = (c.distanciaMetros + c.deslocamentoMetros) / 1000.0
     val porKm = if (km > 0) c.receitaCentavos / km / 100.0 else 0.0
@@ -286,11 +294,12 @@ private fun CorridaItem(item: CorridaComPlataforma, cor: Color, onClick: () -> U
                     String.format(PT, "%.1f km • %d min • R$ %.2f/km", km, c.duracaoSegundos / 60, porKm),
                     style = MaterialTheme.typography.bodySmall, color = TextoSecundario
                 )
-                if (c.destino.isNotBlank() || c.origem != ORIGEM_LEITOR) {
-                    Text(
-                        listOf(c.origem, c.destino).filter { it.isNotBlank() && it != "—" }.joinToString(" → "),
-                        style = MaterialTheme.typography.bodySmall, maxLines = 1
-                    )
+                // Os endereços que a oferta trouxe ficam na corrida: um toque abre no mapa.
+                c.origem.takeIf { it.isNotBlank() && it != "—" && it != ORIGEM_LEITOR }?.let { origem ->
+                    LinhaEndereco("●", origem, TextoPrincipal) { onVerNoMapa(origem) }
+                }
+                c.destino.takeIf { it.isNotBlank() && it != "—" }?.let { destino ->
+                    LinhaEndereco("■", destino, TextoPrincipal) { onVerNoMapa(destino) }
                 }
             }
             Text(
@@ -568,133 +577,113 @@ private fun OfertaItem(
     onExcluir: () -> Unit,
     onVerNoMapa: (String) -> Unit
 ) {
-    val hora = Instant.ofEpochMilli(o.recebidaEm).atZone(ZoneId.systemDefault()).format(FORMATO_HORA)
+    val zona = ZoneId.systemDefault()
+    val momento = Instant.ofEpochMilli(o.recebidaEm).atZone(zona)
+    val dia = if (momento.toLocalDate() == LocalDate.now()) "Hoje" else momento.format(FORMATO_DIA_MES)
     val cor = when (o.classificacao) {
         "BOA" -> Lima
         "MEDIA" -> AmareloAlerta
         else -> VermelhoPrejuizo
     }
-    // Fechado: uma linha só, como no desenho. Aberto (toque): os números, o
-    // lucro, os endereços e a lixeira — nada do que existia se perdeu.
-    var aberto by rememberSaveable(o.id) { mutableStateOf(false) }
+    // O cartão inteiro, sempre aberto (4.7): é o histórico que o motorista
+    // consulta depois — onde foi, quanto pagou, quanto sobrou — e os endereços
+    // ficam a um toque do mapa.
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Superficie)
-            .clickable { aberto = !aberto }.padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // O pacote cru, não o nome bonito: um app novo que o leitor
             // ainda não conhece perde o apelido, mas não perde o logo.
-            LogoPlataforma(o.plataforma, tamanho = 34.dp)
+            LogoPlataforma(o.plataforma, tamanho = 38.dp)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(
-                    trajeto(o),
+                    "$dia · ${momento.format(FORMATO_HORA)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    fontWeight = FontWeight.Bold
                 )
-                val partes = mutableListOf(hora, String.format(PT, "%.1f km", o.km))
-                if (o.metros > 0) partes += "${o.reaisPorKmCentavos.emReais()}/km"
                 Text(
-                    partes.joinToString(" · "),
+                    "${o.plataforma} · " + if (o.registrada) "registrada ✓" else "não registrada",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextoSecundario,
-                    maxLines = 1
+                    color = if (o.registrada) Lima else TextoSecundario
                 )
             }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(o.valorCentavos.emReais(), style = EstiloValor, fontSize = 17.sp)
-                SeloTexto(
-                    when (o.classificacao) { "BOA" -> "BOA"; "MEDIA" -> "MÉDIA"; else -> "RUIM" },
-                    if (o.leituraSuspeita) AmareloAlerta else cor
+            SeloTexto(
+                when (o.classificacao) { "BOA" -> "BOA"; "MEDIA" -> "MÉDIA"; else -> "RUIM" },
+                if (o.leituraSuspeita) AmareloAlerta else cor
+            )
+            // Leitura torta se apaga daqui: é esta lista que alimenta as
+            // médias e os melhores horários.
+            Box(
+                Modifier.padding(start = 8.dp).clip(RoundedCornerShape(10.dp))
+                    .background(Laranja.copy(alpha = 0.14f)).clickable { onExcluir() }
+                    .padding(horizontal = 9.dp, vertical = 6.dp)
+            ) { Text("🗑", fontSize = 14.sp) }
+        }
+
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(o.valorCentavos.emReais(), style = EstiloValor, fontSize = 24.sp, modifier = Modifier.weight(1f))
+            NumeroPequeno("R$/km", if (o.metros > 0) o.reaisPorKmCentavos.emReais().removePrefix("R$ ") else "—")
+            NumeroPequeno("R$/h", if (o.minutos > 0) o.reaisPorHoraCentavos.emReais().removePrefix("R$ ") else "—")
+            NumeroPequeno("Nota", o.nota?.let { String.format(PT, "%.2f", it) } ?: "—")
+        }
+
+        if (o.leituraSuspeita) {
+            Text(
+                "⚠ Leitura suspeita: ${o.reaisPorKmCentavos.emReais()}/km. " +
+                    "O leitor provavelmente pegou outro número da tela — esta oferta não entra nas médias.",
+                style = MaterialTheme.typography.bodySmall, color = AmareloAlerta
+            )
+        } else if (custoKmCentavos > 0) {
+            // ---- lucro: so faz sentido com o custo por km cadastrado
+            val lucro = o.lucroCentavos(custoKmCentavos)
+            val corLucro = if (lucro >= 0) Lima else VermelhoPrejuizo
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))) {
+                Text(
+                    "Lucro: ${lucro.emReais()} (${o.lucroPercentual(custoKmCentavos)}%)",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth().background(corLucro.copy(alpha = 0.15f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 )
+                Box(Modifier.fillMaxWidth().height(4.dp).background(corLucro))
             }
         }
 
-        if (!aberto) return@Column
+        Text(
+            buildString {
+                append(String.format(PT, "🛣 %.1f km", o.km))
+                if (o.minutos > 0) append("    🕒 ${o.minutos} min")
+                if (o.paradas > 1) append("    ⏸ ${o.paradas} paradas")
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = TextoSecundario
+        )
 
-            if (o.leituraSuspeita) {
-                Text(
-                    "⚠ Leitura suspeita: ${o.reaisPorKmCentavos.emReais()}/km. " +
-                        "O leitor provavelmente pegou outro número da tela — esta oferta não entra nas médias.",
-                    style = MaterialTheme.typography.bodySmall, color = AmareloAlerta
-                )
-            }
-
-            // ---- os tres numeros que decidem a corrida
-            // Sempre os tres, mesmo sem dado: lugar fixo e o que deixa comparar
-            // duas ofertas de relance, sem reler os rotulos.
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumeroDaLista(
-                    "por km", o.reaisPorKmCentavos.emReais(),
-                    if (o.leituraSuspeita) AmareloAlerta else cor, Modifier.weight(1f)
-                )
-                NumeroDaLista(
-                    "por hora",
-                    if (o.minutos > 0) o.reaisPorHoraCentavos.emReais() else "—",
-                    null, Modifier.weight(1f)
-                )
-                NumeroDaLista(
-                    "nota",
-                    o.nota?.let { String.format(PT, "★ %.2f", it) } ?: "—",
-                    o.nota?.let { AmareloAlerta }, Modifier.weight(1f)
-                )
-            }
-
-            // ---- lucro: so faz sentido com o custo por km cadastrado
-            if (custoKmCentavos > 0 && !o.leituraSuspeita) {
-                val lucro = o.lucroCentavos(custoKmCentavos)
-                val corLucro = if (lucro >= 0) Lima else VermelhoPrejuizo
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .background(corLucro.copy(alpha = 0.12f))
-                        .padding(horizontal = 12.dp, vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Lucro",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = corLucro,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        "${lucro.emReais()} (${o.lucroPercentual(custoKmCentavos)}%)",
-                        fontWeight = FontWeight.Bold,
-                        color = corLucro
-                    )
+        // ---- de onde pra onde, quando a tela mostrou
+        // Endereço é para TOCAR: um toque abre no mapa (ou no Street View,
+        // conforme o app de navegação escolhido no Menu).
+        if (!o.origem.isNullOrBlank()) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                LinhaEndereco("●", o.origem!!, TextoPrincipal) { onVerNoMapa(o.origem!!) }
+                o.destino?.takeIf { it.isNotBlank() }?.let { destino ->
+                    LinhaEndereco("■", destino, TextoPrincipal) { onVerNoMapa(destino) }
                 }
             }
-
-            // ---- de onde pra onde, quando a tela mostrou
-            // Endereço é para TOCAR: no histórico o motorista quer rever onde
-            // foi a corrida que ele recusou — e decorar rua pelo nome não é
-            // trabalho dele. Um toque abre no mapa (ou no Street View, conforme
-            // o app de navegação escolhido no Menu).
-            if (!o.origem.isNullOrBlank()) {
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    LinhaEndereco("●", o.origem!!, Lima) { onVerNoMapa(o.origem!!) }
-                    o.destino?.takeIf { it.isNotBlank() }?.let { destino ->
-                        LinhaEndereco("▾", destino, TextoSecundario) { onVerNoMapa(destino) }
-                    }
-                }
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (o.registrada) "registrada ✓" else "não registrada",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (o.registrada) Lima else TextoSecundario,
-                    modifier = Modifier.weight(1f)
-                )
-                // Leitura torta se apaga daqui: é esta lista que alimenta as
-                // médias e os melhores horários.
-                TextButton(onClick = onExcluir) {
-                    Text("Excluir leitura", color = if (o.leituraSuspeita) AmareloAlerta else TextoSecundario)
-                }
-            }
+        }
     }
 }
+
+@Composable
+private fun NumeroPequeno(rotulo: String, valor: String) {
+    Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 12.dp)) {
+        Text(rotulo, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+        Text(valor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+    }
+}
+
+private val FORMATO_DIA_MES = DateTimeFormatter.ofPattern("dd/MM", PT)
 
 /** "Centro → Aeroporto" quando o leitor pegou os endereços; senão, o app e os km. */
 private fun trajeto(o: OfertaRecebida): String {
@@ -728,8 +717,9 @@ private fun LinhaEndereco(marca: String, texto: String, cor: Color, onVerNoMapa:
         )
         // A setinha avisa que a linha abre alguma coisa; sem ela o toque é segredo.
         Text(
-            "\u2197",
-            style = MaterialTheme.typography.labelSmall,
+            "›",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
             color = Lima,
             modifier = Modifier.padding(start = 6.dp)
         )

@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 object Notificacoes {
     const val CANAL_JORNADA = "jornada"
     const val CANAL_RESUMO = "resumo_diario"
+    const val CANAL_OFERTA = "oferta"
 
     const val ID_JORNADA = 1001
     const val ID_RESUMO = 1002
@@ -22,6 +23,13 @@ object Notificacoes {
             NotificationChannelCompat.Builder(CANAL_JORNADA, NotificationManagerCompat.IMPORTANCE_LOW)
                 .setName("Jornada em andamento")
                 .setDescription("Cronômetro e km do turno medidos pelo GPS")
+                .build()
+        )
+        nm.createNotificationChannel(
+            NotificationChannelCompat.Builder(CANAL_OFERTA, NotificationManagerCompat.IMPORTANCE_DEFAULT)
+                .setName("Oferta de corrida")
+                .setDescription("A última oferta lida, com os endereços e atalhos para o mapa")
+                .setSound(null, null)
                 .build()
         )
         nm.createNotificationChannel(

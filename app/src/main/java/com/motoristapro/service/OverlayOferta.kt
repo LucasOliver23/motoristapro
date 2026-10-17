@@ -91,7 +91,11 @@ class OverlayOferta(private val context: Context) {
         y = dp(40)                                   // abaixo da status bar
     }
 
-    val visivel: Boolean get() = raiz?.isAttachedToWindow == true
+    val visivel: Boolean get() = raiz?.isAttachedToWindow == true || raizNova?.isAttachedToWindow == true
+
+    /** O cartão branco (tema NOVO): montado de novo a cada oferta. */
+    private var raizNova: View? = null
+    private var btRegistrarNovo: TextView? = null
 
     /**
      * Mostra (ou atualiza, se já estiver na tela) o resultado da oferta.
@@ -107,8 +111,14 @@ class OverlayOferta(private val context: Context) {
         alertaRisco: String? = null,
         sugestao: SugestaoDeTarifa? = null
     ) {
-        val v = raiz ?: criarView().also { raiz = it }
         val cfg = estilo.ler()
+        if (cfg.tema == TemaCartao.NOVO) {
+            removerAntigo()
+            mostrarNovo(o, classe, custoKmCentavos, cfg, duracaoMs, totalNaTela, alertaRisco, sugestao)
+            return
+        }
+        removerNovo()
+        val v = raiz ?: criarView().also { raiz = it }
 
         aplicarEstilo(v, cfg, classe)
 
@@ -210,6 +220,7 @@ class OverlayOferta(private val context: Context) {
     private fun aplicarEstilo(v: View, cfg: ConfigCartao, classe: Classificacao) {
         val fundo = when (cfg.tema) {
             TemaCartao.COLORIDO -> classe.corFundo
+            TemaCartao.NOVO -> 0xFFFFFFFF.toInt()
             TemaCartao.ESCURO -> 0xF20E1216.toInt()
             TemaCartao.CLARO -> 0xF5F2F4F7.toInt()
         }
@@ -237,7 +248,11 @@ class OverlayOferta(private val context: Context) {
 
         v.alpha = cfg.opacidade / 100f
 
-        // Posição: só se o motorista não tiver arrastado o cartão com o dedo.
+        posicionar(cfg)
+    }
+
+    /** Posição escolhida no estilo — só se o motorista não tiver arrastado o cartão com o dedo. */
+    private fun posicionar(cfg: ConfigCartao) {
         if (!arrastado) {
             when (cfg.posicao) {
                 PosicaoCartao.TOPO -> {
@@ -258,9 +273,14 @@ class OverlayOferta(private val context: Context) {
 
     /** Feedback visual depois que a corrida foi gravada. */
     fun marcarRegistrada() {
-        if (!::btRegistrar.isInitialized) return
-        btRegistrar.text = "Registrada ✓"
-        btRegistrar.isEnabled = false
+        btRegistrarNovo?.let {
+            it.text = "Registrada ✓"
+            it.isEnabled = false
+        }
+        if (::btRegistrar.isInitialized) {
+            btRegistrar.text = "Registrada ✓"
+            btRegistrar.isEnabled = false
+        }
         handler.removeCallbacks(esconderRunnable)
         handler.postDelayed(esconderRunnable, 2_500)
     }
@@ -268,6 +288,20 @@ class OverlayOferta(private val context: Context) {
     /** Remove a janela da tela (seguro chamar várias vezes). */
     fun esconder() {
         handler.removeCallbacks(esconderRunnable)
+        removerNovo()
+        removerAntigo()
+    }
+
+    private fun removerNovo() {
+        val v = raizNova ?: return
+        if (v.isAttachedToWindow) {
+            runCatching { wm.removeViewImmediate(v) }.onFailure { Log.w(TAG, "Falha ao remover cartão", it) }
+        }
+        raizNova = null
+        btRegistrarNovo = null
+    }
+
+    private fun removerAntigo() {
         val v = raiz ?: return
         if (v.isAttachedToWindow) {
             try {
@@ -288,6 +322,206 @@ class OverlayOferta(private val context: Context) {
         aoVerLocal = null
         ofertaAtual = null
     }
+
+    // ------------------------------------------------------------ cartão branco
+
+    /**
+     * O cartão do visual 4.7: etiqueta ACEITAR / ATENÇÃO / RECUSAR em cima, e
+     * embaixo os 4 números que decidem a corrida, cada um com a barrinha na cor
+     * da SUA faixa. Verde/amarelo/vermelho de verdade aqui (não o azul do app):
+     * é o que o olho do motorista já lê como "pode ir / cuidado / não".
+     */
+    private fun mostrarNovo(
+        o: Oferta,
+        classe: Classificacao,
+        custoKmCentavos: Long,
+        cfg: ConfigCartao,
+        duracaoMs: Long?,
+        totalNaTela: Int,
+        alertaRisco: String?,
+        sugestao: SugestaoDeTarifa?
+    ) {
+        removerNovo()
+        val e = cfg.tamanho.escala
+        val cor = corDaClasse(classe)
+
+        val etiqueta = TextView(context).apply {
+            text = when (classe) {
+                Classificacao.BOA -> "✓  ACEITAR"
+                Classificacao.MEDIA -> "!  ATENÇÃO"
+                Classificacao.RUIM -> "✕  RECUSAR"
+            }
+            setTextColor(BRANCO)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f * e)
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(dp(16), dp(7), dp(16), dp(7))
+            background = GradientDrawable().apply {
+                cornerRadii = floatArrayOf(r(14), r(14), r(14), r(14), r(14), r(14), r(4), r(4))
+                setColor(cor)
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(dp(10), 0, 0, dp(-2)) }
+        }
+
+        val melhorDe = if (totalNaTela > 1) "  ·  melhor de $totalNaTela" else ""
+        val topo = TextView(context).apply {
+            text = buildString {
+                append(moeda(o.valor))
+                if (o.minutos > 0) append("  ·  ${o.minutos} min")
+                append(String.format(ptBr, "  ·  %.1f km", o.km))
+                append(melhorDe)
+            }
+            setTextColor(ESCURO)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, dp(8))
+        }
+
+        val metricas = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(8), 0, dp(6))
+            metricasDoCartao(o, custoKmCentavos).forEach { (rotulo, valor, faixa) ->
+                addView(metrica(rotulo, valor, faixa?.let { corDaClasse(it) } ?: CINZA, e))
+            }
+        }
+
+        val avisos = buildList {
+            if (o.paradas > 1) add("⏸ ${o.paradas} paradas · ${moeda(o.valor / o.paradas)} cada")
+            if (o.devolucao) add("⚠ pode ter devolução")
+            sugestao?.let { add("↑ Peça ${moeda(it.valorSugerido)} (+${moeda(it.aumento)}) e vira boa") }
+        }
+
+        val caixa = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(12), dp(14), dp(10))
+            background = GradientDrawable().apply {
+                cornerRadius = r(18)
+                setColor(BRANCO)
+                setStroke(dp(3), cor)
+            }
+            addView(topo)
+            addView(View(context).apply {
+                setBackgroundColor(0xFFEDEFF2.toInt())
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
+            })
+            addView(metricas)
+            if (!alertaRisco.isNullOrBlank()) {
+                addView(faixaAviso("⚠  ÁREA DE RISCO: $alertaRisco", VERMELHO, BRANCO, e))
+            }
+            if (avisos.isNotEmpty()) {
+                addView(texto(12f * e, false).apply {
+                    text = avisos.joinToString("   ")
+                    setTextColor(0xFF4A5260.toInt())
+                    gravity = Gravity.START
+                    setPadding(0, dp(2), 0, dp(4))
+                })
+            }
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, dp(4), 0, 0)
+                val reg = chip("✓ Registrar", e) { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
+                btRegistrarNovo = reg
+                addView(reg)
+                o.enderecos.firstOrNull()?.let { emb -> addView(chip("📍 Embarque", e) { aoVerLocal?.invoke(emb) }) }
+                o.enderecos.takeIf { it.size > 1 }?.lastOrNull()?.let { dest ->
+                    addView(chip("📍 Destino", e) { aoVerLocal?.invoke(dest) })
+                }
+            })
+        }
+
+        val v = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), 0, dp(12), 0)
+            alpha = cfg.opacidade / 100f
+            addView(etiqueta)
+            addView(caixa)
+        }
+        tornarArrastavel(v)
+        posicionar(cfg)
+        ofertaAtual = o
+
+        try {
+            wm.addView(v, params)
+            raizNova = v
+        } catch (ex: Exception) {
+            Log.e(TAG, "Falha ao exibir o cartão", ex)
+            return
+        }
+        handler.removeCallbacks(esconderRunnable)
+        handler.postDelayed(esconderRunnable, duracaoMs ?: cfg.duracaoMs)
+    }
+
+    /** R$/km, R$/hora, Nota e Lucro % — o que existir nesta oferta. */
+    private fun metricasDoCartao(o: Oferta, custoKmCentavos: Long): List<Triple<String, String, Classificacao?>> {
+        val lim = limites
+        return buildList {
+            add(Triple("R$/km", String.format(ptBr, "%.2f", o.reaisPorKm), lim?.faixaDoCampo(CampoCartao.REAIS_KM, o, custoKmCentavos)))
+            if (o.minutos > 0) add(Triple("R$/hora", String.format(ptBr, "%.0f", o.reaisPorHora), lim?.faixaDoCampo(CampoCartao.REAIS_HORA, o, custoKmCentavos)))
+            o.nota?.let { add(Triple("Nota", String.format(ptBr, "%.2f", it), lim?.faixaDoCampo(CampoCartao.NOTA, o, custoKmCentavos))) }
+            if (custoKmCentavos > 0) {
+                add(Triple("Lucro", "${o.lucroPercentual(custoKmCentavos).toInt()}%", lim?.faixaDoCampo(CampoCartao.LUCRO_PCT, o, custoKmCentavos)))
+            }
+        }.filter { it.second.isNotBlank() && !it.second.contains("NaN") && !it.second.contains("Infinity") }
+    }
+
+    private fun metrica(rotulo: String, valor: String, cor: Int, e: Float) = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        addView(TextView(context).apply {
+            text = rotulo
+            setTextColor(0xFF5A6270.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f * e)
+        })
+        addView(LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(View(context).apply {
+                background = GradientDrawable().apply { cornerRadius = r(2); setColor(cor) }
+                layoutParams = LinearLayout.LayoutParams(dp(4), dp((26 * e).toInt())).apply { setMargins(0, 0, dp(5), 0) }
+            })
+            addView(TextView(context).apply {
+                text = valor
+                setTextColor(ESCURO)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f * e)
+                typeface = Typeface.DEFAULT_BOLD
+            })
+        })
+    }
+
+    private fun chip(rotulo: String, e: Float, onClick: () -> Unit) = TextView(context).apply {
+        text = rotulo
+        setTextColor(0xFF2E3440.toInt())
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * e)
+        typeface = Typeface.DEFAULT_BOLD
+        setPadding(dp(10), dp(7), dp(10), dp(7))
+        background = GradientDrawable().apply { cornerRadius = r(10); setColor(0xFFF0F2F5.toInt()) }
+        isClickable = true
+        setOnClickListener { onClick() }
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { setMargins(0, 0, dp(6), 0) }
+    }
+
+    private fun faixaAviso(t: String, fundo: Int, corTexto: Int, e: Float) = TextView(context).apply {
+        text = t
+        setTextColor(corTexto)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f * e)
+        typeface = Typeface.DEFAULT_BOLD
+        setPadding(dp(10), dp(5), dp(10), dp(5))
+        background = GradientDrawable().apply { cornerRadius = r(10); setColor(fundo) }
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { setMargins(0, dp(2), 0, dp(6)) }
+    }
+
+    private fun corDaClasse(c: Classificacao): Int = when (c) {
+        Classificacao.BOA -> VERDE
+        Classificacao.MEDIA -> AMARELO
+        Classificacao.RUIM -> VERMELHO
+    }
+
+    private fun r(v: Int): Float = dp(v).toFloat()
 
     // ------------------------------------------------------------------ view
 
@@ -340,8 +574,13 @@ class OverlayOferta(private val context: Context) {
             addView(tvSugestao)
             addView(tvRisco)
             addView(linhaBotoes)
+        }.also { tornarArrastavel(it) }
+    }
 
-            // Arrastar na vertical reposiciona; toque simples fecha.
+    /** Arrastar na vertical reposiciona; toque simples fecha. */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun tornarArrastavel(alvo: View) {
+        alvo.apply {
             var yInicial = 0
             var toqueY = 0f
             var moveu = false
@@ -416,5 +655,11 @@ class OverlayOferta(private val context: Context) {
 
     private companion object {
         const val TAG = "MotoristaPro"
+        const val VERDE = 0xFF22A06B.toInt()
+        const val AMARELO = 0xFFE8A800.toInt()
+        const val VERMELHO = 0xFFE5484D.toInt()
+        const val CINZA = 0xFFB0B7C0.toInt()
+        const val BRANCO = 0xFFFFFFFF.toInt()
+        const val ESCURO = 0xFF101720.toInt()
     }
 }

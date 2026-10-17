@@ -82,6 +82,9 @@ object Periodo {
     }.distinctUntilChanged()
 }
 
+/** Marca das corridas criadas pelo botão "Registrar" da janela da oferta. */
+const val OBS_JANELA_OFERTA = "Registrada pela janela da oferta"
+
 /** Pacote do app 99 Motorista. */
 const val PACOTE_99 = "com.app99.driver"
 
@@ -231,7 +234,13 @@ class FinanceiroRepository(
      * Registra a corrida a partir da janela da oferta (botão "Registrar").
      * A plataforma vem do pacote do app lido (Uber / 99); km e tempo já são totais.
      */
-    suspend fun registrarCorridaDaOferta(valorReais: Double, km: Double, minutos: Int, pacote: String?): Long {
+    suspend fun registrarCorridaDaOferta(
+        valorReais: Double,
+        km: Double,
+        minutos: Int,
+        pacote: String?,
+        enderecos: List<String> = emptyList()
+    ): Long {
         val nome = nomePlataforma(pacote)
         val plataforma = plataformaDao.buscarPorNome(nome)
             ?: plataformaDao.listarTodas().firstOrNull()
@@ -239,13 +248,14 @@ class FinanceiroRepository(
         return registrarCorrida(
             Corrida(
                 plataformaId = plataforma.id,
-                origem = ORIGEM_LEITOR,
-                destino = "",
+                // Os endereços da oferta ficam na corrida: dá para abrir no mapa depois.
+                origem = enderecos.firstOrNull() ?: ORIGEM_LEITOR,
+                destino = enderecos.drop(1).lastOrNull().orEmpty(),
                 valorCentavos = Math.round(valorReais * 100),
                 distanciaMetros = Math.round(km * 1000),
                 duracaoSegundos = minutos * 60L,
                 inicioEm = System.currentTimeMillis(),
-                observacao = "Registrada pela janela da oferta"
+                observacao = OBS_JANELA_OFERTA
             )
         )
     }
@@ -398,7 +408,7 @@ class FinanceiroRepository(
     suspend fun corridaDaOferta(oferta: OfertaRecebida): Corrida? =
         if (!oferta.registrada) null
         else corridaDao.buscarDaOferta(
-            origem = ORIGEM_LEITOR,
+            observacao = OBS_JANELA_OFERTA,
             valorCentavos = oferta.valorCentavos,
             desde = oferta.recebidaEm - 60_000,
             ate = oferta.recebidaEm + 3 * 60 * 60_000,
