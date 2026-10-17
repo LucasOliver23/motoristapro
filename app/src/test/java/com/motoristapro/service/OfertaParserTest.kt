@@ -269,4 +269,51 @@ class OfertaParserTest {
         val o = Oferta(valor = 0.0, km = 5.0, minutos = 10)
         assertEquals(0.0, o.lucroPercentual(60), 0.001)
     }
+
+    // ---- telas reais mandadas pelo motorista (17/10/2026)
+
+    @Test
+    fun ifood_bicicleta() {
+        val o = OfertaParser.extrair(listOf(
+            "Coleta 1", "Entrega 1", "Parque Santo Antonio", "R$ 7,00", "Rota para Bicicleta",
+            "Distância total", "2,26 km", "Tempo aproximado de rota", "17 min",
+            "Possibilidade de devolução", "Sim", "Rejeitar", "Aceitar", "80"
+        ))!!
+        assertEquals(7.0, o.valor, 0.001)
+        assertEquals(2.26, o.km, 0.001)
+        assertEquals(17, o.minutos)
+    }
+
+    @Test
+    fun uber_blackBag_notaSemEstrelaEEnderecoDeAeroporto() {
+        val o = OfertaParser.extrair(listOf(
+            "Black Bag", "Exclusivo", "R$ 188,36", "4,92 (924)", "Verificado", "+R$ 3,00 incluído",
+            "1 min (0,1 km) de distância",
+            "Terminal 3, Aeroporto Internacional de São Paulo (GRU), Guarulhos",
+            "Viagem de 1 h e 48 min (43,6 km)",
+            "Rua Pires De Oliveira, 486 - Santo Amaro - São Paulo - SP, 04717-002",
+            "Viagem longa (mais de 90 min)", "Aceitar"
+        ))!!
+        assertEquals(188.36, o.valor, 0.001)
+        assertEquals(43.7, o.km, 0.001)
+        assertEquals(109, o.minutos)
+        assertEquals(4.92, o.nota!!, 0.001)
+        assertEquals("Terminal 3, Aeroporto Internacional de São Paulo (GRU), Guarulhos", o.enderecos.first())
+        assertEquals(2, o.enderecos.size)
+    }
+
+    @Test
+    fun noventaENove_corridaLonga_comAreaDeRisco() {
+        val o = OfertaParser.extrair(listOf(
+            "Corrida longa", "R$54,89", "R$2,20 por km", "x2,0", "R$15.50 incluídos",
+            "4,8", "12 corridas", "Cartão Verif.",
+            "5Min (2,5km)", "Shopping Penha, R. Dr. João Ribeiro, 304 - Penha de França",
+            "32Min (6,3km)", "Área de risco", "Estação Prefeito Saladino Tamanduateí 4, Santo André"
+        ))!!
+        assertEquals(54.89, o.valor, 0.001)
+        assertEquals(8.8, o.km, 0.001)
+        assertEquals(37, o.minutos)
+        assertEquals(4.8, o.nota!!, 0.001)
+        assertEquals("Estação Prefeito Saladino Tamanduateí 4, Santo André", o.enderecos.last())
+    }
 }

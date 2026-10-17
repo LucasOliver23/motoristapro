@@ -117,12 +117,24 @@ object OfertaParser {
         RegexOption.IGNORE_CASE
     )
 
+    private val RE_NOTA_SOLTA = Regex(
+        """[*★⭐]?\s*([1-5][.,]\d{1,2})\s*(?:\(\d{1,6}\)|[•·]\s*\d{1,6}\s+corridas?)?""",
+        RegexOption.IGNORE_CASE
+    )
+
     /**
      * Nota do passageiro, ou null. Linha a linha, e sempre tirando os "R$ ..." antes:
      * valor e nota moram perto na tela e têm a mesma cara (4,80).
      * Fora de 1,0–5,0 é descartado.
      */
     fun extrairNota(textos: List<String>): Double? {
+        // Uber e 99 desenham a estrela como ícone: o texto chega só "4,92 (924)"
+        // ou "4,8 • 12 corridas". Vale quando a linha é SÓ isso.
+        for (linha in textos) {
+            val m = RE_NOTA_SOLTA.matchEntire(linha.trim()) ?: continue
+            val n = paraDouble(m.groupValues[1]) ?: continue
+            if (n in 1.0..5.0) return n
+        }
         for (linha in textos) {
             if (!RE_TEM_NOTA.containsMatchIn(linha)) continue
             val semDinheiro = RE_VALOR.replace(linha, " ")
@@ -253,13 +265,33 @@ object OfertaParser {
         RE_PARADA.findAll(tudo).map { it.groupValues[1].lowercase() + it.groupValues[2] }.toSet().size
 
     /** Linhas com cara de endereço, sem repetição, na ordem da tela (máx. 3). */
-    fun extrairEnderecos(textos: List<String>): List<String> =
-        textos.asSequence()
-            .map { it.trim() }
-            .filter { it.length in 6..140 && RE_ENDERECO.containsMatchIn(it) && !it.contains("R$") }
+    fun extrairEnderecos(textos: List<String>): List<String> {
+        val linhas = textos.map { it.trim() }
+        // Linha logo abaixo de um trecho "N min (X km)" ("1 min (0,1 km) de distância",
+        // "5Min (2,5km)"): é o endereço, mesmo sem "Rua"/"Av." (Aeroporto, Shopping,
+        // Estação). Pula selos curtos no meio ("Área de risco").
+        val depoisDeTrecho = mutableSetOf<Int>()
+        linhas.forEachIndexed { i, l ->
+            if (!RE_TRECHO.containsMatchIn(l)) return@forEachIndexed
+            (i + 1..minOf(i + 2, linhas.lastIndex))
+                .firstOrNull { j -> pareceLinhaDeEndereco(linhas[j]) }
+                ?.let { depoisDeTrecho += it }
+        }
+        return linhas.asSequence()
+            .withIndex()
+            .filter { (i, l) ->
+                l.length in 6..140 && !l.contains("R$") &&
+                    (RE_ENDERECO.containsMatchIn(l) || i in depoisDeTrecho)
+            }
+            .map { it.value }
             .distinct()
             .take(3)
             .toList()
+    }
+
+    private fun pareceLinhaDeEndereco(l: String): Boolean =
+        l.length >= 15 && !l.contains("R$") && !RE_TRECHO.containsMatchIn(l) &&
+            l.count { it.isLetter() } >= 8
 
     /** "1.234,56" -> 1234.56 | "12,50" -> 12.5 | "3.2" -> 3.2 | lixo -> null */
     internal fun paraDouble(bruto: String): Double? {
