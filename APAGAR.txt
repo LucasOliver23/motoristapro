@@ -1,21 +1,17 @@
-APAGAR NESTA VERSAO (4.8.1)
-===========================
+NADA PARA APAGAR NESTA VERSAO (4.9.0)
+=====================================
 
-Apagar:
-  app/src/main/java/com/motoristapro/ui/dashboard/CopilotoCard.kt
+Nenhum arquivo removido. Banco continua na versao 13.
 
-Banco continua na versao 13.
-
-O quadro Copiloto saiu do Inicio (o Inicio volta a ser como era). O resto
-da 4.8.0 continua: aparencia do cartao (temas, paletas, numeros), voz por
-Boa/Media/Ruim e velocidade. Os dois ajustes que so existiam no Copiloto
-foram para o Menu > Leitor de ofertas: "Aparencia do cartao" e a chave
-"Notificacao da corrida". A pausa do leitor e a escolha de apps sairam
-junto com o Copiloto (o leitor volta a ler os 4 apps).
+Novo: ler FOTO de oferta (print) aberta no WhatsApp, WhatsApp Business,
+Facebook, Facebook Lite, Instagram, Telegram e nas galerias (Xiaomi, Google
+Fotos, Samsung, Motorola, OnePlus, Oppo/Realme). So pela imagem (leitura por
+imagem precisa estar ligada) e so com a foto aberta em tela cheia (ate 25
+textos na tela) - conversa e feed nao viram oferta. O cartao aparece e a voz
+fala; nao entra no historico nem na notificacao. De proposito NAO le todos os
+apps (o banco ficaria incluido).
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
+  app/src/main/res/xml/accessibility_service_config.xml
   app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
