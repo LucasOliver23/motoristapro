@@ -1,32 +1,15 @@
-NADA PARA APAGAR NESTA VERSAO (4.7.0)
+NADA PARA APAGAR NESTA VERSAO (4.7.1)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Novo:
-- Cartao da oferta branco (tema "Branco", o novo padrao, aplicado uma vez):
-  etiqueta ACEITAR / ATENCAO / RECUSAR em verde/amarelo/vermelho, valor +
-  tempo + km em cima e 4 numeros grandes (R$/km, R$/hora, Nota, Lucro %)
-  com a barrinha na cor de cada faixa. Botoes Registrar / Embarque / Destino.
-  Os temas antigos continuam em Menu > Estilo do cartao.
-- Historico de ofertas (Corridas): cartao completo com data, valor, R$/km,
-  R$/h, nota, faixa de lucro, km/tempo e os 2 enderecos (toque abre o mapa).
-- Corrida registrada pela oferta guarda os enderecos (antes: "Leitor de
-  ofertas"); na lista Registradas os enderecos abrem no mapa.
-- Notificacao da oferta com numeros, enderecos e botoes Mapa embarque /
-  Mapa destino / Registrar (sem som; o app da corrida ja tocou).
-
-Arquivos novos:
-  app/src/main/java/com/motoristapro/service/NotificacaoOferta.kt
+Correcoes (os 2 testes que falhavam desde a 3.7.0):
+- Assistente de custo: o aviso "confira se nao faltou um zero" no valor do
+  veiculo agora aparece abaixo de R$ 2.000 (antes: R$ 1.000).
+- Teste do diagnostico do inDrive atualizado: a tela que ele usava agora e
+  lida pelo R$/km que o proprio inDrive mostra (o leitor melhorou).
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/AndroidManifest.xml
-  app/src/main/java/com/motoristapro/data/local/dao/CorridaDao.kt
-  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
-  app/src/main/java/com/motoristapro/jornada/Notificacoes.kt
-  app/src/main/java/com/motoristapro/service/EstiloCartao.kt
-  app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
-  app/src/main/java/com/motoristapro/service/OverlayOferta.kt
-  app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/EstiloCartaoScreen.kt
+  app/src/main/java/com/motoristapro/custo/CalculadoraCusto.kt
+  app/src/test/java/com/motoristapro/service/OfertaInDriveTest.kt
