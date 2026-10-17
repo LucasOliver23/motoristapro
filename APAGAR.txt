@@ -1,18 +1,14 @@
-NADA PARA APAGAR NESTA VERSAO (4.6.0)
+NADA PARA APAGAR NESTA VERSAO (4.6.1)
 =====================================
 
-Nenhum arquivo removido. Banco continua na versao 13 (so consultas novas).
+Nenhum arquivo removido. Banco continua na versao 13.
 
-Novo: ao abrir a tela "Detalhes da corrida" da 99 (depois da corrida), o
-leitor confere pelo horario se a corrida ja esta no app. Se nao estiver,
-aparece um cartao embaixo com Registrar / Agora nao, usando o valor que
-caiu de verdade, km, tempo e enderecos. Se ja estiver, mostra
-"Ja esta registrada" e some.
-
-Arquivos novos:
-  app/src/main/java/com/motoristapro/service/ResumoCorrida99.kt
-  app/src/main/java/com/motoristapro/service/CartaoResumo.kt
-  app/src/test/java/com/motoristapro/service/ResumoCorrida99Test.kt
+Correcao: duas corridas de mesmo valor nao viram uma so.
+- Ofertas: a mesma oferta parada na tela continua contando uma vez, mas
+  outra oferta igual (mesmo valor, km e tempo) que chega mais de 1 minuto
+  depois da anterior sumir e gravada como nova (antes: 5 minutos).
+- Resumo da 99: cada corrida registrada so pode ser casada com UM resumo.
+  Duas corridas de R$ 11 no mesmo horario sao conferidas separadas.
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
