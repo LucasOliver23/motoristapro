@@ -1,12 +1,16 @@
-NADA PARA APAGAR NESTA VERSAO (4.4.1)
+NADA PARA APAGAR NESTA VERSAO (4.4.2)
 =====================================
 
-Nenhum arquivo removido. Banco continua na versao 13.
+Nenhum arquivo removido. Banco continua na versao 13 (so consultas novas).
 
-Correcao: depois de configurar o app (meta, nome, custo), fechar e abrir
-de novo trazia de volta o backup antigo da nuvem (meta do dia R$ 200).
-Agora a nuvem so restaura na primeira abertura da conta no celular.
+Correcao: excluir o cartao de uma oferta aceita (registrada) apagava so a
+leitura; a corrida criada pelo botao "Registrar" continuava somando no
+lucro do dia. Agora a corrida sai junto.
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/nuvem/SincronizacaoNuvem.kt
+  app/src/main/java/com/motoristapro/data/local/dao/CorridaDao.kt
+  app/src/main/java/com/motoristapro/data/local/dao/OfertaDao.kt
+  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
+  app/src/main/java/com/motoristapro/ui/corridas/CorridasViewModel.kt
+  app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt

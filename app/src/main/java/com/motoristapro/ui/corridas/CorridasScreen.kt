@@ -60,6 +60,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.model.CorridaComPlataforma
+import com.motoristapro.data.repository.ORIGEM_LEITOR
 import com.motoristapro.data.repository.emReais
 import com.motoristapro.service.AcoesOferta
 import kotlinx.coroutines.launch
@@ -240,6 +241,7 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
     excluirOferta?.let { alvo ->
         ConfirmarExclusao(
             texto = "Excluir a leitura de ${alvo.valorCentavos.emReais()} (${alvo.plataforma})?" +
+                (if (alvo.registrada) "\n\nA corrida registrada por ela também sai do lucro do dia." else "") +
                 if (alvo.leituraSuspeita) "\n\nEsta leitura está marcada como erro do leitor." else "",
             onDismiss = { excluirOferta = null },
             onConfirmar = { vm.excluirOferta(alvo.id); excluirOferta = null }
@@ -284,7 +286,7 @@ private fun CorridaItem(item: CorridaComPlataforma, cor: Color, onClick: () -> U
                     String.format(PT, "%.1f km • %d min • R$ %.2f/km", km, c.duracaoSegundos / 60, porKm),
                     style = MaterialTheme.typography.bodySmall, color = TextoSecundario
                 )
-                if (c.destino.isNotBlank() || c.origem != "Leitor de ofertas") {
+                if (c.destino.isNotBlank() || c.origem != ORIGEM_LEITOR) {
                     Text(
                         listOf(c.origem, c.destino).filter { it.isNotBlank() && it != "—" }.joinToString(" → "),
                         style = MaterialTheme.typography.bodySmall, maxLines = 1

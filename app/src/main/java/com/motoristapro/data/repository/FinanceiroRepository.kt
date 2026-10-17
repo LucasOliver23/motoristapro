@@ -76,6 +76,9 @@ object Periodo {
     }.distinctUntilChanged()
 }
 
+/** Origem gravada nas corridas que o botão "Registrar" da janela da oferta cria. */
+const val ORIGEM_LEITOR = "Leitor de ofertas"
+
 /**
  * Ponte entre os DAOs e a UI/serviços.
  *
@@ -132,7 +135,7 @@ class FinanceiroRepository(private val db: AppDatabase) {
         return registrarCorrida(
             Corrida(
                 plataformaId = plataforma.id,
-                origem = "Leitor de ofertas",
+                origem = ORIGEM_LEITOR,
                 destino = "",
                 valorCentavos = Math.round(valorReais * 100),
                 distanciaMetros = Math.round(km * 1000),
@@ -274,7 +277,29 @@ class FinanceiroRepository(private val db: AppDatabase) {
 
     suspend fun marcarOfertaRegistrada(id: Long) = ofertaDao.marcarRegistrada(id)
 
-    suspend fun excluirOferta(id: Long) = ofertaDao.excluirPorId(id)
+    /**
+     * Apaga a leitura e, se ela tinha virado corrida pelo botão "Registrar", a
+     * corrida junto: senão o cartão some mas o valor continua no lucro do dia
+     * (o caso da corrida aceita e depois cancelada). Devolve se levou a corrida.
+     */
+    suspend fun excluirOferta(id: Long): Boolean {
+        val oferta = ofertaDao.buscarPorId(id)
+        val corrida = oferta?.takeIf { it.registrada }?.let { corridaDaOferta(it) }
+        corrida?.let { corridaDao.excluirPorId(it.id) }
+        ofertaDao.excluirPorId(id)
+        return corrida != null
+    }
+
+    /** A corrida criada a partir desta oferta, se o motorista tocou em "Registrar". */
+    suspend fun corridaDaOferta(oferta: OfertaRecebida): Corrida? =
+        if (!oferta.registrada) null
+        else corridaDao.buscarDaOferta(
+            origem = ORIGEM_LEITOR,
+            valorCentavos = oferta.valorCentavos,
+            desde = oferta.recebidaEm - 60_000,
+            ate = oferta.recebidaEm + 3 * 60 * 60_000,
+            referencia = oferta.recebidaEm
+        )
 
     /** Apaga as leituras com R$/km impossível no período. Devolve quantas saíram. */
     suspend fun limparOfertasSuspeitas(inicio: Long, fim: Long): Int =
