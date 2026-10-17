@@ -298,8 +298,10 @@ object CalculadoraCusto {
         if (d.precoLitroCentavos > 0 && (d.precoLitroCentavos < 100 || d.precoLitroCentavos > 2_000)) {
             lista += Aviso("Preço por litro", "Preço fora do comum (normal: R$ 1,00 a R$ 20,00).")
         }
-        if (d.valorVeiculoCentavos in 1..99_999) {
-            lista += Aviso("Valor do veículo", "Valor abaixo de R$ 1.000 — confira se não faltou um zero.")
+        // Não existe carro nem moto de trabalho abaixo de R$ 2.000: quase sempre
+        // é um zero que ficou para trás (R$ 1.500 em vez de R$ 15.000).
+        if (d.valorVeiculoCentavos in 1..199_999) {
+            lista += Aviso("Valor do veículo", "Valor abaixo de R$ 2.000 — confira se não faltou um zero.")
         }
         if (d.horasPorDia !in 1..18) {
             lista += Aviso("Horas por dia", "Horas por dia fora do comum (normal: 1 a 18).")

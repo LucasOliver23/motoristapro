@@ -347,9 +347,11 @@ class OfertaInDriveTest {
     fun oDiagnostico_explicaOqueFaltou() {
         assertTrue(OfertaInDrive.porQueNaoLeu(emptyList()).contains("não expôs"))
         assertTrue(OfertaInDrive.porQueNaoLeu(listaComOSeis).contains("lista"))
-        assertTrue(
-            OfertaInDrive.porQueNaoLeu(detalhe6Arredondado).contains("falta o km da viagem")
-        )
+        // Sem o "R$ 1,3/km" do próprio inDrive não há como achar o km da viagem...
+        val semOrsPorKm = detalhe6Arredondado - "R$ 1,3/km"
+        assertTrue(OfertaInDrive.porQueNaoLeu(semOrsPorKm).contains("falta o km da viagem"))
+        // ...e com ele a leitura fecha (o km sai de valor ÷ R$/km).
+        assertTrue(OfertaInDrive.porQueNaoLeu(detalhe6Arredondado).contains("pelo R$/km do próprio inDrive"))
         assertTrue(
             OfertaInDrive.porQueNaoLeu(detalhe6Arredondado + listaComOSeis).contains("atras da oferta")
         )
