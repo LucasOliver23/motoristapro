@@ -40,6 +40,9 @@ import com.motoristapro.service.Oferta
 import com.motoristapro.service.PosicaoCartao
 import com.motoristapro.service.TamanhoCartao
 import com.motoristapro.service.TemaCartao
+import com.motoristapro.service.AvisoVoz
+import com.motoristapro.service.LimitesOferta
+import com.motoristapro.service.PaletaCartao
 import com.motoristapro.ui.componentes.CardSecao
 import com.motoristapro.ui.theme.AmareloAlerta
 import com.motoristapro.ui.theme.Contorno
@@ -131,11 +134,37 @@ fun EstiloCartaoScreen(custoKmCentavos: Long) {
             when (cfg.tema) {
                 TemaCartao.NOVO -> "Cartão branco com a etiqueta ACEITAR, ATENÇÃO ou RECUSAR e 4 números grandes."
                 TemaCartao.COLORIDO -> "Fundo verde, amarelo ou vermelho conforme a decisão. Decide de relance."
-                TemaCartao.ESCURO -> "Fundo preto. Só a faixa de cima muda de cor."
+                TemaCartao.ESCURO -> "Fundo escuro com a borda na cor da decisão e os mesmos 4 números."
                 TemaCartao.CLARO -> "Fundo branco, para quem roda com a tela clara."
             },
             style = MaterialTheme.typography.bodySmall, color = TextoSecundario
         )
+
+        Rotulo("Paleta de cores")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            PaletaCartao.entries.forEach { p ->
+                val ativa = p == cfg.paleta
+                Column(
+                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                        .background(SuperficieAlta)
+                        .border(2.dp, if (ativa) Lima else Color.Transparent, RoundedCornerShape(12.dp))
+                        .clickable { mudar(cfg.copy(paleta = p)) }
+                        .padding(vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(p.boa, p.media, p.ruim).forEach { c ->
+                            Box(Modifier.size(16.dp).clip(RoundedCornerShape(8.dp)).background(Color(c)))
+                        }
+                    }
+                    Text(
+                        p.rotulo, style = MaterialTheme.typography.labelSmall,
+                        color = if (ativa) Lima else TextoSecundario,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                }
+            }
+        }
 
         Rotulo("Tamanho da letra")
         Seletor(
@@ -203,6 +232,10 @@ fun EstiloCartaoScreen(custoKmCentavos: Long) {
 /** O cartão desenhado como ele vai aparecer na rua. */
 @Composable
 private fun PreviaCartao(cfg: ConfigCartao, custoKmCentavos: Long) {
+    if (cfg.tema == TemaCartao.NOVO || cfg.tema == TemaCartao.ESCURO) {
+        PreviaCartaoNovo(cfg, custoKmCentavos)
+        return
+    }
     val classe = Classificacao.BOA
     val corFaixa = when (classe) {
         Classificacao.BOA -> Lima
@@ -273,6 +306,133 @@ private fun PreviaCartao(cfg: ConfigCartao, custoKmCentavos: Long) {
                 fontSize = (12 * escala).sp
             )
         }
+    }
+}
+
+/**
+ * Prévia do cartão branco / escuro: o mesmo desenho do cartão de verdade
+ * (etiqueta, 4 números com a barrinha da faixa, botões), com a oferta de exemplo.
+ */
+@Composable
+private fun PreviaCartaoNovo(cfg: ConfigCartao, custoKmCentavos: Long) {
+    val context = LocalContext.current
+    val limites = remember { LimitesOferta(context) }
+    val custo = custoKmCentavos.coerceAtLeast(70)
+    val o = OFERTA_EXEMPLO
+    val classe = limites.classificar(o, 0, custo)
+    val cor = Color(cfg.paleta.cor(classe))
+    val escuro = cfg.tema == TemaCartao.ESCURO
+    val fundo = if (escuro) Color(0xFF0B0F14) else Color.White
+    val texto = if (escuro) Color.White else Color(0xFF101720)
+    val e = cfg.tamanho.escala
+    val topo = String.format(java.util.Locale("pt", "BR"), "R$ %.2f  ·  %d min  ·  %.1f km", o.valor, o.minutos, o.km)
+
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFFD7DFDA))
+            .padding(horizontal = 10.dp, vertical = 14.dp)
+    ) {
+        Column(Modifier.fillMaxWidth().alpha(cfg.opacidade / 100f)) {
+            if (!escuro) {
+                Text(
+                    when (classe) {
+                        Classificacao.BOA -> "✓  ACEITAR"
+                        Classificacao.MEDIA -> "!  ATENÇÃO"
+                        Classificacao.RUIM -> "✕  RECUSAR"
+                    },
+                    color = Color.White, fontWeight = FontWeight.Bold, fontSize = (14 * e).sp,
+                    modifier = Modifier.padding(start = 10.dp)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomEnd = 12.dp, bottomStart = 4.dp))
+                        .background(cor).padding(horizontal = 14.dp, vertical = 6.dp)
+                )
+            }
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(fundo)
+                    .border(3.dp, cor, RoundedCornerShape(16.dp)).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (!escuro) Text(topo, color = texto, fontWeight = FontWeight.Bold, fontSize = (13 * e).sp)
+                Row(Modifier.fillMaxWidth()) {
+                    cfg.numeros(o, custo).forEach { n ->
+                        val faixa = limites.faixaDoCampo(n.campo, o, custo)
+                        Column(Modifier.weight(1f)) {
+                            Text(n.rotulo, color = texto.copy(alpha = 0.6f), fontSize = (11 * e).sp)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    Modifier.size(width = 4.dp, height = (24 * e).dp).clip(RoundedCornerShape(2.dp))
+                                        .background(faixa?.let { Color(cfg.paleta.cor(it)) } ?: Color(0xFFB0B7C0))
+                                )
+                                Text(
+                                    n.valor, color = texto, fontWeight = FontWeight.Bold,
+                                    fontSize = (22 * e).sp, modifier = Modifier.padding(start = 5.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                if (escuro) Text(topo, color = texto, fontWeight = FontWeight.Bold, fontSize = (13 * e).sp)
+                Text(
+                    "✓ Registrar     📍 Embarque     📍 Destino",
+                    color = texto.copy(alpha = 0.75f), fontSize = (12 * e).sp
+                )
+            }
+        }
+    }
+}
+
+/** Voz do cartão: quais ofertas falar (Boa / Média / Ruim) e a velocidade da fala. */
+@Composable
+fun VozOfertasCard() {
+    val context = LocalContext.current
+    val voz = remember { AvisoVoz(context.applicationContext) }
+    var classes by remember { mutableStateOf(voz.classes) }
+    var velocidade by remember { mutableStateOf(voz.velocidade) }
+
+    CardSecao(titulo = "Voz") {
+        Text(
+            "Quais ofertas a voz fala. Área de risco é avisada sempre.",
+            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            listOf(
+                Classificacao.BOA to "Boa", Classificacao.MEDIA to "Média", Classificacao.RUIM to "Ruim"
+            ).forEach { (c, rotulo) ->
+                val marcada = c.name in classes
+                val cor = when (c) {
+                    Classificacao.BOA -> Lima
+                    Classificacao.MEDIA -> AmareloAlerta
+                    Classificacao.RUIM -> VermelhoPrejuizo
+                }
+                Box(
+                    Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(10.dp))
+                        .background(if (marcada) cor.copy(alpha = 0.18f) else SuperficieAlta)
+                        .border(1.dp, if (marcada) cor else Contorno, RoundedCornerShape(10.dp))
+                        .clickable {
+                            val novo = if (marcada) classes - c.name else classes + c.name
+                            // Pelo menos uma: para calar tudo, a chave é "Aviso por voz".
+                            if (novo.isNotEmpty()) {
+                                classes = novo
+                                voz.classes = novo
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        (if (marcada) "● " else "○ ") + rotulo,
+                        color = if (marcada) cor else TextoSecundario, fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+        Rotulo(String.format(java.util.Locale("pt", "BR"), "Velocidade: %.1fx", velocidade))
+        Slider(
+            value = velocidade,
+            onValueChange = {
+                velocidade = (Math.round(it * 10) / 10f).coerceIn(0.8f, 1.5f)
+                voz.velocidade = velocidade
+            },
+            valueRange = 0.8f..1.5f
+        )
     }
 }
 

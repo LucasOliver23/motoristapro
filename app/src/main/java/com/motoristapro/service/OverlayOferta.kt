@@ -112,7 +112,7 @@ class OverlayOferta(private val context: Context) {
         sugestao: SugestaoDeTarifa? = null
     ) {
         val cfg = estilo.ler()
-        if (cfg.tema == TemaCartao.NOVO) {
+        if (cfg.tema == TemaCartao.NOVO || cfg.tema == TemaCartao.ESCURO) {
             removerAntigo()
             mostrarNovo(o, classe, custoKmCentavos, cfg, duracaoMs, totalNaTela, alertaRisco, sugestao)
             return
@@ -343,7 +343,12 @@ class OverlayOferta(private val context: Context) {
     ) {
         removerNovo()
         val e = cfg.tamanho.escala
-        val cor = corDaClasse(classe)
+        val cor = cfg.paleta.cor(classe)
+        // Escuro (4.8): o mesmo cartão em fundo escuro, sem a etiqueta solta em
+        // cima — a borda já tem a cor da decisão — e com valor/tempo/km embaixo.
+        val escuro = cfg.tema == TemaCartao.ESCURO
+        val fundo = if (escuro) 0xFF0B0F14.toInt() else BRANCO
+        val corNumero = if (escuro) BRANCO else ESCURO
 
         val etiqueta = TextView(context).apply {
             text = when (classe) {
@@ -372,17 +377,18 @@ class OverlayOferta(private val context: Context) {
                 append(String.format(ptBr, "  ·  %.1f km", o.km))
                 append(melhorDe)
             }
-            setTextColor(ESCURO)
+            setTextColor(corNumero)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
             typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, 0, 0, dp(8))
+            setPadding(0, if (escuro) dp(4) else 0, 0, if (escuro) dp(4) else dp(8))
         }
 
         val metricas = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(8), 0, dp(6))
-            metricasDoCartao(o, custoKmCentavos).forEach { (rotulo, valor, faixa) ->
-                addView(metrica(rotulo, valor, faixa?.let { corDaClasse(it) } ?: CINZA, e))
+            cfg.numeros(o, custoKmCentavos).forEach { n ->
+                val faixa = limites?.faixaDoCampo(n.campo, o, custoKmCentavos)
+                addView(metrica(n.rotulo, n.valor, faixa?.let { cfg.paleta.cor(it) } ?: CINZA, e, corNumero, escuro))
             }
         }
 
@@ -397,22 +403,25 @@ class OverlayOferta(private val context: Context) {
             setPadding(dp(14), dp(12), dp(14), dp(10))
             background = GradientDrawable().apply {
                 cornerRadius = r(18)
-                setColor(BRANCO)
+                setColor(fundo)
                 setStroke(dp(3), cor)
             }
-            addView(topo)
-            addView(View(context).apply {
-                setBackgroundColor(0xFFEDEFF2.toInt())
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
-            })
+            if (!escuro) {
+                addView(topo)
+                addView(View(context).apply {
+                    setBackgroundColor(0xFFEDEFF2.toInt())
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
+                })
+            }
             addView(metricas)
+            if (escuro) addView(topo)
             if (!alertaRisco.isNullOrBlank()) {
-                addView(faixaAviso("⚠  ÁREA DE RISCO: $alertaRisco", VERMELHO, BRANCO, e))
+                addView(faixaAviso("⚠  ÁREA DE RISCO: $alertaRisco", cfg.paleta.ruim, BRANCO, e))
             }
             if (avisos.isNotEmpty()) {
                 addView(texto(12f * e, false).apply {
                     text = avisos.joinToString("   ")
-                    setTextColor(0xFF4A5260.toInt())
+                    setTextColor(if (escuro) 0xFFB0B7C0.toInt() else 0xFF4A5260.toInt())
                     gravity = Gravity.START
                     setPadding(0, dp(2), 0, dp(4))
                 })
@@ -420,12 +429,12 @@ class OverlayOferta(private val context: Context) {
             addView(LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(0, dp(4), 0, 0)
-                val reg = chip("✓ Registrar", e) { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
+                val reg = chip("✓ Registrar", e, escuro) { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
                 btRegistrarNovo = reg
                 addView(reg)
-                o.enderecos.firstOrNull()?.let { emb -> addView(chip("📍 Embarque", e) { aoVerLocal?.invoke(emb) }) }
+                o.enderecos.firstOrNull()?.let { emb -> addView(chip("📍 Embarque", e, escuro) { aoVerLocal?.invoke(emb) }) }
                 o.enderecos.takeIf { it.size > 1 }?.lastOrNull()?.let { dest ->
-                    addView(chip("📍 Destino", e) { aoVerLocal?.invoke(dest) })
+                    addView(chip("📍 Destino", e, escuro) { aoVerLocal?.invoke(dest) })
                 }
             })
         }
@@ -434,7 +443,7 @@ class OverlayOferta(private val context: Context) {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), 0, dp(12), 0)
             alpha = cfg.opacidade / 100f
-            addView(etiqueta)
+            if (!escuro) addView(etiqueta)
             addView(caixa)
         }
         tornarArrastavel(v)
@@ -452,25 +461,13 @@ class OverlayOferta(private val context: Context) {
         handler.postDelayed(esconderRunnable, duracaoMs ?: cfg.duracaoMs)
     }
 
-    /** R$/km, R$/hora, Nota e Lucro % — o que existir nesta oferta. */
-    private fun metricasDoCartao(o: Oferta, custoKmCentavos: Long): List<Triple<String, String, Classificacao?>> {
-        val lim = limites
-        return buildList {
-            add(Triple("R$/km", String.format(ptBr, "%.2f", o.reaisPorKm), lim?.faixaDoCampo(CampoCartao.REAIS_KM, o, custoKmCentavos)))
-            if (o.minutos > 0) add(Triple("R$/hora", String.format(ptBr, "%.0f", o.reaisPorHora), lim?.faixaDoCampo(CampoCartao.REAIS_HORA, o, custoKmCentavos)))
-            o.nota?.let { add(Triple("Nota", String.format(ptBr, "%.2f", it), lim?.faixaDoCampo(CampoCartao.NOTA, o, custoKmCentavos))) }
-            if (custoKmCentavos > 0) {
-                add(Triple("Lucro", "${o.lucroPercentual(custoKmCentavos).toInt()}%", lim?.faixaDoCampo(CampoCartao.LUCRO_PCT, o, custoKmCentavos)))
-            }
-        }.filter { it.second.isNotBlank() && !it.second.contains("NaN") && !it.second.contains("Infinity") }
-    }
-
-    private fun metrica(rotulo: String, valor: String, cor: Int, e: Float) = LinearLayout(context).apply {
+    private fun metrica(rotulo: String, valor: String, cor: Int, e: Float, corValor: Int, escuro: Boolean) =
+        LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         addView(TextView(context).apply {
             text = rotulo
-            setTextColor(0xFF5A6270.toInt())
+            setTextColor(if (escuro) 0xFF9AA3AE.toInt() else 0xFF5A6270.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f * e)
         })
         addView(LinearLayout(context).apply {
@@ -482,20 +479,23 @@ class OverlayOferta(private val context: Context) {
             })
             addView(TextView(context).apply {
                 text = valor
-                setTextColor(ESCURO)
+                setTextColor(corValor)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f * e)
                 typeface = Typeface.DEFAULT_BOLD
             })
         })
     }
 
-    private fun chip(rotulo: String, e: Float, onClick: () -> Unit) = TextView(context).apply {
+    private fun chip(rotulo: String, e: Float, escuro: Boolean, onClick: () -> Unit) = TextView(context).apply {
         text = rotulo
-        setTextColor(0xFF2E3440.toInt())
+        setTextColor(if (escuro) 0xFFE6EAF0.toInt() else 0xFF2E3440.toInt())
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * e)
         typeface = Typeface.DEFAULT_BOLD
         setPadding(dp(10), dp(7), dp(10), dp(7))
-        background = GradientDrawable().apply { cornerRadius = r(10); setColor(0xFFF0F2F5.toInt()) }
+        background = GradientDrawable().apply {
+            cornerRadius = r(10)
+            setColor(if (escuro) 0xFF1F262E.toInt() else 0xFFF0F2F5.toInt())
+        }
         isClickable = true
         setOnClickListener { onClick() }
         layoutParams = LinearLayout.LayoutParams(
@@ -513,12 +513,6 @@ class OverlayOferta(private val context: Context) {
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { setMargins(0, dp(2), 0, dp(6)) }
-    }
-
-    private fun corDaClasse(c: Classificacao): Int = when (c) {
-        Classificacao.BOA -> VERDE
-        Classificacao.MEDIA -> AMARELO
-        Classificacao.RUIM -> VERMELHO
     }
 
     private fun r(v: Int): Float = dp(v).toFloat()
