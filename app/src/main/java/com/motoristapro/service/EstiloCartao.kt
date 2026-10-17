@@ -22,15 +22,33 @@ enum class CampoCartao(val chave: String, val rotulo: String, val explicacao: St
         fun porChave(c: String): CampoCartao? = entries.firstOrNull { it.chave == c }
 
         /** O que vem marcado de fábrica, na ordem em que aparece. */
-        val PADRAO = listOf(REAIS_KM, REAIS_HORA, LUCRO, DISTANCIA, TEMPO)
+        // Os 4 números do cartão branco (4.8): valor, tempo e km já vão na linha de cima.
+        val PADRAO = listOf(REAIS_KM, REAIS_HORA, NOTA, LUCRO_PCT)
     }
 }
 
 /** Como o cartão se pinta. */
+/** As três cores da decisão (boa / atenção / recusar). */
+enum class PaletaCartao(val rotulo: String, val boa: Int, val media: Int, val ruim: Int) {
+    CLASSICA("Clássica", 0xFF22A06B.toInt(), 0xFFE8A800.toInt(), 0xFFE5484D.toInt()),
+    AZUL("Azul do app", 0xFF4CC9F0.toInt(), 0xFFF97316.toInt(), 0xFFE5484D.toInt()),
+    // Azul / amarelo / roxo: as três se distinguem também para quem não vê verde e vermelho.
+    DALTONICO("Daltônico", 0xFF2F80ED.toInt(), 0xFFF2C94C.toInt(), 0xFF9B51E0.toInt());
+
+    fun cor(c: Classificacao): Int = when (c) {
+        Classificacao.BOA -> boa
+        Classificacao.MEDIA -> media
+        Classificacao.RUIM -> ruim
+    }
+}
+
+/** Um número do cartão já pronto para desenhar: "R$/km" + "1,82". */
+data class NumeroCartao(val campo: CampoCartao, val rotulo: String, val valor: String)
+
 enum class TemaCartao(val rotulo: String) {
     NOVO("Branco"),         // cartão branco com a etiqueta ACEITAR/ATENÇÃO/RECUSAR — o padrão (4.7)
+    ESCURO("Escuro"),       // o mesmo cartão em fundo escuro, borda na cor da decisão (4.8)
     COLORIDO("Colorido"),   // fundo na cor do semáforo
-    ESCURO("Escuro"),
     CLARO("Claro")
 }
 
@@ -67,8 +85,48 @@ data class ConfigCartao(
     /** Mostrar de qual app veio a oferta (Uber, 99, iFood). */
     val mostrarApp: Boolean = true,
     /** A faixa com ACEITAR / ATENÇÃO / RECUSAR em cima do cartão. */
-    val avisoEmDestaque: Boolean = true
+    val avisoEmDestaque: Boolean = true,
+    val paleta: PaletaCartao = PaletaCartao.CLASSICA
 ) {
+
+    /**
+     * Os números do cartão branco/escuro, na ordem escolhida: no máximo 4, e só
+     * os que esta oferta tem (sem minutos não há R$/hora; sem custo, não há lucro).
+     */
+    fun numeros(o: Oferta, custoKmCentavos: Long): List<NumeroCartao> =
+        campos.mapNotNull { campo ->
+            val v: String? = when (campo) {
+                CampoCartao.REAIS_KM -> num(o.reaisPorKm, 2)
+                CampoCartao.REAIS_HORA -> if (o.minutos > 0) num(o.reaisPorHora, 0) else null
+                CampoCartao.LUCRO -> if (custoKmCentavos > 0) num(o.lucroEstimado(custoKmCentavos), 2) else null
+                CampoCartao.LUCRO_PCT ->
+                    if (custoKmCentavos > 0) "${o.lucroPercentual(custoKmCentavos).toInt()}%" else null
+                CampoCartao.NOTA -> o.nota?.let { num(it, 2) }
+                CampoCartao.VALOR -> num(o.valor, 2)
+                CampoCartao.DISTANCIA -> num(o.km, 1)
+                CampoCartao.TEMPO -> if (o.minutos > 0) "${o.minutos}" else null
+                CampoCartao.REAIS_MIN -> if (o.minutos > 0) num(o.reaisPorMinuto, 2) else null
+                CampoCartao.PARADAS -> if (o.paradas > 1) "${o.paradas}" else null
+            }
+            v?.let { NumeroCartao(campo, rotuloCurto(campo), it) }
+        }.take(4)
+
+    private fun num(v: Double, casas: Int): String? =
+        if (v.isFinite()) String.format(PT, "%.${casas}f", v) else null
+
+    private fun rotuloCurto(c: CampoCartao): String = when (c) {
+        CampoCartao.REAIS_KM -> "R$/km"
+        CampoCartao.REAIS_HORA -> "R$/hora"
+        CampoCartao.LUCRO -> "Lucro R$"
+        CampoCartao.LUCRO_PCT -> "Lucro"
+        CampoCartao.NOTA -> "Nota"
+        CampoCartao.VALOR -> "Valor"
+        CampoCartao.DISTANCIA -> "Km"
+        CampoCartao.TEMPO -> "Min"
+        CampoCartao.REAIS_MIN -> "R$/min"
+        CampoCartao.PARADAS -> "Paradas"
+    }
+
 
     /** Liga ou desliga um campo. O último não pode sair: cartão vazio não serve. */
     fun alternando(c: CampoCartao): ConfigCartao = when {
@@ -148,6 +206,11 @@ class EstiloCartao(context: Context) {
         if (!prefs.getBoolean(KEY_NOVO_APLICADO, false)) {
             prefs.edit().putString(KEY_TEMA, TemaCartao.NOVO.name).putBoolean(KEY_NOVO_APLICADO, true).apply()
         }
+        // 4.8: o cartão branco passa a mostrar os números escolhidos; a lista volta
+        // uma vez ao padrão novo (R$/km, R$/hora, Nota, Lucro %) aprovado no desenho.
+        if (!prefs.getBoolean(KEY_CAMPOS_48, false)) {
+            prefs.edit().remove(KEY_CAMPOS).putBoolean(KEY_CAMPOS_48, true).apply()
+        }
         val padrao = ConfigCartao()
         val salvos = prefs.getString(KEY_CAMPOS, null)
             ?.split(",")
@@ -162,7 +225,8 @@ class EstiloCartao(context: Context) {
             opacidade = prefs.getInt(KEY_OPACIDADE, padrao.opacidade).coerceIn(40, 100),
             segundosNaTela = prefs.getInt(KEY_SEGUNDOS, padrao.segundosNaTela).coerceIn(5, 60),
             mostrarApp = prefs.getBoolean(KEY_APP, padrao.mostrarApp),
-            avisoEmDestaque = prefs.getBoolean(KEY_AVISO, padrao.avisoEmDestaque)
+            avisoEmDestaque = prefs.getBoolean(KEY_AVISO, padrao.avisoEmDestaque),
+            paleta = enumOu(KEY_PALETA, padrao.paleta) { PaletaCartao.valueOf(it) }
         )
     }
 
@@ -176,11 +240,12 @@ class EstiloCartao(context: Context) {
             .putInt(KEY_SEGUNDOS, c.segundosNaTela)
             .putBoolean(KEY_APP, c.mostrarApp)
             .putBoolean(KEY_AVISO, c.avisoEmDestaque)
+            .putString(KEY_PALETA, c.paleta.name)
             .apply()
     }
 
     fun restaurarPadrao(): ConfigCartao {
-        prefs.edit().clear().putBoolean(KEY_NOVO_APLICADO, true).apply()
+        prefs.edit().clear().putBoolean(KEY_NOVO_APLICADO, true).putBoolean(KEY_CAMPOS_48, true).apply()
         return ConfigCartao()
     }
 
@@ -197,5 +262,7 @@ class EstiloCartao(context: Context) {
         const val KEY_APP = "mostrar_app"
         const val KEY_AVISO = "aviso_destaque"
         const val KEY_NOVO_APLICADO = "tema_novo_aplicado"
+        const val KEY_CAMPOS_48 = "campos_4_8"
+        const val KEY_PALETA = "paleta"
     }
 }

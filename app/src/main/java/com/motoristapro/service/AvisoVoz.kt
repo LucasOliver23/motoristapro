@@ -38,6 +38,16 @@ class AvisoVoz(context: Context) {
         get() = prefs.getBoolean(KEY_RESUMIDO, false)
         set(v) = prefs.edit().putBoolean(KEY_RESUMIDO, v).apply()
 
+    /** Quais ofertas falar (nomes de [Classificacao]). Padrão: todas. */
+    var classes: Set<String>
+        get() = prefs.getStringSet(KEY_CLASSES, null)?.toSet() ?: Classificacao.entries.map { it.name }.toSet()
+        set(v) = prefs.edit().putStringSet(KEY_CLASSES, v).apply()
+
+    /** Velocidade da fala: 0,8x a 1,5x. */
+    var velocidade: Float
+        get() = prefs.getFloat(KEY_VELOCIDADE, 1.0f).coerceIn(0.8f, 1.5f)
+        set(v) = prefs.edit().putFloat(KEY_VELOCIDADE, v.coerceIn(0.8f, 1.5f)).apply()
+
     /** Cria o motor de voz. Chame quando o serviço conectar; é seguro repetir. */
     fun preparar() {
         if (!ativo || tts != null) return
@@ -65,6 +75,8 @@ class AvisoVoz(context: Context) {
     /** Fala a oferta. Não faz nada se estiver desligado ou sem voz em português. */
     fun falar(o: Oferta, classe: Classificacao, alertaRisco: String? = null) {
         if (!ativo) return
+        // Área de risco fala sempre: é aviso de segurança, não de preço.
+        if (classe.name !in classes && alertaRisco.isNullOrBlank()) return
         val motor = tts
         if (motor == null) {
             preparar()
@@ -72,6 +84,7 @@ class AvisoVoz(context: Context) {
         }
         if (!pronto || !idiomaOk) return
         runCatching {
+            motor.setSpeechRate(velocidade)
             motor.speak(frase(o, classe, alertaRisco), TextToSpeech.QUEUE_FLUSH, null, ID_FALA)
         }.onFailure { Log.w(TAG, "Falha ao falar a oferta", it) }
     }
@@ -128,6 +141,8 @@ class AvisoVoz(context: Context) {
         const val ID_FALA = "oferta"
         const val KEY_ATIVO = "ativo"
         const val KEY_RESUMIDO = "resumido"
+        const val KEY_CLASSES = "classes"
+        const val KEY_VELOCIDADE = "velocidade"
         val PT_BR: Locale = Locale("pt", "BR")
     }
 }

@@ -718,6 +718,10 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
                     SubTela.PACOTE -> PacoteTaxaScreen(onSalvo = { sub = null })
+                    SubTela.ESTILO -> {
+                        EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
+                        VozOfertasCard()
+                    }
                     SubTela.MANUTENCAO -> ManutencaoConteudo(
                         itens = manutencoes,
                         odometroAtual = odometro,
@@ -1332,6 +1336,7 @@ enum class SubTela(val titulo: String) {
     ASSINATURA("Minha assinatura"),
     NAVEGACAO("App de navegação"),
     PACOTE("Pacote 0% de taxa"),
+    ESTILO("Aparência do cartão"),
     MANUTENCAO("Manutenção")
 }
 

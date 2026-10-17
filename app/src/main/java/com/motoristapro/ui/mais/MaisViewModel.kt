@@ -345,7 +345,7 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     // ================================================================== preferências
 
     fun definirBolha(ativa: Boolean) {
-        prefs.bolhaAtiva = ativa
+        prefs.definirBolha(ativa)
         _bolha.value = ativa
         OfertaAccessibilityService.instancia?.aplicarPreferencias()
     }

@@ -1,15 +1,31 @@
-NADA PARA APAGAR NESTA VERSAO (4.7.1)
+NADA PARA APAGAR NESTA VERSAO (4.8.0)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Correcoes (os 2 testes que falhavam desde a 3.7.0):
-- Assistente de custo: o aviso "confira se nao faltou um zero" no valor do
-  veiculo agora aparece abaixo de R$ 2.000 (antes: R$ 1.000).
-- Teste do diagnostico do inDrive atualizado: a tela que ele usava agora e
-  lida pelo R$/km que o proprio inDrive mostra (o leitor melhorou).
+Novo:
+- Copiloto no topo do Inicio: chave para pausar/ligar o leitor, logos de
+  Uber/99/inDrive/iFood para escolher quais apps ler, Bolha, Aviso por voz,
+  Notificacao da corrida e atalho "Aparencia do cartao". O resto do Inicio
+  continua igual.
+- Aparencia do cartao (Menu e atalho do Copiloto): previa ao vivo do cartao
+  branco/escuro, numeros escolhidos e na ordem (padrao R$/km, R$/hora, Nota,
+  Lucro %, aplicado uma vez), tema Escuro com borda, paleta de cores
+  (Classica, Azul do app, Daltonico), posicao, tamanho, opacidade e tempo.
+- Voz: escolhe quais ofertas falar (Boa / Media / Ruim; area de risco fala
+  sempre) e a velocidade (0,8x a 1,5x).
+
+Arquivos novos:
+  app/src/main/java/com/motoristapro/ui/dashboard/CopilotoCard.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/custo/CalculadoraCusto.kt
-  app/src/test/java/com/motoristapro/service/OfertaInDriveTest.kt
+  app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
+  app/src/main/java/com/motoristapro/service/AvisoVoz.kt
+  app/src/main/java/com/motoristapro/service/EstiloCartao.kt
+  app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
+  app/src/main/java/com/motoristapro/service/OverlayOferta.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/EstiloCartaoScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt

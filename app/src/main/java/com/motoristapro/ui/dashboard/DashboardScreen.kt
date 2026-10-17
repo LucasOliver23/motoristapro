@@ -202,6 +202,10 @@ fun DashboardRoute(
                 // A ORDEM da tela é a ordem da pergunta do motorista: quanto
                 // sobrou hoje, de onde veio, registrar o que acabou de rolar e,
                 // por último, o relógio — que é para olhar, não para tocar.
+                // O Copiloto em primeiro (4.8): as chaves do leitor na tela de abrir,
+                // como nos outros apps de motorista. O resto do Início segue igual.
+                CopilotoCard(conectado = leitorOk, onAparencia = { irParaAjuste(SubTela.ESTILO, irPara) })
+
                 LucroDoDia(estado, agora, onVerFinancas = { irPara(Aba.FINANCAS) })
 
                 PacoteValeuAPena(estado)
