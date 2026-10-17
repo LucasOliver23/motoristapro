@@ -106,19 +106,19 @@ interface CorridaDao {
 
     /**
      * A corrida que o botão "Registrar" da janela criou a partir de uma oferta:
-     * mesmo valor, feita pelo leitor, logo depois da oferta aparecer. A mais
+     * mesmo valor, marcada pela janela, logo depois da oferta aparecer. A mais
      * próxima do horário da oferta, se houver mais de uma.
      */
     @Query(
         """
         SELECT * FROM corridas
-        WHERE origem = :origem AND valor_centavos = :valorCentavos
+        WHERE observacao = :observacao AND valor_centavos = :valorCentavos
           AND inicio_em >= :desde AND inicio_em < :ate
         ORDER BY ABS(inicio_em - :referencia)
         LIMIT 1
         """
     )
-    suspend fun buscarDaOferta(origem: String, valorCentavos: Long, desde: Long, ate: Long, referencia: Long): Corrida?
+    suspend fun buscarDaOferta(observacao: String, valorCentavos: Long, desde: Long, ate: Long, referencia: Long): Corrida?
 
     @Query(
         """

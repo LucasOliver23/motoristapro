@@ -99,6 +99,11 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Botão "Registrar" da notificação da oferta. -->
+        <receiver
+            android:name=".service.RegistrarOfertaReceiver"
+            android:exported="false" />
+
         <!-- Widget "Lucro de hoje" na tela inicial. -->
         <receiver
             android:name=".widget.WidgetLucro"

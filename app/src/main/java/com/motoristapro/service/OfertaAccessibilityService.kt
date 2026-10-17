@@ -409,6 +409,8 @@ class OfertaAccessibilityService : AccessibilityService() {
         )
         voz?.falar(oferta, classe, alertaRisco)
         salvarNoHistorico(oferta, classe)
+        ofertaDaNotificacao = oferta to pacote
+        NotificacaoOferta.mostrar(this, oferta, classe, custoKmCentavos, pacote)
     }
 
     /** Grava a oferta no histórico (uma vez por oferta, mesmo que ela reapareça na tela). */
@@ -739,13 +741,32 @@ class OfertaAccessibilityService : AccessibilityService() {
 
     // ================================================================== ações
 
-    private fun registrarOferta(oferta: Oferta) {
+    /** A oferta que a notificação está mostrando (e o app dela). */
+    private var ofertaDaNotificacao: Pair<Oferta, String?>? = null
+
+    /** Botão "Registrar" da notificação. */
+    fun registrarDaNotificacao() {
+        handler.post {
+            val (oferta, pacote) = ofertaDaNotificacao ?: return@post
+            // O id do histórico só vale se a oferta da notificação ainda for a última lida.
+            val id = ultimaOfertaId.takeIf { oferta.assinatura == ultimaAssinatura }
+            registrarOferta(oferta, pacote, id)
+        }
+    }
+
+    private fun registrarOferta(
+        oferta: Oferta,
+        pacote: String? = ultimoPacote,
+        idHistorico: Long? = ultimaOfertaId
+    ) {
         val repo = (application as MotoristaApp).repository
-        val pacote = ultimoPacote
-        val idHistorico = ultimaOfertaId
+        // Registrou (pelo cartão ou pela notificação): a notificação sai, para
+        // não registrar a mesma corrida duas vezes.
+        ofertaDaNotificacao = null
+        NotificacaoOferta.cancelar(this)
         escopo.launch {
             runCatching {
-                repo.registrarCorridaDaOferta(oferta.valor, oferta.km, oferta.minutos, pacote)
+                repo.registrarCorridaDaOferta(oferta.valor, oferta.km, oferta.minutos, pacote, oferta.enderecos)
                 if (idHistorico != null) repo.marcarOfertaRegistrada(idHistorico)
             }
                 .onSuccess { overlay?.marcarRegistrada() }

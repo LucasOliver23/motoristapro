@@ -28,7 +28,8 @@ enum class CampoCartao(val chave: String, val rotulo: String, val explicacao: St
 
 /** Como o cartão se pinta. */
 enum class TemaCartao(val rotulo: String) {
-    COLORIDO("Colorido"),   // fundo na cor do semáforo — o padrão
+    NOVO("Branco"),         // cartão branco com a etiqueta ACEITAR/ATENÇÃO/RECUSAR — o padrão (4.7)
+    COLORIDO("Colorido"),   // fundo na cor do semáforo
     ESCURO("Escuro"),
     CLARO("Claro")
 }
@@ -56,7 +57,7 @@ enum class PosicaoCartao(val rotulo: String) {
 data class ConfigCartao(
     /** Campos visíveis, na ordem em que o motorista quer ler. */
     val campos: List<CampoCartao> = CampoCartao.PADRAO,
-    val tema: TemaCartao = TemaCartao.COLORIDO,
+    val tema: TemaCartao = TemaCartao.NOVO,
     val tamanho: TamanhoCartao = TamanhoCartao.M,
     val posicao: PosicaoCartao = PosicaoCartao.TOPO,
     /** 40 a 100. Abaixo de 100 dá para enxergar o app de corrida por baixo. */
@@ -142,6 +143,11 @@ class EstiloCartao(context: Context) {
         .getSharedPreferences("estilo_cartao", Context.MODE_PRIVATE)
 
     fun ler(): ConfigCartao {
+        // 4.7: o cartão branco entra uma vez para todo mundo, mesmo para quem já
+        // tinha escolhido outro tema — depois disso a escolha do motorista manda.
+        if (!prefs.getBoolean(KEY_NOVO_APLICADO, false)) {
+            prefs.edit().putString(KEY_TEMA, TemaCartao.NOVO.name).putBoolean(KEY_NOVO_APLICADO, true).apply()
+        }
         val padrao = ConfigCartao()
         val salvos = prefs.getString(KEY_CAMPOS, null)
             ?.split(",")
@@ -174,7 +180,7 @@ class EstiloCartao(context: Context) {
     }
 
     fun restaurarPadrao(): ConfigCartao {
-        prefs.edit().clear().apply()
+        prefs.edit().clear().putBoolean(KEY_NOVO_APLICADO, true).apply()
         return ConfigCartao()
     }
 
@@ -190,5 +196,6 @@ class EstiloCartao(context: Context) {
         const val KEY_SEGUNDOS = "segundos"
         const val KEY_APP = "mostrar_app"
         const val KEY_AVISO = "aviso_destaque"
+        const val KEY_NOVO_APLICADO = "tema_novo_aplicado"
     }
 }

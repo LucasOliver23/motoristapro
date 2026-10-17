@@ -129,6 +129,7 @@ fun EstiloCartaoScreen(custoKmCentavos: Long) {
         )
         Text(
             when (cfg.tema) {
+                TemaCartao.NOVO -> "Cartão branco com a etiqueta ACEITAR, ATENÇÃO ou RECUSAR e 4 números grandes."
                 TemaCartao.COLORIDO -> "Fundo verde, amarelo ou vermelho conforme a decisão. Decide de relance."
                 TemaCartao.ESCURO -> "Fundo preto. Só a faixa de cima muda de cor."
                 TemaCartao.CLARO -> "Fundo branco, para quem roda com a tela clara."
@@ -209,11 +210,12 @@ private fun PreviaCartao(cfg: ConfigCartao, custoKmCentavos: Long) {
         Classificacao.RUIM -> VermelhoPrejuizo
     }
     val fundoCartao = when (cfg.tema) {
+        TemaCartao.NOVO -> Color.White
         TemaCartao.COLORIDO -> Color(0xFF0288D1)
         TemaCartao.ESCURO -> Color(0xFF14181C)
         TemaCartao.CLARO -> Color(0xFFF2F4F7)
     }
-    val corTexto = if (cfg.tema == TemaCartao.CLARO) Color(0xFF101720) else Color.White
+    val corTexto = if (cfg.tema == TemaCartao.CLARO || cfg.tema == TemaCartao.NOVO) Color(0xFF101720) else Color.White
     val escala = cfg.tamanho.escala
     val valores = cfg.valores(OFERTA_EXEMPLO, custoKmCentavos.coerceAtLeast(70))
 
