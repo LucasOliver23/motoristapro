@@ -82,7 +82,16 @@ class OfertaAccessibilityService : AccessibilityService() {
     /** Leituras seguidas sem oferta; ao chegar em 2, consideramos que o card sumiu. */
     private var varredurasVazias = 0
 
-    private val varrerRunnable = Runnable { varrerTelaComSeguranca() }
+    private val varrerRunnable = Runnable {
+        varreduraPendenteDesde = 0L
+        varrerTelaComSeguranca()
+    }
+
+    /** Desde quando há uma varredura esperando (0 = nenhuma). */
+    private var varreduraPendenteDesde = 0L
+
+    /** Último evento de cada app: com duas ofertas na tela, vale a do app que mexeu por último. */
+    private val ultimoEvento = HashMap<String, Long>()
 
     /** Lista de endereços de risco do motorista. */
     private var risco: EnderecosDeRisco? = null
@@ -194,8 +203,17 @@ class OfertaAccessibilityService : AccessibilityService() {
                 AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
                 AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
                 AccessibilityEvent.TYPE_WINDOWS_CHANGED -> {
-                    handler.removeCallbacks(varrerRunnable)
-                    handler.postDelayed(varrerRunnable, DEBOUNCE_MS)
+                    val agora = System.currentTimeMillis()
+                    ultimoEvento[pacote] = agora
+                    // Debounce com prazo: o mapa do inDrive (ou o cronômetro da
+                    // oferta) dispara eventos sem parar, e um debounce puro
+                    // adiava a leitura para sempre — a corrida da Uber que tocava
+                    // ao mesmo tempo nunca era lida. Passou do prazo, lê já.
+                    if (varreduraPendenteDesde == 0L) varreduraPendenteDesde = agora
+                    if (agora - varreduraPendenteDesde < ESPERA_MAXIMA_MS) {
+                        handler.removeCallbacks(varrerRunnable)
+                        handler.postDelayed(varrerRunnable, DEBOUNCE_MS)
+                    }
                 }
             }
         } catch (e: Throwable) {
@@ -302,10 +320,19 @@ class OfertaAccessibilityService : AccessibilityService() {
             }
         }
 
+        // Com vários apps abertos, o texto de UM (a lista do inDrive, cheia de
+        // R$) escondia que o OUTRO (o card da 99, que não tem texto) precisava
+        // da imagem. A conta agora é app por app.
+        val appSemTexto = leituras.groupBy { it.pacote }.entries.firstOrNull { (p, janelas) ->
+            val t = janelas.flatMap { it.textos }
+            t.none { it.contains("R$") } && (t.size < 15 || p in pacotesQuePrecisamOcr)
+        }?.key
+
         if (resultado == null && ocrDisponivel() &&
-            (inDriveIncompleto || telaMuda || (semValorEmTexto && (quaseSemTexto || pacoteOcr)))
+            (inDriveIncompleto || telaMuda || appSemTexto != null ||
+                (semValorEmTexto && (quaseSemTexto || pacoteOcr)))
         ) {
-            solicitarOcr(leituras.first().pacote)
+            solicitarOcr(appSemTexto ?: leituras.first().pacote)
             return
         }
 
@@ -479,13 +506,21 @@ class OfertaAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "Captura descartada: era a tela do próprio MotoristaPro")
                 return@ler
             }
-            val achado = escolher(linhas, alvo)
+            // A oferta de um app pode chegar POR CIMA de outro (o card da Uber
+            // sobre o inDrive aberto): o app "da frente" nem sempre é o dono do
+            // card. Tenta primeiro ele e depois os outros que mexeram há pouco.
+            val agoraOcr = System.currentTimeMillis()
+            val candidatos = (listOf(alvo) + ultimoEvento.entries
+                .filter { agoraOcr - it.value < JANELA_APPS_ATIVOS_MS }
+                .sortedByDescending { it.value }
+                .map { it.key }).distinct()
+            val achado = candidatos.firstNotNullOfOrNull { escolher(linhas, it) }
             val motivo = if (achado == null && alvo == OfertaInDrive.PACOTE) {
                 OfertaInDrive.porQueNaoLeu(linhas, listaInDriveValida())
             } else null
             registrarDiagnostico(linhas, listOf(alvo), 1, achado?.oferta, origem = "imagem (OCR)", motivo = motivo)
-            if (achado != null) pacotesQuePrecisamOcr += alvo
-            processarResultado(achado?.oferta, alvo, achado?.total ?: 1)
+            if (achado != null) pacotesQuePrecisamOcr += achado.pacote
+            processarResultado(achado?.oferta, achado?.pacote ?: alvo, achado?.total ?: 1)
         }
     }
 
@@ -523,45 +558,54 @@ class OfertaAccessibilityService : AccessibilityService() {
      * Em telas com várias corridas, escolhe a de melhor R$/km.
      */
     private fun interpretar(leituras: List<Leitura>): Achado? {
+        // Vários apps ligados ao mesmo tempo (Uber + 99 + inDrive): cada app é
+        // lido SEPARADO. Antes, qualquer janela do inDrive na tela fazia o
+        // leitor olhar só para ele — a corrida da Uber que chegava por cima
+        // passava batido — e o "junta tudo" do fim misturava números de apps
+        // diferentes numa oferta só.
+        val doInDrive = leituras.filter { it.pacote == OfertaInDrive.PACOTE }
+        val achadoInDrive = if (doInDrive.isNotEmpty()) interpretarInDrive(doInDrive) else null
+
+        val outras = leituras.filter { it.pacote != OfertaInDrive.PACOTE && it.textos.isNotEmpty() }
+        val achadoOutro = outras.firstNotNullOfOrNull { escolher(it.textos, it.pacote) }
+            ?: outras.groupBy { it.pacote }.entries.firstNotNullOfOrNull { (pacote, janelas) ->
+                if (janelas.size > 1) escolher(janelas.flatMap { it.textos }, pacote) else null
+            }
+
+        // Duas ofertas na tela ao mesmo tempo: vale a do app que mexeu por último
+        // (é a que acabou de tocar).
+        return listOfNotNull(achadoInDrive, achadoOutro).maxByOrNull { ultimoEvento[it.pacote] ?: 0L }
+    }
+
+    private fun interpretarInDrive(doInDrive: List<Leitura>): Achado? {
         // inDrive: o mapa e o cartao sao JANELAS DIFERENTES. A etiqueta verde do
         // mapa traz o km da viagem e o cartao traz so o da busca — olhar janela
         // por janela devolvia a primeira que desse certo, que era a do cartao.
         // Resultado real: 4,4 km numa corrida de 4,4 de busca + 6,0 de viagem.
-        val doInDrive = leituras.filter { it.pacote == OfertaInDrive.PACOTE }
-        if (doInDrive.isNotEmpty()) {
-            // Passando pela lista: guarda as corridas e NAO mostra cartao nenhum.
-            // E ali que estao os dois km (ponto A e ponto B) de cada corrida.
-            val janelasDaLista = doInDrive.filter { OfertaInDrive.ehLista(it.textos) }
-            janelasDaLista.forEach { guardarListaInDrive(OfertaInDrive.extrairDaLista(it.textos)) }
+        //
+        // Passando pela lista: guarda as corridas e NAO mostra cartao nenhum.
+        // E ali que estao os dois km (ponto A e ponto B) de cada corrida.
+        val janelasDaLista = doInDrive.filter { OfertaInDrive.ehLista(it.textos) }
+        janelasDaLista.forEach { guardarListaInDrive(OfertaInDrive.extrairDaLista(it.textos)) }
 
-            // O detalhe abre como uma folha POR CIMA da lista, e a lista continua
-            // na arvore de acessibilidade. Juntar tudo trazia os "N km" de uma
-            // duzia de outras corridas para a conta desta — por isso a janela da
-            // lista fica de fora na hora de ler a oferta aberta.
-            val doDetalhe = doInDrive.filterNot { OfertaInDrive.ehLista(it.textos) }
-                .flatMap { it.textos }
-            if (OfertaInDrive.ehTelaDeDetalhe(doDetalhe)) {
-                return escolher(doDetalhe, OfertaInDrive.PACOTE)
-            }
-            // Nenhuma janela de oferta aberta: se o que havia era a lista, nao
-            // mostra nada; senao tenta o conjunto (tela de transicao, OCR etc.).
-            if (janelasDaLista.isNotEmpty()) return null
-            val todosInDrive = doInDrive.flatMap { it.textos }
-            if (OfertaInDrive.ehLista(todosInDrive)) {
-                guardarListaInDrive(OfertaInDrive.extrairDaLista(todosInDrive))
-                return null
-            }
-            return escolher(todosInDrive, OfertaInDrive.PACOTE)
+        // O detalhe abre como uma folha POR CIMA da lista, e a lista continua
+        // na arvore de acessibilidade. Juntar tudo trazia os "N km" de uma
+        // duzia de outras corridas para a conta desta — por isso a janela da
+        // lista fica de fora na hora de ler a oferta aberta.
+        val doDetalhe = doInDrive.filterNot { OfertaInDrive.ehLista(it.textos) }
+            .flatMap { it.textos }
+        if (OfertaInDrive.ehTelaDeDetalhe(doDetalhe)) {
+            return escolher(doDetalhe, OfertaInDrive.PACOTE)
         }
-
-        for (l in leituras) {
-            if (l.textos.isEmpty()) continue
-            escolher(l.textos, l.pacote)?.let { return it }
+        // Nenhuma janela de oferta aberta: se o que havia era a lista, nao
+        // mostra nada; senao tenta o conjunto (tela de transicao, OCR etc.).
+        if (janelasDaLista.isNotEmpty()) return null
+        val todosInDrive = doInDrive.flatMap { it.textos }
+        if (OfertaInDrive.ehLista(todosInDrive)) {
+            guardarListaInDrive(OfertaInDrive.extrairDaLista(todosInDrive))
+            return null
         }
-        val todos = leituras.flatMap { it.textos }
-        if (todos.isEmpty()) return null
-        val pacote = leituras.firstOrNull { it.textos.isNotEmpty() }?.pacote ?: return null
-        return escolher(todos, pacote)
+        return escolher(todosInDrive, OfertaInDrive.PACOTE)
     }
 
     private fun escolher(textos: List<String>, pacote: String): Achado? {
@@ -795,6 +839,12 @@ class OfertaAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "MotoristaPro"
         private const val DEBOUNCE_MS = 120L
+
+        /** Mesmo com eventos sem parar, a tela é lida pelo menos a cada 0,4 s. */
+        private const val ESPERA_MAXIMA_MS = 400L
+
+        /** App que mexeu nos últimos 15 s conta como "ligado" para a leitura por imagem. */
+        private const val JANELA_APPS_ATIVOS_MS = 15_000L
         private const val MAX_PROFUNDIDADE = 80
         private const val MAX_TEXTOS = 1500
         // Conta a partir da última vez que a oferta foi VISTA, não da primeira:

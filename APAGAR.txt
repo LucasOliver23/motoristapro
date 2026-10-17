@@ -1,15 +1,19 @@
-NADA PARA APAGAR NESTA VERSAO (4.6.2)
+NADA PARA APAGAR NESTA VERSAO (4.6.3)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Leitor de ofertas, com as telas reais de iFood, Uber e 99:
-- Nota do passageiro sem estrela em texto ("4,92 (924)", "4,8 · 12 corridas").
-- Endereco logo abaixo de "N min (X km)" mesmo sem Rua/Av. (Aeroporto,
-  Shopping, Estacao): agora entra no alerta de area de risco e no
-  "Ver embarque".
+Correcao: Uber, 99 e inDrive ligados ao mesmo tempo.
+- Qualquer janela do inDrive na tela fazia o leitor olhar so para ele: a
+  corrida da Uber/99 que chegava por cima passava batido. Agora cada app e
+  lido separado; com duas ofertas, vale a do app que tocou por ultimo.
+- O "junta tudo" nao mistura mais numeros de apps diferentes.
+- Debounce com prazo: eventos sem parar de um app (mapa, cronometro) nao
+  adiam mais a leitura para sempre (le pelo menos a cada 0,4 s).
+- Leitura por imagem: decide app por app (o texto do inDrive nao esconde
+  mais o card da 99) e, se o card nao for do app da frente, tenta os outros
+  apps que mexeram nos ultimos 15 s.
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/service/OfertaParser.kt
-  app/src/test/java/com/motoristapro/service/OfertaParserTest.kt
+  app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
