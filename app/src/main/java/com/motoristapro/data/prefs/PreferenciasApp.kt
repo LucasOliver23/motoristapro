@@ -26,28 +26,7 @@ class PreferenciasApp(context: Context) {
         get() = prefs.getBoolean(KEY_OCR, true)
         set(v) = prefs.edit().putBoolean(KEY_OCR, v).apply()
 
-    // ------------------------------------------------------------ Copiloto (4.8)
-
-    private val _leitorPausado = MutableStateFlow(prefs.getBoolean(KEY_PAUSADO, false))
-
-    /** O motorista desligou o leitor no Copiloto (o serviço fica ligado, mas não lê). */
-    val leitorPausado: StateFlow<Boolean> = _leitorPausado
-
-    fun definirLeitorPausado(v: Boolean) {
-        prefs.edit().putBoolean(KEY_PAUSADO, v).apply()
-        _leitorPausado.value = v
-    }
-
-    private val _appsDesligados = MutableStateFlow(prefs.getStringSet(KEY_APPS_OFF, emptySet())!!.toSet())
-
-    /** Pacotes dos apps que o leitor NÃO deve ler (os logos apagados no Copiloto). */
-    val appsDesligados: StateFlow<Set<String>> = _appsDesligados
-
-    fun alternarApp(pacote: String) {
-        val novo = _appsDesligados.value.let { if (pacote in it) it - pacote else it + pacote }
-        prefs.edit().putStringSet(KEY_APPS_OFF, novo).apply()
-        _appsDesligados.value = novo
-    }
+    // ------------------------------------------------------------ leitor (4.8)
 
     private val _notificacaoOferta = MutableStateFlow(prefs.getBoolean(KEY_NOTIF_OFERTA, true))
 
@@ -89,8 +68,6 @@ class PreferenciasApp(context: Context) {
 
     private companion object {
         const val KEY_PACOTE_PLANO = "pacote99_plano"
-        const val KEY_PAUSADO = "leitor_pausado"
-        const val KEY_APPS_OFF = "apps_desligados"
         const val KEY_NOTIF_OFERTA = "notificacao_oferta"
         const val KEY_PACOTE_SOZINHO = "pacote99_lancar_sozinho"
         const val KEY_OCR = "ocr_ativo"

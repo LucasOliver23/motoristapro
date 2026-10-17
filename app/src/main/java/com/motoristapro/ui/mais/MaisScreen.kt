@@ -179,8 +179,9 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     var confirmarZerar by remember { mutableStateOf(false) }
     LaunchedEffect(usuario?.uid) { if (usuario != null) vm.consultarNuvem() }
     val ocr by vm.ocrAtivo.collectAsStateWithLifecycle()
-    val pacote99 by (LocalContext.current.applicationContext as com.motoristapro.MotoristaApp).preferencias.pacote
-        .collectAsStateWithLifecycle()
+    val appPrefs = (LocalContext.current.applicationContext as com.motoristapro.MotoristaApp).preferencias
+    val pacote99 by appPrefs.pacote.collectAsStateWithLifecycle()
+    val notificacaoOferta by appPrefs.notificacaoOferta.collectAsStateWithLifecycle()
     val voz by vm.vozAtiva.collectAsStateWithLifecycle()
     val vozResumida by vm.vozResumida.collectAsStateWithLifecycle()
     val riscoLigado by vm.riscoAtivo.collectAsStateWithLifecycle()
@@ -332,6 +333,19 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         else "não uso pacote",
                         aceso = pacote99.ativo,
                         onClick = { sub = SubTela.PACOTE }
+                    ),
+                    Ferramenta(
+                        titulo = "Aparência do cartão",
+                        icone = "🎨",
+                        estado = "cores, números, tamanho e voz",
+                        onClick = { sub = SubTela.ESTILO }
+                    ),
+                    Ferramenta(
+                        titulo = "Notificação da corrida",
+                        icone = "🔔",
+                        estado = "endereços e atalhos do mapa na barra",
+                        ligado = notificacaoOferta,
+                        onClick = { appPrefs.definirNotificacaoOferta(!notificacaoOferta) }
                     ),
                     Ferramenta(
                         titulo = "Aviso por voz",
