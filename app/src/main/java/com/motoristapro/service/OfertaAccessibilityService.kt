@@ -1,5 +1,10 @@
 package com.motoristapro.service
 
+import java.time.format.DateTimeFormatter
+import java.time.ZoneId
+import java.time.LocalDate
+import java.time.Instant
+import com.motoristapro.data.repository.PACOTE_99
 import android.accessibilityservice.AccessibilityService
 import android.os.Build
 import android.os.Handler
@@ -41,6 +46,13 @@ class OfertaAccessibilityService : AccessibilityService() {
     private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var overlay: OverlayOferta? = null
+    private var cartaoResumo: CartaoResumo? = null
+
+    /** Resumo da 99 que já ganhou cartão (não reabre a cada evento da mesma tela). */
+    private var resumoTratado: String? = null
+
+    /** Resumos em que o motorista tocou "Agora não". */
+    private val resumosDispensados = mutableSetOf<String>()
     private var limites: LimitesOferta? = null
     private var bolha: BolhaFlutuante? = null
     private var painel: PainelBolha? = null
@@ -120,6 +132,7 @@ class OfertaAccessibilityService : AccessibilityService() {
                 escopo.launch { AcoesOferta.abrirLocal(this@OfertaAccessibilityService, endereco) }
             }
         }
+        cartaoResumo = CartaoResumo(this)
         painel = PainelBolha(this).apply {
             leitorLendo = { _conectado.value }
             jornadaRodando = { jornadaComecouEm != null }
@@ -202,6 +215,8 @@ class OfertaAccessibilityService : AccessibilityService() {
         handler.removeCallbacksAndMessages(null)
         overlay?.liberar()
         overlay = null
+        cartaoResumo?.liberar()
+        cartaoResumo = null
         bolha?.liberar()
         bolha = null
         painel?.liberar()
@@ -241,6 +256,22 @@ class OfertaAccessibilityService : AccessibilityService() {
             if (resultado != null || leituras.all { it.textos.isEmpty() }) leituras = comDescricoes
         }
         if (leituras.isEmpty()) return   // nenhuma janela de app-alvo na tela
+
+        // Tela "Detalhes da corrida" da 99 (depois da corrida): não é oferta.
+        // Confere se a corrida está no app e, se não estiver, oferece registrar.
+        val textos99 = leituras.filter { it.pacote == PACOTE_99 }.flatMap { it.textos }
+        if (ResumoCorrida99.ehResumo(textos99)) {
+            registrarDiagnostico(
+                textos99, listOf(PACOTE_99), leituras.size, null, origem = "texto",
+                motivo = "resumo de corrida já terminada (não é oferta)"
+            )
+            ResumoCorrida99.ler(textos99)?.let { tratarResumo(it) }
+            return
+        }
+        if (resumoTratado != null) {
+            resumoTratado = null
+            cartaoResumo?.esconder()
+        }
 
         // 3ª tentativa: o app não expõe o valor para a acessibilidade (ex.: 99) -> lê a IMAGEM da tela.
         // Só usa OCR quando o app praticamente não expõe textos, ou quando já sabemos que ele precisa
@@ -672,6 +703,45 @@ class OfertaAccessibilityService : AccessibilityService() {
             }
                 .onSuccess { overlay?.marcarRegistrada() }
                 .onFailure { Log.e(TAG, "Falha ao registrar corrida", it) }
+        }
+    }
+
+    private fun tratarResumo(r: ResumoCorrida) {
+        val assinatura = r.assinatura
+        if (assinatura == resumoTratado || assinatura in resumosDispensados) return
+        resumoTratado = assinatura
+        val repo = (application as MotoristaApp).repository
+        val zona = ZoneId.systemDefault()
+        // Sem a data na tela, a corrida acabou agora: começou "duração" atrás.
+        val momento = r.quando?.atZone(zona)?.toInstant()?.toEpochMilli()
+            ?: (System.currentTimeMillis() - r.segundos * 1000)
+        val hora = Instant.ofEpochMilli(momento).atZone(zona).toLocalTime()
+            .format(DateTimeFormatter.ofPattern("HH:mm"))
+        val ehHoje = Instant.ofEpochMilli(momento).atZone(zona).toLocalDate() == LocalDate.now()
+        val quando = if (ehHoje) "hoje $hora" else Instant.ofEpochMilli(momento).atZone(zona)
+            .format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+        escopo.launch {
+            runCatching {
+                val existente = repo.corridaDoResumo99(r, momento)
+                if (existente != null) {
+                    cartaoResumo?.mostrarRegistrada(existente.valorCentavos, quando, agora = false)
+                } else {
+                    cartaoResumo?.mostrarNova(
+                        r, quando,
+                        onRegistrar = {
+                            escopo.launch {
+                                runCatching { repo.registrarDoResumo99(r, momento) }
+                                    .onSuccess { cartaoResumo?.mostrarRegistrada(r.valorCentavos, quando, agora = true) }
+                                    .onFailure {
+                                        Log.e(TAG, "Falha ao registrar pelo resumo", it)
+                                        cartaoResumo?.esconder()
+                                    }
+                            }
+                        },
+                        onAgoraNao = { resumosDispensados += assinatura }
+                    )
+                }
+            }.onFailure { Log.e(TAG, "Falha ao conferir o resumo da 99", it) }
         }
     }
 

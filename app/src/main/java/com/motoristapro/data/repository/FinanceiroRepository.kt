@@ -26,6 +26,7 @@ import com.motoristapro.data.local.model.GanhoPorHora
 import com.motoristapro.data.local.model.LucroDiario
 import com.motoristapro.data.local.model.ResumoPlataforma
 import com.motoristapro.pacote.ConfigPacote
+import com.motoristapro.service.ResumoCorrida
 import com.motoristapro.pacote.PacoteTaxa
 import com.motoristapro.pacote.PlanoPacote
 import android.util.Log
@@ -81,6 +82,9 @@ object Periodo {
     }.distinctUntilChanged()
 }
 
+/** Pacote do app 99 Motorista. */
+const val PACOTE_99 = "com.app99.driver"
+
 /** Origem gravada nas corridas que o botão "Registrar" da janela da oferta cria. */
 const val ORIGEM_LEITOR = "Leitor de ofertas"
 
@@ -129,7 +133,7 @@ class FinanceiroRepository(
     private suspend fun lancarPacoteSePrecisar(corrida: Corrida) {
         val cfg = pacote()
         if (!cfg.ativo || !cfg.lancarSozinho) return
-        val p99 = plataformaDao.buscarPorNome(nomePlataforma("com.app99.driver")) ?: return
+        val p99 = plataformaDao.buscarPorNome(nomePlataforma(PACOTE_99)) ?: return
         if (corrida.plataformaId != p99.id) return
 
         val ultima = despesaDao.ultimaComPrefixo(CategoriaDespesa.TAXA_APP, PlanoPacote.PREFIXO_DESCRICAO)
@@ -153,13 +157,48 @@ class FinanceiroRepository(
         )
     }
 
+    /**
+     * A corrida que o resumo da 99 descreve já está no app? Procura de 45 min
+     * antes a 30 min depois do horário do resumo, com até R$ 1,00 de diferença.
+     */
+    suspend fun corridaDoResumo99(r: ResumoCorrida, momento: Long): Corrida? {
+        val p99 = plataformaDao.buscarPorNome(nomePlataforma(PACOTE_99)) ?: return null
+        return corridaDao.buscarParecida(
+            plataformaId = p99.id,
+            valorCentavos = r.valorCentavos,
+            tolerancia = 100,
+            desde = momento - 45 * 60_000,
+            ate = momento + 30 * 60_000,
+            referencia = momento
+        )
+    }
+
+    /** Registra a corrida a partir do resumo da 99, com o valor final e os endereços. */
+    suspend fun registrarDoResumo99(r: ResumoCorrida, momento: Long): Long {
+        val p99 = plataformaDao.buscarPorNome(nomePlataforma(PACOTE_99))
+            ?: plataformaDao.listarTodas().firstOrNull()
+            ?: error("Nenhuma plataforma cadastrada")
+        return registrarCorrida(
+            Corrida(
+                plataformaId = p99.id,
+                origem = r.origem ?: ORIGEM_LEITOR,
+                destino = r.destino.orEmpty(),
+                valorCentavos = r.valorCentavos,
+                distanciaMetros = r.metros,
+                duracaoSegundos = r.segundos,
+                inicioEm = momento,
+                observacao = "Registrada pela tela Detalhes da corrida da 99"
+            )
+        )
+    }
+
     /** O que o pacote da 99 custou de fato no período (as compras lançadas). */
     fun pacoteDoPeriodo(inicio: Long, fim: Long): Flow<Long> =
         despesaDao.observarTotalComPrefixo(CategoriaDespesa.TAXA_APP, PlanoPacote.PREFIXO_DESCRICAO, inicio, fim)
 
     /** Corridas da 99 no período (valor, sem gorjeta). */
     fun ganhos99DoPeriodo(inicio: Long, fim: Long): Flow<Long> =
-        corridaDao.observarGanhosPorNome(nomePlataforma("com.app99.driver"), inicio, fim)
+        corridaDao.observarGanhosPorNome(nomePlataforma(PACOTE_99), inicio, fim)
 
     /** Última compra do pacote, para a barra do pacote de ganhos. */
     fun ultimoPacote(): Flow<Despesa?> =

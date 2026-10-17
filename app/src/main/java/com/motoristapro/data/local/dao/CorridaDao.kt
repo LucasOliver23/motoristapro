@@ -65,6 +65,23 @@ interface CorridaDao {
     @Query("SELECT * FROM corridas WHERE id = :id")
     suspend fun buscarPorId(id: Long): Corrida?
 
+    /**
+     * Uma corrida já registrada que bate com o resumo da 99: mesma plataforma,
+     * perto do horário e com valor parecido (a oferta pode mudar uns centavos).
+     */
+    @Query(
+        """
+        SELECT * FROM corridas
+        WHERE plataforma_id = :plataformaId AND inicio_em >= :desde AND inicio_em < :ate
+          AND ABS(valor_centavos - :valorCentavos) <= :tolerancia
+        ORDER BY ABS(inicio_em - :referencia)
+        LIMIT 1
+        """
+    )
+    suspend fun buscarParecida(
+        plataformaId: Long, valorCentavos: Long, tolerancia: Long, desde: Long, ate: Long, referencia: Long
+    ): Corrida?
+
     /** Valor das corridas de uma plataforma no período (sem gorjeta: é o que o pacote de ganhos conta). */
     @Query(
         """
