@@ -165,9 +165,15 @@ class SincronizacaoNuvem(
     }
 
     /**
-     * Chamado logo depois do login.
-     * - Celular sem nenhum dado e nuvem com backup -> baixa (caso de celular novo).
+     * Chamado a cada abertura do app com a conta logada.
+     * - PRIMEIRA vez desta conta neste celular, sem dado nenhum aqui e com backup
+     *   na nuvem -> baixa (celular novo ou app reinstalado).
      * - Nos outros casos -> envia, para a nuvem ficar igual a este celular.
+     *
+     * Antes o "baixa" valia em TODA abertura enquanto não houvesse corrida nem
+     * despesa: quem acabava de configurar o app (meta, nome, custo) e ainda não
+     * tinha rodado via tudo voltar ao backup antigo ao fechar e abrir de novo
+     * (a meta do dia voltava para R$ 200). Agora só a primeira abertura restaura.
      * Nunca apaga dados locais sem que estejam vazios; para trocar de celular com dados,
      * o motorista usa o botão "Baixar da nuvem".
      */
@@ -180,6 +186,8 @@ class SincronizacaoNuvem(
         // Antes isto SUBIA o historico dele para a conta nova — o contrario do
         // que se espera de um app em que cada um entra com a sua conta.
         val trocouDeConta = dono != null && dono != uid
+        // Já sincronizou esta conta neste celular antes: o que está aqui é o mais novo.
+        val primeiraVezAqui = dono != uid
         if (trocouDeConta) {
             db.sincronizacaoDao().zerar()
             limparPreferenciasDoMotorista()
@@ -192,7 +200,8 @@ class SincronizacaoNuvem(
             val localVazio = pacoteLocal.corridas.isEmpty() && pacoteLocal.despesas.isEmpty()
 
             val mensagem = when {
-                temNuvem && localVazio -> "Dados da sua conta restaurados (${baixar()} corridas)"
+                temNuvem && localVazio && primeiraVezAqui ->
+                    "Dados da sua conta restaurados (${baixar()} corridas)"
                 // Conta nova e sem backup: comeca do zero mesmo, sem subir nada.
                 trocouDeConta -> "Conta nova neste celular — começando do zero"
                 else -> "Backup na nuvem atualizado (${enviar()} corridas)"
