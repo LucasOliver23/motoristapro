@@ -1,13 +1,12 @@
-NADA PARA APAGAR NESTA VERSAO (4.4.0)
+NADA PARA APAGAR NESTA VERSAO (4.4.1)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Menu enxuto com nome e foto da conta Google, e resumo das 22h com a meta
-(previa em mockups/previa-menu2.png).
+Correcao: depois de configurar o app (meta, nome, custo), fechar e abrir
+de novo trazia de volta o backup antigo da nuvem (meta do dia R$ 200).
+Agora a nuvem so restaura na primeira abertura da conta no celular.
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/auth/AutenticacaoManager.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/resumo/ResumoDiarioWorker.kt
+  app/src/main/java/com/motoristapro/nuvem/SincronizacaoNuvem.kt
