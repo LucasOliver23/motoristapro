@@ -25,6 +25,10 @@ import com.motoristapro.data.local.model.CustoPorKm
 import com.motoristapro.data.local.model.GanhoPorHora
 import com.motoristapro.data.local.model.LucroDiario
 import com.motoristapro.data.local.model.ResumoPlataforma
+import com.motoristapro.pacote.ConfigPacote
+import com.motoristapro.pacote.PacoteTaxa
+import com.motoristapro.pacote.PlanoPacote
+import android.util.Log
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +37,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
@@ -87,7 +92,11 @@ const val ORIGEM_LEITOR = "Leitor de ofertas"
  * - Nenhuma soma é feita em Kotlin: todos os totais vêm prontos do SQLite.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class FinanceiroRepository(private val db: AppDatabase) {
+class FinanceiroRepository(
+    private val db: AppDatabase,
+    /** O pacote 0% de taxa escolhido (vem das preferências). */
+    private val pacote: () -> ConfigPacote = { ConfigPacote() }
+) {
 
     private val corridaDao = db.corridaDao()
     private val despesaDao = db.despesaDao()
@@ -105,8 +114,56 @@ class FinanceiroRepository(private val db: AppDatabase) {
     suspend fun registrarCorrida(corrida: Corrida): Long {
         require(corrida.valorCentavos >= 0) { "Valor da corrida não pode ser negativo" }
         require(corrida.distanciaMetros >= 0 && corrida.deslocamentoMetros >= 0) { "Distância inválida" }
+        // Antes de gravar: o pacote de ganhos olha as corridas de ANTES desta.
+        // Falhar aqui não pode impedir a corrida de ser salva.
+        runCatching { lancarPacoteSePrecisar(corrida) }
+            .onFailure { Log.w("MotoristaPro", "Falha ao lançar o pacote da 99", it) }
         return corridaDao.inserir(corrida)
     }
+
+    /**
+     * Corrida da 99 com o pacote 0% ligado e "lançar sozinho": se o pacote
+     * atual acabou (dia virou, 3 dias passaram, limite de ganhos usado),
+     * lança a compra do próximo como despesa "Taxa do app".
+     */
+    private suspend fun lancarPacoteSePrecisar(corrida: Corrida) {
+        val cfg = pacote()
+        if (!cfg.ativo || !cfg.lancarSozinho) return
+        val p99 = plataformaDao.buscarPorNome(nomePlataforma("com.app99.driver")) ?: return
+        if (corrida.plataformaId != p99.id) return
+
+        val ultima = despesaDao.ultimaComPrefixo(CategoriaDespesa.TAXA_APP, PlanoPacote.PREFIXO_DESCRICAO)
+        val ganhos = if (ultima != null && cfg.plano.porGanhos)
+            corridaDao.ganhosDaPlataforma(p99.id, ultima.dataEm, Long.MAX_VALUE) else 0
+        val zona = ZoneId.systemDefault()
+        val precisa = PacoteTaxa.precisaLancar(
+            plano = cfg.plano,
+            diaDaCorrida = Instant.ofEpochMilli(corrida.inicioEm).atZone(zona).toLocalDate(),
+            diaDaUltimaCompra = ultima?.let { Instant.ofEpochMilli(it.dataEm).atZone(zona).toLocalDate() },
+            ganhosDesdeACompraCentavos = ganhos
+        )
+        if (!precisa) return
+        despesaDao.inserir(
+            Despesa(
+                categoria = CategoriaDespesa.TAXA_APP,
+                valorCentavos = cfg.plano.precoCentavos,
+                dataEm = corrida.inicioEm,
+                descricao = cfg.plano.descricao
+            )
+        )
+    }
+
+    /** O que o pacote da 99 custou de fato no período (as compras lançadas). */
+    fun pacoteDoPeriodo(inicio: Long, fim: Long): Flow<Long> =
+        despesaDao.observarTotalComPrefixo(CategoriaDespesa.TAXA_APP, PlanoPacote.PREFIXO_DESCRICAO, inicio, fim)
+
+    /** Corridas da 99 no período (valor, sem gorjeta). */
+    fun ganhos99DoPeriodo(inicio: Long, fim: Long): Flow<Long> =
+        corridaDao.observarGanhosPorNome(nomePlataforma("com.app99.driver"), inicio, fim)
+
+    /** Última compra do pacote, para a barra do pacote de ganhos. */
+    fun ultimoPacote(): Flow<Despesa?> =
+        despesaDao.observarUltimaComPrefixo(CategoriaDespesa.TAXA_APP, PlanoPacote.PREFIXO_DESCRICAO)
 
     suspend fun atualizarCorrida(corrida: Corrida) = corridaDao.atualizar(corrida)
 

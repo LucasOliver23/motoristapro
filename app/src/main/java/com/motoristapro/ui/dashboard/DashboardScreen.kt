@@ -8,6 +8,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.motoristapro.ui.componentes.BarraMeta
+import com.motoristapro.ui.componentes.LogoPlataforma
+import com.motoristapro.pacote.PacoteTaxa
 import com.motoristapro.ui.componentes.Cartao
 import com.motoristapro.ui.componentes.CartaoDestaque
 import com.motoristapro.ui.componentes.MetricaCompacta
@@ -202,6 +204,8 @@ fun DashboardRoute(
                 // por último, o relógio — que é para olhar, não para tocar.
                 LucroDoDia(estado, agora, onVerFinancas = { irPara(Aba.FINANCAS) })
 
+                PacoteValeuAPena(estado)
+
                 QuatroNumeros(estado)
 
                 // Os três ajustes que decidem tudo o que o app calcula, na tela
@@ -281,6 +285,64 @@ private fun LucroDoDia(e: DashboardUiState, agora: Long, onVerFinancas: () -> Un
                 style = MaterialTheme.typography.bodySmall, color = TextoSecundario
             )
         }
+        // Com o pacote da 99 ligado, a conta aparece aberta: o motorista vê
+        // que a corrida entrou cheia e onde o pacote foi descontado.
+        if (e.pacote.ativo) {
+            Box(Modifier.fillMaxWidth().padding(vertical = 6.dp).height(1.dp).background(Contorno.copy(alpha = 0.4f)))
+            LinhaDaConta("Corridas (100%)", e.resumo.faturamentoCentavos.emReais(), TextoPrincipal)
+            LinhaDaConta(
+                "Combustível e custos",
+                "− " + (e.resumo.despesasCentavos - e.pacoteHojeCentavos).coerceAtLeast(0).emReais(),
+                VermelhoPrejuizo
+            )
+            if (e.pacoteHojeCentavos > 0) {
+                LinhaDaConta("Pacote 99 · ${e.pacote.plano.rotulo}", "− " + e.pacoteHojeCentavos.emReais(), VermelhoPrejuizo)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LinhaDaConta(rotulo: String, valor: String, cor: Color) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(rotulo, style = MaterialTheme.typography.bodyMedium, color = TextoSecundario, modifier = Modifier.weight(1f))
+        Text(valor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = cor)
+    }
+}
+
+/**
+ * "O pacote valeu a pena hoje": a taxa que a 99 ficaria sem ele (pela taxa
+ * média) menos a parte do pacote que cabe ao dia. É só comparação — o lucro
+ * de cima já está certo com ou sem este cartão.
+ */
+@Composable
+private fun PacoteValeuAPena(e: DashboardUiState) {
+    val economia = e.economiaPacoteCentavos ?: return
+    val compensou = economia >= 0
+    Cartao {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            LogoPlataforma("99", tamanho = 34.dp)
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(
+                    if (compensou) "Pacote valeu a pena hoje" else "Pacote ainda não compensou hoje",
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Sem ele a 99 ficaria com ~ ${PacoteTaxa.taxaEvitadaCentavos(e.ganhos99HojeCentavos).emReais()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (compensou) Lima else TextoSecundario
+                )
+            }
+            Text(
+                (if (compensou) "+ " else "− ") + kotlin.math.abs(economia).emReais(),
+                style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
+                color = if (compensou) Lima else VermelhoPrejuizo
+            )
+        }
+        Text(
+            "Conta de comparação com a taxa média de 20% da 99.",
+            style = MaterialTheme.typography.labelSmall, color = TextoSecundario
+        )
     }
 }
 

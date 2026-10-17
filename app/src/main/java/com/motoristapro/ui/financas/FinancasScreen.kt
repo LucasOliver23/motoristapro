@@ -86,6 +86,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.sp
 import com.motoristapro.data.local.entity.CategoriaDespesa
+import com.motoristapro.pacote.PlanoPacote
+import com.motoristapro.ui.theme.AmareloAlerta
 import com.motoristapro.ui.componentes.LogoPlataforma
 import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.Superficie
@@ -97,6 +99,7 @@ private fun iconeDeTraco(c: CategoriaDespesa): Pair<ImageVector, Color> = when (
     CategoriaDespesa.MANUTENCAO -> Icones.Chave to AzulInfo
     CategoriaDespesa.SEGURO -> Icones.Escudo to Turquesa
     CategoriaDespesa.OUTROS -> Icones.Alfinete to Roxo
+    CategoriaDespesa.TAXA_APP -> Icones.Caixa to AmareloAlerta
 }
 
 private val PT = Locale("pt", "BR")
@@ -108,6 +111,7 @@ private val FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM HH:mm", PT)
 fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.Factory)) {
     val mes by vm.mesState.collectAsStateWithLifecycle()
     val metas by vm.metasState.collectAsStateWithLifecycle()
+    val usoPacote by vm.usoPacote.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
     var editando by remember { mutableStateOf<Despesa?>(null) }
@@ -136,6 +140,8 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { CartaoDoMes(mes) }
+
+            usoPacote?.let { uso -> item { CartaoPacoteGanhos(uso) } }
 
             item { CartaoCategorias(mes) }
 
@@ -200,6 +206,33 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
     }
 }
 
+/** Pacote de ganhos da 99: quanto do limite já foi usado e quando vence. */
+@Composable
+private fun CartaoPacoteGanhos(uso: UsoPacote) {
+    Cartao {
+        Rotulo("Pacote de ganhos da 99")
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Pacote ${uso.limiteCentavos.emReais()}",
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Text("vence em ${uso.venceEmDias} dias", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+        }
+        BarraMeta(uso.fracao)
+        Row {
+            Text(
+                "Usado ${uso.usadoCentavos.coerceAtMost(uso.limiteCentavos).emReais()}",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario, modifier = Modifier.weight(1f)
+            )
+            Text(
+                if (uso.faltamCentavos > 0) "Faltam ${uso.faltamCentavos.emReais()}" else "Acabou — o próximo entra sozinho",
+                style = MaterialTheme.typography.bodySmall, color = Lima
+            )
+        }
+    }
+}
+
 /** Chave estável da lista: corrida e despesa podem ter o mesmo id. */
 private fun chaveDoLancamento(l: Lancamento): String = when (l) {
     is Lancamento.Entrada -> "c" + l.corrida.corrida.id
@@ -255,7 +288,12 @@ private fun DespesaItem(d: Despesa, onClick: () -> Unit, onExcluir: () -> Unit) 
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        iconeDeTraco(d.categoria).let { (icone, cor) -> SeloIcone(icone, cor, tamanho = 36.dp) }
+        // O pacote da 99 sai com a logo da 99: é a cara que o motorista reconhece no extrato.
+        if (d.categoria == CategoriaDespesa.TAXA_APP && d.descricao?.startsWith(PlanoPacote.PREFIXO_DESCRICAO) == true) {
+            LogoPlataforma("99", tamanho = 36.dp)
+        } else {
+            iconeDeTraco(d.categoria).let { (icone, cor) -> SeloIcone(icone, cor, tamanho = 36.dp) }
+        }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(d.descricao?.takeIf { it.isNotBlank() } ?: d.categoria.rotulo,
                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)

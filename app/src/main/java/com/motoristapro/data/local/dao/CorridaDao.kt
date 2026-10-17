@@ -65,6 +65,24 @@ interface CorridaDao {
     @Query("SELECT * FROM corridas WHERE id = :id")
     suspend fun buscarPorId(id: Long): Corrida?
 
+    /** Valor das corridas de uma plataforma no período (sem gorjeta: é o que o pacote de ganhos conta). */
+    @Query(
+        """
+        SELECT COALESCE(SUM(valor_centavos), 0) FROM corridas
+        WHERE plataforma_id = :plataformaId AND inicio_em >= :inicio AND inicio_em < :fim
+        """
+    )
+    suspend fun ganhosDaPlataforma(plataformaId: Long, inicio: Long, fim: Long): Long
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(c.valor_centavos), 0) FROM corridas c
+        INNER JOIN plataformas p ON p.id = c.plataforma_id
+        WHERE p.nome = :nome COLLATE NOCASE AND c.inicio_em >= :inicio AND c.inicio_em < :fim
+        """
+    )
+    fun observarGanhosPorNome(nome: String, inicio: Long, fim: Long): Flow<Long>
+
     /**
      * A corrida que o botão "Registrar" da janela criou a partir de uma oferta:
      * mesmo valor, feita pelo leitor, logo depois da oferta aparecer. A mais
