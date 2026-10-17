@@ -68,18 +68,22 @@ interface CorridaDao {
     /**
      * Uma corrida já registrada que bate com o resumo da 99: mesma plataforma,
      * perto do horário e com valor parecido (a oferta pode mudar uns centavos).
+     * Corrida que já foi casada com OUTRO resumo fica de fora: duas corridas de
+     * R$ 11 no mesmo horário são duas, não uma.
      */
     @Query(
         """
         SELECT * FROM corridas
         WHERE plataforma_id = :plataformaId AND inicio_em >= :desde AND inicio_em < :ate
           AND ABS(valor_centavos - :valorCentavos) <= :tolerancia
+          AND (observacao IS NULL OR observacao NOT LIKE 'Resumo 99%' OR observacao = :marca)
         ORDER BY ABS(inicio_em - :referencia)
         LIMIT 1
         """
     )
     suspend fun buscarParecida(
-        plataformaId: Long, valorCentavos: Long, tolerancia: Long, desde: Long, ate: Long, referencia: Long
+        plataformaId: Long, valorCentavos: Long, tolerancia: Long, desde: Long, ate: Long, referencia: Long,
+        marca: String
     ): Corrida?
 
     /** Valor das corridas de uma plataforma no período (sem gorjeta: é o que o pacote de ganhos conta). */

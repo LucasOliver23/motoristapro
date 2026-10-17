@@ -163,15 +163,23 @@ class FinanceiroRepository(
      */
     suspend fun corridaDoResumo99(r: ResumoCorrida, momento: Long): Corrida? {
         val p99 = plataformaDao.buscarPorNome(nomePlataforma(PACOTE_99)) ?: return null
-        return corridaDao.buscarParecida(
+        val marca = marcaDoResumo(r)
+        val achada = corridaDao.buscarParecida(
             plataformaId = p99.id,
             valorCentavos = r.valorCentavos,
             tolerancia = 100,
             desde = momento - 45 * 60_000,
             ate = momento + 30 * 60_000,
-            referencia = momento
-        )
+            referencia = momento,
+            marca = marca
+        ) ?: return null
+        // Fica marcada com este resumo: o próximo resumo de mesmo valor não a reaproveita.
+        if (achada.observacao != marca) corridaDao.atualizar(achada.copy(observacao = marca))
+        return achada
     }
+
+    /** "Resumo 99 · 930|6700|750|2026-10-17T08:15:24": uma corrida, um resumo. */
+    private fun marcaDoResumo(r: ResumoCorrida) = "Resumo 99 · ${r.assinatura}"
 
     /** Registra a corrida a partir do resumo da 99, com o valor final e os endereços. */
     suspend fun registrarDoResumo99(r: ResumoCorrida, momento: Long): Long {
@@ -187,7 +195,7 @@ class FinanceiroRepository(
                 distanciaMetros = r.metros,
                 duracaoSegundos = r.segundos,
                 inicioEm = momento,
-                observacao = "Registrada pela tela Detalhes da corrida da 99"
+                observacao = marcaDoResumo(r)
             )
         )
     }

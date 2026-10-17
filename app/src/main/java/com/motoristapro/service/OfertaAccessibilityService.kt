@@ -345,6 +345,9 @@ class OfertaAccessibilityService : AccessibilityService() {
         }
         ultimoPacote = pacote
         varredurasVazias = 0
+        // Ainda na tela: renova o "visto por último", para a mesma oferta não
+        // ser gravada de novo enquanto não sai da tela.
+        salvasRecentes.computeIfPresent(oferta.assinatura) { _, _ -> System.currentTimeMillis() }
 
         // Mesma oferta ainda na tela: não redesenha, e não reabre se o motorista fechou.
         if (oferta.assinatura == assinaturaDispensada) return
@@ -794,7 +797,10 @@ class OfertaAccessibilityService : AccessibilityService() {
         private const val DEBOUNCE_MS = 120L
         private const val MAX_PROFUNDIDADE = 80
         private const val MAX_TEXTOS = 1500
-        private const val JANELA_DUPLICADA_MS = 5 * 60 * 1000L
+        // Conta a partir da última vez que a oferta foi VISTA, não da primeira:
+        // a mesma oferta parada na tela não duplica, mas outra corrida igual
+        // (mesmo valor, km e tempo) que chega um minuto depois é outra corrida.
+        private const val JANELA_DUPLICADA_MS = 60 * 1000L
         /**
          * Intervalo mínimo entre duas capturas de tela.
          *
