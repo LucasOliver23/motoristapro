@@ -1,31 +1,21 @@
-NADA PARA APAGAR NESTA VERSAO (4.8.0)
-=====================================
+APAGAR NESTA VERSAO (4.8.1)
+===========================
 
-Nenhum arquivo removido. Banco continua na versao 13.
-
-Novo:
-- Copiloto no topo do Inicio: chave para pausar/ligar o leitor, logos de
-  Uber/99/inDrive/iFood para escolher quais apps ler, Bolha, Aviso por voz,
-  Notificacao da corrida e atalho "Aparencia do cartao". O resto do Inicio
-  continua igual.
-- Aparencia do cartao (Menu e atalho do Copiloto): previa ao vivo do cartao
-  branco/escuro, numeros escolhidos e na ordem (padrao R$/km, R$/hora, Nota,
-  Lucro %, aplicado uma vez), tema Escuro com borda, paleta de cores
-  (Classica, Azul do app, Daltonico), posicao, tamanho, opacidade e tempo.
-- Voz: escolhe quais ofertas falar (Boa / Media / Ruim; area de risco fala
-  sempre) e a velocidade (0,8x a 1,5x).
-
-Arquivos novos:
+Apagar:
   app/src/main/java/com/motoristapro/ui/dashboard/CopilotoCard.kt
+
+Banco continua na versao 13.
+
+O quadro Copiloto saiu do Inicio (o Inicio volta a ser como era). O resto
+da 4.8.0 continua: aparencia do cartao (temas, paletas, numeros), voz por
+Boa/Media/Ruim e velocidade. Os dois ajustes que so existiam no Copiloto
+foram para o Menu > Leitor de ofertas: "Aparencia do cartao" e a chave
+"Notificacao da corrida". A pausa do leitor e a escolha de apps sairam
+junto com o Copiloto (o leitor volta a ler os 4 apps).
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
   app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
-  app/src/main/java/com/motoristapro/service/AvisoVoz.kt
-  app/src/main/java/com/motoristapro/service/EstiloCartao.kt
   app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
-  app/src/main/java/com/motoristapro/service/OverlayOferta.kt
   app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/EstiloCartaoScreen.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt

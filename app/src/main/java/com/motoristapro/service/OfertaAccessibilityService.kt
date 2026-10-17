@@ -198,9 +198,6 @@ class OfertaAccessibilityService : AccessibilityService() {
         try {
             val pacote = event?.packageName?.toString() ?: return
             if (pacote !in PACOTES_ALVO) return
-            // Copiloto: leitor pausado, ou este app apagado na fileira de logos.
-            val prefs = (application as MotoristaApp).preferencias
-            if (prefs.leitorPausado.value || pacote in prefs.appsDesligados.value) return
 
             when (event.eventType) {
                 AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
@@ -681,7 +678,6 @@ class OfertaAccessibilityService : AccessibilityService() {
      * uma janela própria sobre o mapa. Exige flagRetrieveInteractiveWindows.
      */
     private fun coletarLeituras(incluirDescricoes: Boolean): List<Leitura> {
-        val appsDesligados = (application as MotoristaApp).preferencias.appsDesligados.value
         val raizes: List<AccessibilityNodeInfo> = try {
             windows.mapNotNull { it.root }.ifEmpty { listOfNotNull(rootInActiveWindow) }
         } catch (e: Exception) {
@@ -692,7 +688,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         for (raiz in raizes) {
             try {
                 val pacote = raiz.packageName?.toString()
-                if (pacote != null && pacote in PACOTES_ALVO && pacote !in appsDesligados) {
+                if (pacote != null && pacote in PACOTES_ALVO) {
                     val saida = ArrayList<String>(64)
                     percorrer(raiz, saida, 0, incluirDescricoes)
                     leituras += Leitura(pacote, saida)
@@ -823,7 +819,6 @@ class OfertaAccessibilityService : AccessibilityService() {
     fun aplicarPreferencias() {
         val prefs = (application as MotoristaApp).preferencias
         if (prefs.bolhaAtiva) bolha?.mostrar() else bolha?.esconder()
-        if (prefs.leitorPausado.value) overlay?.esconder()
         // A voz guarda o próprio estado; aqui só garantimos o motor criado/liberado.
         voz?.let { if (it.ativo) it.preparar() else it.liberar() }
     }
