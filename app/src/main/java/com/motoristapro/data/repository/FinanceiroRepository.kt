@@ -25,6 +25,10 @@ import com.motoristapro.data.local.model.CustoPorKm
 import com.motoristapro.data.local.model.GanhoPorHora
 import com.motoristapro.data.local.model.LucroDiario
 import com.motoristapro.data.local.model.ResumoPlataforma
+import com.motoristapro.pacote.ConfigPacote
+import com.motoristapro.pacote.PacoteTaxa
+import com.motoristapro.pacote.PlanoPacote
+import android.util.Log
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +37,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
@@ -76,6 +81,9 @@ object Periodo {
     }.distinctUntilChanged()
 }
 
+/** Origem gravada nas corridas que o botão "Registrar" da janela da oferta cria. */
+const val ORIGEM_LEITOR = "Leitor de ofertas"
+
 /**
  * Ponte entre os DAOs e a UI/serviços.
  *
@@ -84,7 +92,11 @@ object Periodo {
  * - Nenhuma soma é feita em Kotlin: todos os totais vêm prontos do SQLite.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class FinanceiroRepository(private val db: AppDatabase) {
+class FinanceiroRepository(
+    private val db: AppDatabase,
+    /** O pacote 0% de taxa escolhido (vem das preferências). */
+    private val pacote: () -> ConfigPacote = { ConfigPacote() }
+) {
 
     private val corridaDao = db.corridaDao()
     private val despesaDao = db.despesaDao()
@@ -102,8 +114,56 @@ class FinanceiroRepository(private val db: AppDatabase) {
     suspend fun registrarCorrida(corrida: Corrida): Long {
         require(corrida.valorCentavos >= 0) { "Valor da corrida não pode ser negativo" }
         require(corrida.distanciaMetros >= 0 && corrida.deslocamentoMetros >= 0) { "Distância inválida" }
+        // Antes de gravar: o pacote de ganhos olha as corridas de ANTES desta.
+        // Falhar aqui não pode impedir a corrida de ser salva.
+        runCatching { lancarPacoteSePrecisar(corrida) }
+            .onFailure { Log.w("MotoristaPro", "Falha ao lançar o pacote da 99", it) }
         return corridaDao.inserir(corrida)
     }
+
+    /**
+     * Corrida da 99 com o pacote 0% ligado e "lançar sozinho": se o pacote
+     * atual acabou (dia virou, 3 dias passaram, limite de ganhos usado),
+     * lança a compra do próximo como despesa "Taxa do app".
+     */
+    private suspend fun lancarPacoteSePrecisar(corrida: Corrida) {
+        val cfg = pacote()
+        if (!cfg.ativo || !cfg.lancarSozinho) return
+        val p99 = plataformaDao.buscarPorNome(nomePlataforma("com.app99.driver")) ?: return
+        if (corrida.plataformaId != p99.id) return
+
+        val ultima = despesaDao.ultimaComPrefixo(CategoriaDespesa.TAXA_APP, PlanoPacote.PREFIXO_DESCRICAO)
+        val ganhos = if (ultima != null && cfg.plano.porGanhos)
+            corridaDao.ganhosDaPlataforma(p99.id, ultima.dataEm, Long.MAX_VALUE) else 0
+        val zona = ZoneId.systemDefault()
+        val precisa = PacoteTaxa.precisaLancar(
+            plano = cfg.plano,
+            diaDaCorrida = Instant.ofEpochMilli(corrida.inicioEm).atZone(zona).toLocalDate(),
+            diaDaUltimaCompra = ultima?.let { Instant.ofEpochMilli(it.dataEm).atZone(zona).toLocalDate() },
+            ganhosDesdeACompraCentavos = ganhos
+        )
+        if (!precisa) return
+        despesaDao.inserir(
+            Despesa(
+                categoria = CategoriaDespesa.TAXA_APP,
+                valorCentavos = cfg.plano.precoCentavos,
+                dataEm = corrida.inicioEm,
+                descricao = cfg.plano.descricao
+            )
+        )
+    }
+
+    /** O que o pacote da 99 custou de fato no período (as compras lançadas). */
+    fun pacoteDoPeriodo(inicio: Long, fim: Long): Flow<Long> =
+        despesaDao.observarTotalComPrefixo(CategoriaDespesa.TAXA_APP, PlanoPacote.PREFIXO_DESCRICAO, inicio, fim)
+
+    /** Corridas da 99 no período (valor, sem gorjeta). */
+    fun ganhos99DoPeriodo(inicio: Long, fim: Long): Flow<Long> =
+        corridaDao.observarGanhosPorNome(nomePlataforma("com.app99.driver"), inicio, fim)
+
+    /** Última compra do pacote, para a barra do pacote de ganhos. */
+    fun ultimoPacote(): Flow<Despesa?> =
+        despesaDao.observarUltimaComPrefixo(CategoriaDespesa.TAXA_APP, PlanoPacote.PREFIXO_DESCRICAO)
 
     suspend fun atualizarCorrida(corrida: Corrida) = corridaDao.atualizar(corrida)
 
@@ -132,7 +192,7 @@ class FinanceiroRepository(private val db: AppDatabase) {
         return registrarCorrida(
             Corrida(
                 plataformaId = plataforma.id,
-                origem = "Leitor de ofertas",
+                origem = ORIGEM_LEITOR,
                 destino = "",
                 valorCentavos = Math.round(valorReais * 100),
                 distanciaMetros = Math.round(km * 1000),
@@ -274,7 +334,29 @@ class FinanceiroRepository(private val db: AppDatabase) {
 
     suspend fun marcarOfertaRegistrada(id: Long) = ofertaDao.marcarRegistrada(id)
 
-    suspend fun excluirOferta(id: Long) = ofertaDao.excluirPorId(id)
+    /**
+     * Apaga a leitura e, se ela tinha virado corrida pelo botão "Registrar", a
+     * corrida junto: senão o cartão some mas o valor continua no lucro do dia
+     * (o caso da corrida aceita e depois cancelada). Devolve se levou a corrida.
+     */
+    suspend fun excluirOferta(id: Long): Boolean {
+        val oferta = ofertaDao.buscarPorId(id)
+        val corrida = oferta?.takeIf { it.registrada }?.let { corridaDaOferta(it) }
+        corrida?.let { corridaDao.excluirPorId(it.id) }
+        ofertaDao.excluirPorId(id)
+        return corrida != null
+    }
+
+    /** A corrida criada a partir desta oferta, se o motorista tocou em "Registrar". */
+    suspend fun corridaDaOferta(oferta: OfertaRecebida): Corrida? =
+        if (!oferta.registrada) null
+        else corridaDao.buscarDaOferta(
+            origem = ORIGEM_LEITOR,
+            valorCentavos = oferta.valorCentavos,
+            desde = oferta.recebidaEm - 60_000,
+            ate = oferta.recebidaEm + 3 * 60 * 60_000,
+            referencia = oferta.recebidaEm
+        )
 
     /** Apaga as leituras com R$/km impossível no período. Devolve quantas saíram. */
     suspend fun limparOfertasSuspeitas(inicio: Long, fim: Long): Int =

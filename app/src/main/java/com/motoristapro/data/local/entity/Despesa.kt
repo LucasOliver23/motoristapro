@@ -14,6 +14,8 @@ enum class CategoriaDespesa(val rotulo: String) {
     COMBUSTIVEL("Combustível"),
     MANUTENCAO("Manutenção"),
     SEGURO("Seguro"),
+    /** Pacote 0% de taxa da 99 e afins: o que se paga ao app para não ter desconto na corrida. */
+    TAXA_APP("Taxa do app"),
     OUTROS("Outros")
 }
 

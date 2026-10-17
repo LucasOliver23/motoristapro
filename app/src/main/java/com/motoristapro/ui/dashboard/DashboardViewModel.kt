@@ -19,6 +19,8 @@ import com.motoristapro.data.repository.Periodo
 import com.motoristapro.data.repository.custoFixoDiario
 import com.motoristapro.data.repository.emReais
 import com.motoristapro.jornada.JornadaService
+import com.motoristapro.pacote.ConfigPacote
+import com.motoristapro.pacote.PacoteTaxa
 import com.motoristapro.service.OfertaAccessibilityService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -47,8 +49,19 @@ data class DashboardUiState(
     /** Soma mensal dos custos fixos ativos (centavos). */
     val custoFixoMensalCentavos: Long = 0,
     /** Ofertas que o leitor analisou hoje — base da taxa de aceite. */
-    val ofertas: ResumoOfertas = ResumoOfertas.VAZIO
+    val ofertas: ResumoOfertas = ResumoOfertas.VAZIO,
+    /** Pacote 0% de taxa da 99 escolhido no Menu. */
+    val pacote: ConfigPacote = ConfigPacote(),
+    /** Compras do pacote lançadas hoje (já estão dentro das despesas do resumo). */
+    val pacoteHojeCentavos: Long = 0,
+    /** Corridas da 99 de hoje — base do "o pacote valeu a pena". */
+    val ganhos99HojeCentavos: Long = 0
 ) {
+    /** Taxa evitada menos a parte do pacote no dia; null sem pacote ou sem corrida da 99. */
+    val economiaPacoteCentavos: Long?
+        get() = if (pacote.ativo && ganhos99HojeCentavos > 0)
+            PacoteTaxa.economiaDoDiaCentavos(pacote.plano, ganhos99HojeCentavos) else null
+
     /** Quantas das ofertas lidas hoje viraram corrida (0..100), null sem oferta. */
     val taxaDeAceite: Int?
         get() = if (ofertas.total > 0) ofertas.registradas * 100 / ofertas.total else null
@@ -107,6 +120,9 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
                 )
             }.combine(repo.custoFixoMensal()) { estado, fixo -> estado.copy(custoFixoMensalCentavos = fixo) }
                 .combine(repo.resumoOfertas(inicio, fim)) { estado, of -> estado.copy(ofertas = of) }
+                .combine(app.preferencias.pacote) { estado, p -> estado.copy(pacote = p) }
+                .combine(repo.pacoteDoPeriodo(inicio, fim)) { estado, v -> estado.copy(pacoteHojeCentavos = v) }
+                .combine(repo.ganhos99DoPeriodo(inicio, fim)) { estado, v -> estado.copy(ganhos99HojeCentavos = v) }
         }
         .catch { e -> emit(DashboardUiState(carregando = false, erro = "Erro ao ler o banco: ${e.message}")) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())

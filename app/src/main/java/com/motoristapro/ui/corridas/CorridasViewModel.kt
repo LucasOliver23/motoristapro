@@ -202,7 +202,9 @@ class CorridasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
     fun excluirOferta(id: Long) {
         viewModelScope.launch {
             runCatching { repo.excluirOferta(id) }
-                .onSuccess { _mensagens.send("Leitura excluída") }
+                .onSuccess { levouCorrida ->
+                    _mensagens.send(if (levouCorrida) "Leitura e corrida excluídas" else "Leitura excluída")
+                }
                 .onFailure { _mensagens.send("Erro ao excluir: ${it.message}") }
         }
     }

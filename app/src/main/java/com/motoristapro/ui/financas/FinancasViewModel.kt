@@ -26,6 +26,14 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.YearMonth
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
+import com.motoristapro.pacote.ConfigPacote
+import com.motoristapro.pacote.PlanoPacote
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
  * Uma linha do extrato: entrada (corrida) ou saída (despesa).
@@ -87,8 +95,36 @@ data class MetasUiState(
     val config: Configuracao = Configuracao()
 )
 
+/** O pacote de ganhos da 99 em uso: quanto do limite as corridas já gastaram. */
+data class UsoPacote(
+    val plano: PlanoPacote,
+    val usadoCentavos: Long,
+    val venceEmDias: Long
+) {
+    val limiteCentavos: Long get() = plano.limiteGanhosCentavos ?: 0
+    val faltamCentavos: Long get() = (limiteCentavos - usadoCentavos).coerceAtLeast(0)
+    val fracao: Float get() = if (limiteCentavos > 0) (usadoCentavos.toFloat() / limiteCentavos).coerceIn(0f, 1f) else 0f
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
-class FinancasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
+class FinancasViewModel(
+    private val repo: FinanceiroRepository,
+    pacote: StateFlow<ConfigPacote> = MutableStateFlow(ConfigPacote())
+) : ViewModel() {
+
+    /** Só existe com um pacote de GANHOS escolhido e já lançado uma vez. */
+    val usoPacote: StateFlow<UsoPacote?> = combine(pacote, repo.ultimoPacote()) { cfg, ultimo -> cfg to ultimo }
+        .flatMapLatest { (cfg, ultimo) ->
+            if (!cfg.plano.porGanhos || ultimo == null) flowOf(null)
+            else repo.ganhos99DoPeriodo(ultimo.dataEm, Long.MAX_VALUE).map { usado ->
+                val zona = ZoneId.systemDefault()
+                val comprou = Instant.ofEpochMilli(ultimo.dataEm).atZone(zona).toLocalDate()
+                val passou = ChronoUnit.DAYS.between(comprou, LocalDate.now())
+                UsoPacote(cfg.plano, usado, (cfg.plano.dias - passou).coerceAtLeast(0))
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
 
     private val mesSelecionado = MutableStateFlow(YearMonth.now())
 
@@ -158,7 +194,7 @@ class FinancasViewModel(private val repo: FinanceiroRepository) : ViewModel() {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as MotoristaApp
-                FinancasViewModel(app.repository)
+                FinancasViewModel(app.repository, app.preferencias.pacote)
             }
         }
     }

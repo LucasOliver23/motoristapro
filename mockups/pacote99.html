@@ -1,0 +1,98 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#4CC9F0;--verm:#FF5252;--amar:#FFC94D;--turq:#2DE2C5;--roxo:#BC8CFF;--lar:#F97316;--azul:#58A6FF;--txt:#fff;--sec:#8B949E;--cont:#21262D}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05070a;font-family:Inter,sans-serif;color:var(--txt);padding:40px 30px;width:1400px}
+h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
+.sub{color:var(--sec);font-size:16px;margin-bottom:30px}
+.linha{display:flex;gap:34px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:14px}
+.rot{font-weight:700;font-size:18px;height:56px}.rot small{display:block;color:var(--sec);font-weight:400;font-size:13px;margin-top:4px;max-width:400px}
+.cel{width:400px;height:840px;border-radius:44px;background:var(--fundo);border:10px solid #1e232b;overflow:hidden;position:relative;box-shadow:0 30px 60px #0008}
+.sb{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:13px;color:var(--sec);font-weight:600}
+.pad{padding:10px 16px}
+.sg{font-family:'Space Grotesk';font-weight:700}
+.card{background:var(--card);border-radius:20px;margin-bottom:10px}
+.dest{background:linear-gradient(135deg,#132536,#161C24 60%)}
+.lbl{font-size:10px;letter-spacing:1.2px;color:var(--sec);font-weight:700;text-transform:uppercase;margin:14px 4px 6px}
+.row{display:flex;align-items:center;gap:10px}
+.item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--cont)}.item:last-child{border:0}
+.qd{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.t{font-size:14px;font-weight:700}.s{font-size:11px;color:var(--sec);margin-top:1px}.s.ok{color:var(--lucro)}
+.sw{width:44px;height:26px;border-radius:13px;background:var(--lucro);position:relative;flex-shrink:0}.sw i{position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#0D1117}
+.sw.off{background:var(--alto)}.sw.off i{left:3px;right:auto;background:#8B949E}
+.seg{display:flex;background:var(--alto);border-radius:12px;padding:4px}
+.seg div{flex:1;text-align:center;padding:9px 0;border-radius:9px;font-size:13px;font-weight:600;color:var(--sec)}.seg .on{background:var(--fundo);color:var(--lucro)}
+.nav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:12px 0 18px;background:var(--card);border-top:1px solid var(--cont)}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sec)}.nav .on{color:var(--lucro)}
+.foto{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#8a6a4f,#3e2c22);border:2px solid var(--lucro);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;overflow:hidden}
+.notif{background:#1d2229ee;border-radius:22px;padding:14px 16px;margin:0 14px}
+.saiu{background:#2b1d1d;color:#ff8a8a;font-size:12px;border-radius:12px;padding:10px 12px;line-height:1.5}
+
+.plano{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:16px;background:var(--alto);margin-bottom:8px;border:2px solid transparent}
+.plano.on{border-color:var(--lucro);background:#12283a}
+.rad{width:20px;height:20px;border-radius:50%;border:2px solid var(--sec);flex-shrink:0}
+.plano.on .rad{border:6px solid var(--lucro)}
+.pv{margin-left:auto;font-family:'Space Grotesk';font-weight:700;font-size:17px}
+.logo{width:34px;height:34px;border-radius:10px;overflow:hidden;flex-shrink:0}.logo img{width:100%;height:100%}
+.bar{height:8px;border-radius:4px;background:var(--alto);overflow:hidden;margin:8px 0 4px}.bar i{display:block;height:100%;background:var(--lucro)}
+.tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:#12283a;color:var(--lucro)}
+.btn{background:var(--lucro);color:#0D1117;text-align:center;font-weight:800;padding:14px;border-radius:14px;font-size:15px;margin-top:6px}
+.dica{background:#12283a;color:#bfeaf8;font-size:12px;border-radius:12px;padding:10px 12px;line-height:1.5}
+</style></head><body>
+<h1>MotoristaPro · Pacote 0% de taxa da 99</h1>
+<div class="sub">Desenho para aprovar. Você diz qual pacote usa e o app desconta o valor dele do lucro sozinho — as corridas continuam com 100% do valor.</div>
+<div class="linha">
+
+<div class="col"><div class="rot">1 · Escolher o pacote<small>Menu → Leitor e apps → Pacote 0% de taxa. Mesmos planos que aparecem na 99.</small></div>
+<div class="cel"><div class="sb"><span>8:37</span><span>75%</span></div><div class="pad">
+<div class="row" style="margin:6px 0 4px"><span style="font-size:20px;color:var(--sec)">‹</span><span class="sg" style="font-size:20px">Pacote 0% de taxa</span></div>
+<div class="row" style="margin:10px 0"><div class="logo"><img src="../app/src/main/res/drawable-nodpi/logo_99.png"></div><div><div class="t">99 Motorista</div><div class="s">Com o pacote, corrida de R$ 20 = R$ 20 pra você</div></div></div>
+<div class="lbl">Pacote de tempo</div>
+<div class="plano on"><div class="rad"></div><div><div class="t">1 dia</div><div class="s">Renovação automática</div></div><div class="pv">R$ 2,99</div></div>
+<div class="plano"><div class="rad"></div><div><div class="t">3 dias</div><div class="s">Ilimitado</div></div><div class="pv">R$ 6,99</div></div>
+<div class="lbl">Pacote de ganhos</div>
+<div class="plano"><div class="rad"></div><div><div class="t">Até R$ 135 de ganhos</div><div class="s">Válido por 180 dias</div></div><div class="pv">R$ 3,99</div></div>
+<div class="plano"><div class="rad"></div><div><div class="t">Até R$ 455 de ganhos</div><div class="s">Válido por 180 dias</div></div><div class="pv">R$ 12,99</div></div>
+<div class="plano"><div class="rad"></div><div><div class="t">Não uso pacote</div><div class="s">A 99 já desconta a taxa dela</div></div></div>
+<div class="item" style="padding:12px 4px"><div style="flex:1"><div class="t">Lançar sozinho</div><div class="s">Desconta o pacote no dia em que você rodar na 99</div></div><div class="sw"><i></i></div></div>
+<div class="btn">Salvar</div>
+</div></div></div>
+
+<div class="col"><div class="rot">2 · Início já com o pacote descontado<small>O lucro do dia mostra quanto o pacote custou e quanto você economizou de taxa.</small></div>
+<div class="cel"><div class="sb"><span>12:10</span><span>68%</span></div><div class="pad">
+<div class="s" style="margin-top:6px">Bom dia,</div><div class="sg" style="font-size:22px">Lucas</div>
+<div class="card dest" style="padding:18px;margin-top:12px">
+<div class="lbl" style="margin:0 0 4px">Lucro hoje</div>
+<div class="sg" style="font-size:40px">R$ 86<span style="font-size:22px;color:var(--sec)">,41</span></div>
+<div class="bar"><i style="width:43%"></i></div><div class="s">43% da meta de R$ 200</div>
+<div style="height:1px;background:var(--cont);margin:14px 0"></div>
+<div class="row" style="justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--sec)">Corridas (100%)</span><b>R$ 124,30</b></div>
+<div class="row" style="justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--sec)">Combustível e custos</span><b style="color:var(--verm)">− R$ 34,90</b></div>
+<div class="row" style="justify-content:space-between;font-size:13px"><span style="color:var(--sec)">Pacote 99 · 1 dia</span><b style="color:var(--verm)">− R$ 2,99</b></div>
+</div>
+<div class="card" style="padding:14px"><div class="row"><div class="logo"><img src="../app/src/main/res/drawable-nodpi/logo_99.png"></div><div style="flex:1"><div class="t">Pacote valeu a pena hoje</div><div class="s ok">Sem ele a 99 ficaria com ~ R$ 24,86</div></div><span class="tag">+ R$ 21,87</span></div></div>
+<div class="dica">A conta de "sem pacote" usa a taxa média de 20% da 99, só para comparar.</div>
+</div>
+<div class="nav"><div class="on">⌂<span>Início</span></div><div>☰<span>Corridas</span></div><div>▭<span>Finanças</span></div><div>↗<span>Atividade</span></div><div>◯<span>Menu</span></div></div>
+</div></div>
+
+<div class="col"><div class="rot">3 · Finanças<small>O pacote aparece no extrato como despesa nova "Taxa do app", lançada sozinha.</small></div>
+<div class="cel"><div class="sb"><span>22:05</span><span>40%</span></div><div class="pad">
+<div class="sg" style="font-size:22px;margin:6px 0 10px">Finanças</div>
+<div class="lbl">Pacote de ganhos (se escolher esse)</div>
+<div class="card" style="padding:14px"><div class="row" style="justify-content:space-between"><span class="t">Pacote R$ 135</span><span class="s">vence em 152 dias</span></div>
+<div class="bar"><i style="width:64%"></i></div><div class="row" style="justify-content:space-between"><span class="s">Usado R$ 86,40</span><span class="s ok">Faltam R$ 48,60</span></div></div>
+<div class="lbl">Extrato de hoje</div>
+<div class="card">
+<div class="item"><div class="logo"><img src="../app/src/main/res/drawable-nodpi/logo_99.png"></div><div style="flex:1"><div class="t">Pacote 99 · 1 dia</div><div class="s">Taxa do app · lançado sozinho</div></div><b style="color:var(--verm)">− R$ 2,99</b></div>
+<div class="item"><div class="qd" style="background:#3a2a12">⛽</div><div style="flex:1"><div class="t">Combustível</div><div class="s">Posto · 08:02</div></div><b style="color:var(--verm)">− R$ 34,90</b></div>
+<div class="item"><div class="logo"><img src="../app/src/main/res/drawable-nodpi/logo_99.png"></div><div style="flex:1"><div class="t">Corrida 99 Moto</div><div class="s">6,7 km · 08:15</div></div><b style="color:var(--lucro)">+ R$ 9,30</b></div>
+</div>
+<div class="dica">Esqueceu um dia ou trocou de plano? Dá pra apagar ou editar o lançamento como qualquer despesa.</div>
+</div>
+<div class="nav"><div>⌂<span>Início</span></div><div>☰<span>Corridas</span></div><div class="on">▭<span>Finanças</span></div><div>↗<span>Atividade</span></div><div>◯<span>Menu</span></div></div>
+</div></div>
+
+</div></body></html>

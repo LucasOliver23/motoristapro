@@ -69,6 +69,9 @@ interface OfertaDao {
     @Insert
     suspend fun inserir(oferta: OfertaRecebida): Long
 
+    @Query("SELECT * FROM ofertas WHERE id = :id")
+    suspend fun buscarPorId(id: Long): OfertaRecebida?
+
     @Query("UPDATE ofertas SET registrada = 1 WHERE id = :id")
     suspend fun marcarRegistrada(id: Long)
 

@@ -70,6 +70,37 @@ interface DespesaDao {
     )
     suspend fun ultimoAbastecimentoComOdometro(): Despesa?
 
+    /** A última despesa da categoria cuja descrição começa com [prefixo] (a última compra do pacote). */
+    @Query(
+        """
+        SELECT * FROM despesas
+        WHERE categoria = :categoria AND descricao LIKE :prefixo || '%'
+        ORDER BY data_em DESC
+        LIMIT 1
+        """
+    )
+    suspend fun ultimaComPrefixo(categoria: CategoriaDespesa, prefixo: String): Despesa?
+
+    @Query(
+        """
+        SELECT * FROM despesas
+        WHERE categoria = :categoria AND descricao LIKE :prefixo || '%'
+        ORDER BY data_em DESC
+        LIMIT 1
+        """
+    )
+    fun observarUltimaComPrefixo(categoria: CategoriaDespesa, prefixo: String): Flow<Despesa?>
+
+    /** Soma das despesas da categoria com descrição começando em [prefixo], no período. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(valor_centavos), 0) FROM despesas
+        WHERE categoria = :categoria AND descricao LIKE :prefixo || '%'
+          AND data_em >= :inicio AND data_em < :fim
+        """
+    )
+    fun observarTotalComPrefixo(categoria: CategoriaDespesa, prefixo: String, inicio: Long, fim: Long): Flow<Long>
+
     // ------------------------------------------------------------------ somas
 
     /** DESPESAS do período = soma de todas as categorias (centavos). */

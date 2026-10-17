@@ -1,12 +1,36 @@
-NADA PARA APAGAR NESTA VERSAO (4.4.1)
+NADA PARA APAGAR NESTA VERSAO (4.5.0)
 =====================================
 
-Nenhum arquivo removido. Banco continua na versao 13.
+Nenhum arquivo removido. Banco continua na versao 13 (so consultas novas;
+a categoria nova "Taxa do app" e salva pelo nome, sem migration).
 
-Correcao: depois de configurar o app (meta, nome, custo), fechar e abrir
-de novo trazia de volta o backup antigo da nuvem (meta do dia R$ 200).
-Agora a nuvem so restaura na primeira abertura da conta no celular.
+Novo: Pacote 0% de taxa da 99 (Menu > Pacote 0% de taxa). O motorista
+escolhe o plano (1 dia, 3 dias, ganhos R$ 135, ganhos R$ 455) e a primeira
+corrida da 99 de cada periodo lanca o preco como despesa "Taxa do app".
+Inicio mostra a conta aberta e o cartao "Pacote valeu a pena hoje";
+Financas mostra a barra do pacote de ganhos.
+
+Tambem nesta versao (4.4.2): excluir o cartao de uma oferta aceita apaga
+a corrida registrada por ela.
+
+Arquivos novos:
+  app/src/main/java/com/motoristapro/pacote/PacoteTaxa.kt
+  app/src/main/java/com/motoristapro/ui/mais/PacoteTaxaScreen.kt
+  app/src/test/java/com/motoristapro/pacote/PacoteTaxaTest.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/nuvem/SincronizacaoNuvem.kt
+  app/src/main/java/com/motoristapro/MotoristaApp.kt
+  app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
+  app/src/main/java/com/motoristapro/data/local/entity/Despesa.kt
+  app/src/main/java/com/motoristapro/data/local/dao/CorridaDao.kt
+  app/src/main/java/com/motoristapro/data/local/dao/DespesaDao.kt
+  app/src/main/java/com/motoristapro/data/local/dao/OfertaDao.kt
+  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
+  app/src/main/java/com/motoristapro/ui/corridas/CorridasViewModel.kt
+  app/src/main/java/com/motoristapro/ui/corridas/CorridasScreen.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardViewModel.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
+  app/src/main/java/com/motoristapro/ui/financas/FinancasViewModel.kt
+  app/src/main/java/com/motoristapro/ui/financas/FinancasScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt

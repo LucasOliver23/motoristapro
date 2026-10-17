@@ -179,6 +179,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     var confirmarZerar by remember { mutableStateOf(false) }
     LaunchedEffect(usuario?.uid) { if (usuario != null) vm.consultarNuvem() }
     val ocr by vm.ocrAtivo.collectAsStateWithLifecycle()
+    val pacote99 by (LocalContext.current.applicationContext as com.motoristapro.MotoristaApp).preferencias.pacote
+        .collectAsStateWithLifecycle()
     val voz by vm.vozAtiva.collectAsStateWithLifecycle()
     val vozResumida by vm.vozResumida.collectAsStateWithLifecycle()
     val riscoLigado by vm.riscoAtivo.collectAsStateWithLifecycle()
@@ -322,6 +324,14 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         aceso = leitorOk,
                         alerta = !leitorOk,
                         onClick = { sub = SubTela.LEITOR }
+                    ),
+                    Ferramenta(
+                        titulo = "Pacote 0% de taxa",
+                        icone = "%",
+                        estado = if (pacote99.ativo) "99 · ${pacote99.plano.rotulo} · ${pacote99.plano.precoCentavos.emReais()}"
+                        else "não uso pacote",
+                        aceso = pacote99.ativo,
+                        onClick = { sub = SubTela.PACOTE }
                     ),
                     Ferramenta(
                         titulo = "Aviso por voz",
@@ -707,6 +717,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     // Tratada antes, fora desta moldura (ela rola por conta propria).
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
+                    SubTela.PACOTE -> PacoteTaxaScreen(onSalvo = { sub = null })
                     SubTela.MANUTENCAO -> ManutencaoConteudo(
                         itens = manutencoes,
                         odometroAtual = odometro,
@@ -1320,6 +1331,7 @@ enum class SubTela(val titulo: String) {
     APARENCIA("Aparência do app"),
     ASSINATURA("Minha assinatura"),
     NAVEGACAO("App de navegação"),
+    PACOTE("Pacote 0% de taxa"),
     MANUTENCAO("Manutenção")
 }
 

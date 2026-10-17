@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 /** Injeção de dependência manual: sem Hilt/Koin para manter o build simples. */
 class MotoristaApp : Application() {
     val database: AppDatabase by lazy { AppDatabase.get(this) }
-    val repository: FinanceiroRepository by lazy { FinanceiroRepository(database) }
+    val repository: FinanceiroRepository by lazy { FinanceiroRepository(database) { preferencias.pacote.value } }
     val preferencias: PreferenciasApp by lazy { PreferenciasApp(this) }
     val autenticacao: AutenticacaoManager by lazy { AutenticacaoManager(this) }
     val nuvem: SincronizacaoNuvem by lazy { SincronizacaoNuvem(this, database, autenticacao) }
