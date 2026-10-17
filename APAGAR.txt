@@ -1,17 +1,15 @@
-NADA PARA APAGAR NESTA VERSAO (4.6.1)
+NADA PARA APAGAR NESTA VERSAO (4.6.2)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Correcao: duas corridas de mesmo valor nao viram uma so.
-- Ofertas: a mesma oferta parada na tela continua contando uma vez, mas
-  outra oferta igual (mesmo valor, km e tempo) que chega mais de 1 minuto
-  depois da anterior sumir e gravada como nova (antes: 5 minutos).
-- Resumo da 99: cada corrida registrada so pode ser casada com UM resumo.
-  Duas corridas de R$ 11 no mesmo horario sao conferidas separadas.
+Leitor de ofertas, com as telas reais de iFood, Uber e 99:
+- Nota do passageiro sem estrela em texto ("4,92 (924)", "4,8 · 12 corridas").
+- Endereco logo abaixo de "N min (X km)" mesmo sem Rua/Av. (Aeroporto,
+  Shopping, Estacao): agora entra no alerta de area de risco e no
+  "Ver embarque".
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/data/local/dao/CorridaDao.kt
-  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
-  app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
+  app/src/main/java/com/motoristapro/service/OfertaParser.kt
+  app/src/test/java/com/motoristapro/service/OfertaParserTest.kt
