@@ -70,7 +70,9 @@ fun FaixaTresCores(
     degrau: Float = 0f,
     formatar: (Float) -> String,
     onMudar: (Float, Float) -> Unit,
-    ajuda: String? = null
+    ajuda: String? = null,
+    /** Um risco fino na régua (a meta por hora); null = sem risco. */
+    marca: Float? = null
 ) {
     val amplitude = (maximo - minimo).takeIf { it > 0f } ?: 1f
 
@@ -116,6 +118,16 @@ fun FaixaTresCores(
                 Pedaco(fracaoInicio, VermelhoPrejuizo)
                 Pedaco(fracaoFim - fracaoInicio, AmareloAlerta)
                 Pedaco(1f - fracaoFim, Lima)
+            }
+
+            if (marca != null) {
+                val fracaoMarca = ((marca - minimo) / amplitude).coerceIn(0f, 1f)
+                val larguraPx = with(densidade) { 3.dp.toPx() }
+                Box(
+                    Modifier.align(Alignment.CenterStart)
+                        .offset { IntOffset((meiaBolinhaPx + fracaoMarca * corridaPx - larguraPx / 2).roundToInt(), 0) }
+                        .size(3.dp, 30.dp).clip(RoundedCornerShape(2.dp)).background(Color.White)
+                )
             }
 
             Polegar(

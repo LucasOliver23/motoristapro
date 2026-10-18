@@ -188,6 +188,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val riscoMercados by vm.riscoMercados.collectAsStateWithLifecycle()
     val palavrasRisco by vm.riscoPalavras.collectAsStateWithLifecycle()
     val faixas by vm.faixas.collectAsStateWithLifecycle()
+    val horasPorDia by vm.horasPorDia.collectAsStateWithLifecycle()
+    val metaPorHora by vm.metaPorHora.collectAsStateWithLifecycle()
     val manutencoes by vm.manutencoes.collectAsStateWithLifecycle()
     val odometro by vm.odometroAtual.collectAsStateWithLifecycle()
     var assistenteAberto by remember { mutableStateOf(false) }
@@ -381,6 +383,16 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             ListaFerramentas(
                 titulo = "MEU TRABALHO",
                 itens = listOf(
+                    Ferramenta(
+                        titulo = "Suas metas",
+                        icone = "🎯",
+                        estado = metaPorHora?.let {
+                            "${config?.metaLucroDiarioCentavos?.emReais()}/dia · " +
+                                "${it.lucroPorHoraCentavos.emReais()}/h em ${it.horasPorDia}h"
+                        } ?: "sem meta cadastrada",
+                        aceso = metaPorHora != null,
+                        onClick = { sub = SubTela.METAS }
+                    ),
                     Ferramenta(
                         titulo = "Manutenção",
                         icone = "🔧",
@@ -582,7 +594,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             onLucroMinimo = vm::definirLucroMinimo,
                             onLucroPercent = vm::definirLucroPercent,
                             onValorMinimo = vm::definirValorMinimoViagem,
-                            onAbrirAssistente = { assistenteAberto = true }
+                            onAbrirAssistente = { assistenteAberto = true },
+                            metaHora = metaPorHora?.ofertaPorHoraReais
                         )
                         EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
                     }
@@ -732,6 +745,15 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
                     SubTela.PACOTE -> PacoteTaxaScreen(onSalvo = { sub = null })
+                    SubTela.METAS -> MetaPorHoraConteudo(
+                        cfg = cfg,
+                        horasPorDia = horasPorDia,
+                        conta = metaPorHora,
+                        horaBoaAtual = faixas.horaBoa,
+                        onHoras = vm::definirHorasPorDia,
+                        onUsarNoSemaforo = vm::usarMetaNoSemaforo,
+                        onEditarMeta = { assistenteAberto = true }
+                    )
                     SubTela.ESTILO -> {
                         EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
                         VozOfertasCard()
@@ -1192,7 +1214,9 @@ private fun CardSuasFaixas(
     onLucroMinimo: (Float) -> Unit,
     onLucroPercent: (Float) -> Unit,
     onValorMinimo: (Long) -> Unit,
-    onAbrirAssistente: () -> Unit
+    onAbrirAssistente: () -> Unit,
+    /** O R$/hora que bate a meta (Menu ▸ Suas metas); vira um risco na régua. */
+    metaHora: Int? = null
 ) {
     CardSecao(titulo = "Suas faixas") {
         TabelaFaixas(
@@ -1236,9 +1260,13 @@ private fun CardSuasFaixas(
             titulo = "Ganho por hora",
             unidade = "R$/hora",
             inicio = faixas.horaRuim, fim = faixas.horaBoa,
-            minimo = 5f, maximo = 80f, degrau = 1f,
+            // Meta alta (poucas horas, custo alto) passa de R$ 80: a régua cresce
+            // junto para o verde dela caber.
+            minimo = 5f, maximo = maxOf(80f, faixas.horaBoa + 10f, (metaHora ?: 0) + 10f), degrau = 1f,
             formatar = { String.format(PT, "R$ %.0f", it) },
-            onMudar = onFaixaHora
+            onMudar = onFaixaHora,
+            marca = metaHora?.toFloat(),
+            ajuda = metaHora?.let { "Risco branco: sua meta, R$ $it/h (Menu ▸ Suas metas)." }
         )
 
         LinhaSwitch(
@@ -1353,6 +1381,7 @@ enum class SubTela(val titulo: String) {
     NAVEGACAO("App de navegação"),
     PACOTE("Pacote 0% de taxa"),
     ESTILO("Aparência do cartão"),
+    METAS("Suas metas"),
     MANUTENCAO("Manutenção")
 }
 

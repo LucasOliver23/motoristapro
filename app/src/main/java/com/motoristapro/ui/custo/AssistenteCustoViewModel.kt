@@ -1,6 +1,7 @@
 package com.motoristapro.ui.custo
 
 import androidx.lifecycle.ViewModel
+import com.motoristapro.data.prefs.PreferenciasApp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
@@ -52,7 +53,10 @@ data class EstadoAssistente(
  * A conta em si vive em [CalculadoraCusto] — Kotlin puro e testado. Aqui só
  * tem estado de tela e a gravação no banco.
  */
-class AssistenteCustoViewModel(private val repo: FinanceiroRepository) : ViewModel() {
+class AssistenteCustoViewModel(
+    private val repo: FinanceiroRepository,
+    private val prefs: PreferenciasApp? = null
+) : ViewModel() {
 
     private val _estado = MutableStateFlow(EstadoAssistente())
     val estado: StateFlow<EstadoAssistente> = _estado.asStateFlow()
@@ -159,6 +163,8 @@ class AssistenteCustoViewModel(private val repo: FinanceiroRepository) : ViewMod
                 // Seguro, IPVA, parcela e depreciacao viram linhas da lista de
                 // custos fixos, que e o que o Inicio desconta do lucro do dia.
                 repo.substituirCustosFixosDoAssistente(d.custosFixosDoMes())
+                // As horas do assistente passam a valer na meta por hora.
+                prefs?.definirHorasPorDia(d.horasPorDia)
             }
             _estado.value = _estado.value.copy(aplicado = true)
         }
@@ -174,7 +180,7 @@ class AssistenteCustoViewModel(private val repo: FinanceiroRepository) : ViewMod
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as MotoristaApp
-                AssistenteCustoViewModel(app.repository)
+                AssistenteCustoViewModel(app.repository, app.preferencias)
             }
         }
     }

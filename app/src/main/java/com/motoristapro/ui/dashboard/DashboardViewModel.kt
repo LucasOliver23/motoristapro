@@ -55,7 +55,9 @@ data class DashboardUiState(
     /** Compras do pacote lançadas hoje (já estão dentro das despesas do resumo). */
     val pacoteHojeCentavos: Long = 0,
     /** Corridas da 99 de hoje — base do "o pacote valeu a pena". */
-    val ganhos99HojeCentavos: Long = 0
+    val ganhos99HojeCentavos: Long = 0,
+    /** Horas por dia de Menu ▸ Suas metas (ou do assistente, ou 8). */
+    val horasPorDia: Int = 8
 ) {
     /** Taxa evitada menos a parte do pacote no dia; null sem pacote ou sem corrida da 99. */
     val economiaPacoteCentavos: Long?
@@ -71,6 +73,11 @@ data class DashboardUiState(
 
     /** Lucro depois de descontar a parte do dia dos custos fixos. */
     val lucroRealCentavos: Long get() = resumo.lucroLiquidoCentavos - custoFixoDiaCentavos
+
+    /** Lucro por hora que bate a meta do dia; 0 sem meta. */
+    val metaPorHoraCentavos: Long
+        get() = if (config.metaLucroDiarioCentavos > 0 && horasPorDia > 0)
+            Math.round(config.metaLucroDiarioCentavos.toDouble() / horasPorDia) else 0
 
     val progressoMeta: Float
         get() = if (config.metaLucroDiarioCentavos > 0)
@@ -123,6 +130,9 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
                 .combine(app.preferencias.pacote) { estado, p -> estado.copy(pacote = p) }
                 .combine(repo.pacoteDoPeriodo(inicio, fim)) { estado, v -> estado.copy(pacoteHojeCentavos = v) }
                 .combine(repo.ganhos99DoPeriodo(inicio, fim)) { estado, v -> estado.copy(ganhos99HojeCentavos = v) }
+                .combine(
+                    combine(app.preferencias.horasPorDia, repo.perfilCusto()) { h, perfil -> h ?: perfil?.horasPorDia ?: 8 }
+                ) { estado, h -> estado.copy(horasPorDia = h) }
         }
         .catch { e -> emit(DashboardUiState(carregando = false, erro = "Erro ao ler o banco: ${e.message}")) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
