@@ -1225,7 +1225,9 @@ private fun CardSuasFaixas(
             titulo = "Ganho por km",
             unidade = "R$/km",
             inicio = faixas.kmRuim, fim = faixas.kmBoa,
-            minimo = 0.5f, maximo = 6f, degrau = 0.05f,
+            // Régua até R$ 4/km: até 6 os valores de verdade (0,50 a 2,50) ficavam
+            // espremidos no primeiro terço e cada milímetro do dedo pulava 10 centavos.
+            minimo = 0.3f, maximo = 4f, degrau = 0.05f,
             formatar = { String.format(PT, "R$ %.2f", it) },
             onMudar = onFaixaKm
         )
@@ -1234,7 +1236,7 @@ private fun CardSuasFaixas(
             titulo = "Ganho por hora",
             unidade = "R$/hora",
             inicio = faixas.horaRuim, fim = faixas.horaBoa,
-            minimo = 10f, maximo = 120f, degrau = 1f,
+            minimo = 5f, maximo = 80f, degrau = 1f,
             formatar = { String.format(PT, "R$ %.0f", it) },
             onMudar = onFaixaHora
         )

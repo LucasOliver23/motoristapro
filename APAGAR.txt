@@ -1,18 +1,18 @@
-NADA PARA APAGAR NESTA VERSAO (4.9.1)
+NADA PARA APAGAR NESTA VERSAO (4.9.2)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Cartao da oferta mais compacto, no estilo do Rota Pro:
-- Etiqueta ACEITAR / ATENCAO / RECUSAR em cima tambem no tema Escuro.
-- Cartao do tamanho do conteudo (nao mais da largura da tela), letras e
-  espacos menores; valor, tempo e km na linha de cima nos dois temas.
-- Botoes Registrar/Embarque/Destino agora sao opcionais (Aparencia do
-  cartao > Detalhes > "Botoes no cartao"); desligados por padrao. Os mesmos
-  atalhos continuam na notificacao da corrida.
+Correcao: reguas do Semaforo de valores lentas / falhando.
+- Cada pixel do arrasto gravava nas preferencias e redesenhava a tela
+  inteira do Menu. Agora o valor anda so na regua e grava quando o dedo solta.
+- O toque vale na faixa inteira (nao so na bolinha): pega o polegar mais
+  perto. Com os dois colados, arrastar para a esquerda move o vermelho e
+  para a direita o azul.
+- Reguas mais justas: R$/km de 0,30 a 4,00 (era ate 6,00) e R$/hora de 5 a
+  80 (era ate 120) - cada movimento do dedo muda menos o valor.
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/service/EstiloCartao.kt
-  app/src/main/java/com/motoristapro/service/OverlayOferta.kt
-  app/src/main/java/com/motoristapro/ui/mais/EstiloCartaoScreen.kt
+  app/src/main/java/com/motoristapro/ui/componentes/Faixas.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt

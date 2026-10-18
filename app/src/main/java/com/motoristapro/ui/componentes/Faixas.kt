@@ -1,5 +1,9 @@
 package com.motoristapro.ui.componentes
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -69,26 +73,36 @@ fun FaixaTresCores(
     ajuda: String? = null
 ) {
     val amplitude = (maximo - minimo).takeIf { it > 0f } ?: 1f
-    val fracaoInicio = ((inicio - minimo) / amplitude).coerceIn(0f, 1f)
-    val fracaoFim = ((fim - minimo) / amplitude).coerceIn(0f, 1f)
 
-    // O arrasto lê o valor de AGORA, não o da composição em que começou: sem
-    // isto, segurar o polegar e arrastar devagar faz o valor voltar sozinho.
-    val valores by rememberUpdatedState(inicio to fim)
+    // Enquanto o dedo arrasta, o valor mora SÓ aqui. Antes cada pixel do
+    // arrasto gravava nas preferências e redesenhava a tela inteira do Menu —
+    // era isso que deixava os polegares lentos e "pulando". Agora grava uma
+    // vez, quando o dedo solta.
+    // Um estado só, que vive a tela toda (o arrasto em andamento segura a mesma
+    // referência); quando o valor salvo muda por fora, ele acompanha.
+    val estado = remember { mutableStateOf(inicio to fim) }
+    LaunchedEffect(inicio, fim) { estado.value = inicio to fim }
+    var local by estado
+    val (iTela, fTela) = local
+    val fracaoInicio = ((iTela - minimo) / amplitude).coerceIn(0f, 1f)
+    val fracaoFim = ((fTela - minimo) / amplitude).coerceIn(0f, 1f)
+    val gravar by rememberUpdatedState(onMudar)
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
-                Etiqueta(formatar(inicio), VermelhoPrejuizo)
-                Etiqueta(formatar(fim), Lima)
+                Etiqueta(formatar(iTela), VermelhoPrejuizo)
+                Etiqueta(formatar(fTela), Lima)
             }
         }
 
-        BoxWithConstraints(Modifier.fillMaxWidth().height(44.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().height(48.dp)) {
             val bolinha = 30.dp
             val corrida = maxWidth - bolinha
-            val corridaPx = with(LocalDensity.current) { corrida.toPx() }.coerceAtLeast(1f)
+            val densidade = LocalDensity.current
+            val corridaPx = with(densidade) { corrida.toPx() }.coerceAtLeast(1f)
+            val meiaBolinhaPx = with(densidade) { (bolinha / 2).toPx() }
 
             // Barra cheia, em três pedaços, começando e terminando no CENTRO dos
             // polegares: assim a cor embaixo do dedo é a cor daquele valor, e
@@ -105,33 +119,60 @@ fun FaixaTresCores(
             }
 
             Polegar(
-                cor = VermelhoPrejuizo,
-                tamanho = bolinha,
+                cor = VermelhoPrejuizo, tamanho = bolinha,
                 modifier = Modifier.align(Alignment.CenterStart)
                     .offset { IntOffset((fracaoInicio * corridaPx).roundToInt(), 0) }
-                    .pointerInput(minimo, maximo, degrau, corridaPx) {
-                        detectHorizontalDragGestures { _, dx ->
-                            val (iAtual, fAtual) = valores
-                            val novo = (iAtual + dx / corridaPx * amplitude)
-                                .coerceIn(minimo, maxOf(minimo, fAtual))
-                            onMudar(arredondar(novo, degrau), fAtual)
-                        }
-                    }
             )
-
             Polegar(
-                cor = Lima,
-                tamanho = bolinha,
+                cor = Lima, tamanho = bolinha,
                 modifier = Modifier.align(Alignment.CenterStart)
                     .offset { IntOffset((fracaoFim * corridaPx).roundToInt(), 0) }
-                    .pointerInput(minimo, maximo, degrau, corridaPx) {
-                        detectHorizontalDragGestures { _, dx ->
-                            val (iAtual, fAtual) = valores
-                            val novo = (fAtual + dx / corridaPx * amplitude)
-                                .coerceIn(minOf(iAtual, maximo), maximo)
-                            onMudar(iAtual, arredondar(novo, degrau))
+            )
+
+            // Um toque só, na faixa inteira (e não na bolinha de 30dp): o dedo
+            // pega o polegar mais perto. Com os dois colados (0,50 e 0,90 na
+            // ponta da régua), quem decide é o lado para onde o dedo vai —
+            // para a esquerda move o vermelho, para a direita o azul.
+            Box(
+                Modifier.matchParentSize().pointerInput(minimo, maximo, degrau, corridaPx) {
+                    var qual = 0          // 0 = ainda não decidiu, 1 = vermelho, 2 = azul
+                    var x = 0f
+                    fun valorEm(px: Float): Float =
+                        minimo + ((px - meiaBolinhaPx) / corridaPx).coerceIn(0f, 1f) * amplitude
+                    detectHorizontalDragGestures(
+                        onDragStart = { pos ->
+                            x = pos.x
+                            val (i, f) = local
+                            val pxI = meiaBolinhaPx + (i - minimo) / amplitude * corridaPx
+                            val pxF = meiaBolinhaPx + (f - minimo) / amplitude * corridaPx
+                            val dI = kotlin.math.abs(pos.x - pxI)
+                            val dF = kotlin.math.abs(pos.x - pxF)
+                            qual = when {
+                                kotlin.math.abs(dI - dF) < meiaBolinhaPx -> 0
+                                dI < dF -> 1
+                                else -> 2
+                            }
+                        },
+                        onDragEnd = {
+                            qual = 0
+                            val (i, f) = local
+                            gravar(i, f)
+                        },
+                        onDragCancel = {
+                            qual = 0
+                            val (i, f) = local
+                            gravar(i, f)
                         }
+                    ) { mudanca, dx ->
+                        mudanca.consume()
+                        if (qual == 0) qual = if (dx < 0) 1 else 2
+                        x += dx
+                        val (i, f) = local
+                        val novo = arredondar(valorEm(x), degrau)
+                        local = if (qual == 1) novo.coerceIn(minimo, f) to f
+                        else i to novo.coerceIn(i, maximo)
                     }
+                }
             )
         }
 
