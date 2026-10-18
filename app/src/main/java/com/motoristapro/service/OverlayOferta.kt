@@ -344,8 +344,9 @@ class OverlayOferta(private val context: Context) {
         removerNovo()
         val e = cfg.tamanho.escala
         val cor = cfg.paleta.cor(classe)
-        // Escuro (4.8): o mesmo cartão em fundo escuro, sem a etiqueta solta em
-        // cima — a borda já tem a cor da decisão — e com valor/tempo/km embaixo.
+        // Escuro: o mesmo cartão em fundo escuro. Os dois são compactos (4.9.1),
+        // do tamanho do conteúdo e não da tela, com a etiqueta ACEITAR/ATENÇÃO/
+        // RECUSAR em cima — o motorista lê a decisão antes dos números.
         val escuro = cfg.tema == TemaCartao.ESCURO
         val fundo = if (escuro) 0xFF0B0F14.toInt() else BRANCO
         val corNumero = if (escuro) BRANCO else ESCURO
@@ -357,16 +358,16 @@ class OverlayOferta(private val context: Context) {
                 Classificacao.RUIM -> "✕  RECUSAR"
             }
             setTextColor(BRANCO)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f * e)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f * e)
             typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(16), dp(7), dp(16), dp(7))
+            setPadding(dp(12), dp(5), dp(12), dp(5))
             background = GradientDrawable().apply {
                 cornerRadii = floatArrayOf(r(14), r(14), r(14), r(14), r(14), r(14), r(4), r(4))
                 setColor(cor)
             }
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(dp(10), 0, 0, dp(-2)) }
+            ).apply { setMargins(dp(8), 0, 0, dp(-2)) }
         }
 
         val melhorDe = if (totalNaTela > 1) "  ·  melhor de $totalNaTela" else ""
@@ -378,14 +379,14 @@ class OverlayOferta(private val context: Context) {
                 append(melhorDe)
             }
             setTextColor(corNumero)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * e)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * e)
             typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, if (escuro) dp(4) else 0, 0, if (escuro) dp(4) else dp(8))
+            setPadding(0, 0, 0, dp(5))
         }
 
         val metricas = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(8), 0, dp(6))
+            setPadding(0, dp(5), 0, dp(2))
             cfg.numeros(o, custoKmCentavos).forEach { n ->
                 val faixa = limites?.faixaDoCampo(n.campo, o, custoKmCentavos)
                 addView(metrica(n.rotulo, n.valor, faixa?.let { cfg.paleta.cor(it) } ?: CINZA, e, corNumero, escuro))
@@ -400,21 +401,18 @@ class OverlayOferta(private val context: Context) {
 
         val caixa = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(14), dp(12), dp(14), dp(10))
+            setPadding(dp(12), dp(9), dp(12), dp(8))
             background = GradientDrawable().apply {
-                cornerRadius = r(18)
+                cornerRadius = r(14)
                 setColor(fundo)
                 setStroke(dp(3), cor)
             }
-            if (!escuro) {
-                addView(topo)
-                addView(View(context).apply {
-                    setBackgroundColor(0xFFEDEFF2.toInt())
-                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
-                })
-            }
+            addView(topo)
+            addView(View(context).apply {
+                setBackgroundColor(if (escuro) 0xFF262D36.toInt() else 0xFFEDEFF2.toInt())
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
+            })
             addView(metricas)
-            if (escuro) addView(topo)
             if (!alertaRisco.isNullOrBlank()) {
                 addView(faixaAviso("⚠  ÁREA DE RISCO: $alertaRisco", cfg.paleta.ruim, BRANCO, e))
             }
@@ -426,9 +424,11 @@ class OverlayOferta(private val context: Context) {
                     setPadding(0, dp(2), 0, dp(4))
                 })
             }
-            addView(LinearLayout(context).apply {
+            // Botões só para quem ligou em Aparência do cartão: sem eles o cartão
+            // fica do tamanho dos números (e a notificação tem os mesmos atalhos).
+            if (cfg.botoes) addView(LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
-                setPadding(0, dp(4), 0, 0)
+                setPadding(0, dp(6), 0, 0)
                 val reg = chip("✓ Registrar", e, escuro) { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
                 btRegistrarNovo = reg
                 addView(reg)
@@ -439,12 +439,22 @@ class OverlayOferta(private val context: Context) {
             })
         }
 
+        // A janela é da largura da tela; o cartão fica centrado e do tamanho do conteúdo.
+        val bloco = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            alpha = cfg.opacidade / 100f
+            addView(etiqueta)
+            addView(caixa, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ))
+        }
         val v = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             setPadding(dp(12), 0, dp(12), 0)
-            alpha = cfg.opacidade / 100f
-            if (!escuro) addView(etiqueta)
-            addView(caixa)
+            addView(bloco, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ))
         }
         tornarArrastavel(v)
         posicionar(cfg)
@@ -464,23 +474,25 @@ class OverlayOferta(private val context: Context) {
     private fun metrica(rotulo: String, valor: String, cor: Int, e: Float, corValor: Int, escuro: Boolean) =
         LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
-        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { setMargins(0, 0, dp(16), 0) }
         addView(TextView(context).apply {
             text = rotulo
             setTextColor(if (escuro) 0xFF9AA3AE.toInt() else 0xFF5A6270.toInt())
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f * e)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f * e)
         })
         addView(LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(View(context).apply {
                 background = GradientDrawable().apply { cornerRadius = r(2); setColor(cor) }
-                layoutParams = LinearLayout.LayoutParams(dp(4), dp((26 * e).toInt())).apply { setMargins(0, 0, dp(5), 0) }
+                layoutParams = LinearLayout.LayoutParams(dp(3), dp((20 * e).toInt())).apply { setMargins(0, 0, dp(4), 0) }
             })
             addView(TextView(context).apply {
                 text = valor
                 setTextColor(corValor)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f * e)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f * e)
                 typeface = Typeface.DEFAULT_BOLD
             })
         })

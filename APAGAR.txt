@@ -1,17 +1,18 @@
-NADA PARA APAGAR NESTA VERSAO (4.9.0)
+NADA PARA APAGAR NESTA VERSAO (4.9.1)
 =====================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Novo: ler FOTO de oferta (print) aberta no WhatsApp, WhatsApp Business,
-Facebook, Facebook Lite, Instagram, Telegram e nas galerias (Xiaomi, Google
-Fotos, Samsung, Motorola, OnePlus, Oppo/Realme). So pela imagem (leitura por
-imagem precisa estar ligada) e so com a foto aberta em tela cheia (ate 25
-textos na tela) - conversa e feed nao viram oferta. O cartao aparece e a voz
-fala; nao entra no historico nem na notificacao. De proposito NAO le todos os
-apps (o banco ficaria incluido).
+Cartao da oferta mais compacto, no estilo do Rota Pro:
+- Etiqueta ACEITAR / ATENCAO / RECUSAR em cima tambem no tema Escuro.
+- Cartao do tamanho do conteudo (nao mais da largura da tela), letras e
+  espacos menores; valor, tempo e km na linha de cima nos dois temas.
+- Botoes Registrar/Embarque/Destino agora sao opcionais (Aparencia do
+  cartao > Detalhes > "Botoes no cartao"); desligados por padrao. Os mesmos
+  atalhos continuam na notificacao da corrida.
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/res/xml/accessibility_service_config.xml
-  app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
+  app/src/main/java/com/motoristapro/service/EstiloCartao.kt
+  app/src/main/java/com/motoristapro/service/OverlayOferta.kt
+  app/src/main/java/com/motoristapro/ui/mais/EstiloCartaoScreen.kt

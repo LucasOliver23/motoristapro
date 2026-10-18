@@ -211,6 +211,12 @@ fun EstiloCartaoScreen(custoKmCentavos: Long) {
 
     CardSecao(titulo = "Detalhes") {
         LinhaChave(
+            titulo = "Botões no cartão",
+            detalhe = "Registrar, Embarque e Destino (desligado: cartão menor; os atalhos ficam na notificação)",
+            marcado = cfg.botoes,
+            onMudar = { mudar(cfg.copy(botoes = it)) }
+        )
+        LinhaChave(
             titulo = "Faixa da decisão",
             detalhe = "BOA / ATENÇÃO / RUIM em letra grande no alto do cartão",
             marcado = cfg.avisoEmDestaque,
@@ -332,46 +338,45 @@ private fun PreviaCartaoNovo(cfg: ConfigCartao, custoKmCentavos: Long) {
             .background(Color(0xFFD7DFDA))
             .padding(horizontal = 10.dp, vertical = 14.dp)
     ) {
-        Column(Modifier.fillMaxWidth().alpha(cfg.opacidade / 100f)) {
-            if (!escuro) {
+        Column(Modifier.align(Alignment.Center).alpha(cfg.opacidade / 100f)) {
+            run {
                 Text(
                     when (classe) {
                         Classificacao.BOA -> "✓  ACEITAR"
                         Classificacao.MEDIA -> "!  ATENÇÃO"
                         Classificacao.RUIM -> "✕  RECUSAR"
                     },
-                    color = Color.White, fontWeight = FontWeight.Bold, fontSize = (14 * e).sp,
-                    modifier = Modifier.padding(start = 10.dp)
+                    color = Color.White, fontWeight = FontWeight.Bold, fontSize = (12 * e).sp,
+                    modifier = Modifier.padding(start = 8.dp)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomEnd = 12.dp, bottomStart = 4.dp))
-                        .background(cor).padding(horizontal = 14.dp, vertical = 6.dp)
+                        .background(cor).padding(horizontal = 12.dp, vertical = 5.dp)
                 )
             }
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(fundo)
-                    .border(3.dp, cor, RoundedCornerShape(16.dp)).padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                Modifier.clip(RoundedCornerShape(14.dp)).background(fundo)
+                    .border(3.dp, cor, RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 9.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                if (!escuro) Text(topo, color = texto, fontWeight = FontWeight.Bold, fontSize = (13 * e).sp)
-                Row(Modifier.fillMaxWidth()) {
+                Text(topo, color = texto, fontWeight = FontWeight.Bold, fontSize = (12 * e).sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     cfg.numeros(o, custo).forEach { n ->
                         val faixa = limites.faixaDoCampo(n.campo, o, custo)
-                        Column(Modifier.weight(1f)) {
-                            Text(n.rotulo, color = texto.copy(alpha = 0.6f), fontSize = (11 * e).sp)
+                        Column {
+                            Text(n.rotulo, color = texto.copy(alpha = 0.6f), fontSize = (10 * e).sp)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    Modifier.size(width = 4.dp, height = (24 * e).dp).clip(RoundedCornerShape(2.dp))
+                                    Modifier.size(width = 3.dp, height = (20 * e).dp).clip(RoundedCornerShape(2.dp))
                                         .background(faixa?.let { Color(cfg.paleta.cor(it)) } ?: Color(0xFFB0B7C0))
                                 )
                                 Text(
                                     n.valor, color = texto, fontWeight = FontWeight.Bold,
-                                    fontSize = (22 * e).sp, modifier = Modifier.padding(start = 5.dp)
+                                    fontSize = (20 * e).sp, modifier = Modifier.padding(start = 4.dp)
                                 )
                             }
                         }
                     }
                 }
-                if (escuro) Text(topo, color = texto, fontWeight = FontWeight.Bold, fontSize = (13 * e).sp)
-                Text(
+                if (cfg.botoes) Text(
                     "✓ Registrar     📍 Embarque     📍 Destino",
                     color = texto.copy(alpha = 0.75f), fontSize = (12 * e).sp
                 )
