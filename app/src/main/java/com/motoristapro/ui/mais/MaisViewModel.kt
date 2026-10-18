@@ -102,21 +102,25 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
 
     /**
      * A conta da meta por hora com o que o app sabe dos últimos 30 dias: o km/h
-     * sai do GPS dos turnos e a fração com passageiro, do tempo de corrida
-     * contra o tempo de turno. Sem isso medido, a conta usa o padrão e avisa.
+     * sai do GPS dos turnos (senão do km por dia ÷ horas do assistente) e a
+     * fração com passageiro, do tempo de corrida contra o tempo de turno. Sem
+     * isso medido, a conta usa o padrão e avisa.
      */
     val metaPorHora: StateFlow<ContaMetaHora?> = Periodo.ultimosDias(DIAS_DA_MEDIA).let { (ini, fim) ->
         combine(
             repo.configuracao(),
             horasPorDia,
             repo.resumoDoPeriodo(ini, fim),
-            repo.totaisJornadasEncerradas(ini, fim)
-        ) { cfg, horas, resumo, turnos ->
+            repo.totaisJornadasEncerradas(ini, fim),
+            dadosCusto
+        ) { cfg, horas, resumo, turnos, dados ->
+            val kmDoAssistente = dados?.takeIf { it.kmPorDia > 0 && it.horasPorDia > 0 }
+                ?.let { it.kmPorDia.toDouble() / it.horasPorDia }
             MetaPorHora.calcular(
                 metaDiaCentavos = cfg.metaLucroDiarioCentavos,
                 horasPorDia = horas,
                 custoKmCentavos = cfg.custoKmCentavos,
-                kmPorHoraMedido = MetaPorHora.kmPorHora(turnos.metros, turnos.segundos),
+                kmPorHoraMedido = MetaPorHora.kmPorHora(turnos.metros, turnos.segundos) ?: kmDoAssistente,
                 fracaoMedida = MetaPorHora.fracaoComPassageiro(resumo.segundosEmCorrida, turnos.segundos)
             )
         }
