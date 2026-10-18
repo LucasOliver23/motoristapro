@@ -1,6 +1,9 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.custo.ContaMetaHora
 import com.motoristapro.custo.DadosCusto
+import com.motoristapro.custo.MetaPorHora
+import com.motoristapro.data.repository.Periodo
 import com.motoristapro.ui.custo.paraDados
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -88,6 +92,44 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     val dadosCusto: StateFlow<DadosCusto?> = repo.perfilCusto()
         .map { it?.paraDados() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    // ================================================================== meta por hora
+
+    /** As horas por dia que valem: as escolhidas aqui, senão as do assistente, senão 8. */
+    val horasPorDia: StateFlow<Int> = combine(prefs.horasPorDia, dadosCusto) { escolhidas, dados ->
+        escolhidas ?: dados?.horasPorDia ?: HORAS_PADRAO
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), prefs.horasPorDia.value ?: HORAS_PADRAO)
+
+    /**
+     * A conta da meta por hora com o que o app sabe dos últimos 30 dias: o km/h
+     * sai do GPS dos turnos e a fração com passageiro, do tempo de corrida
+     * contra o tempo de turno. Sem isso medido, a conta usa o padrão e avisa.
+     */
+    val metaPorHora: StateFlow<ContaMetaHora?> = Periodo.ultimosDias(DIAS_DA_MEDIA).let { (ini, fim) ->
+        combine(
+            repo.configuracao(),
+            horasPorDia,
+            repo.resumoDoPeriodo(ini, fim),
+            repo.totaisJornadasEncerradas(ini, fim)
+        ) { cfg, horas, resumo, turnos ->
+            MetaPorHora.calcular(
+                metaDiaCentavos = cfg.metaLucroDiarioCentavos,
+                horasPorDia = horas,
+                custoKmCentavos = cfg.custoKmCentavos,
+                kmPorHoraMedido = MetaPorHora.kmPorHora(turnos.metros, turnos.segundos),
+                fracaoMedida = MetaPorHora.fracaoComPassageiro(resumo.segundosEmCorrida, turnos.segundos)
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun definirHorasPorDia(h: Int) = prefs.definirHorasPorDia(h)
+
+    /** "Usar no semáforo": o verde do R$/hora começa na meta, o amarelo 30% abaixo. */
+    fun usarMetaNoSemaforo() {
+        val c = metaPorHora.value ?: return
+        definirFaixaHora(c.amareloReais.toFloat(), c.ofertaPorHoraReais.toFloat())
+        viewModelScope.launch { _mensagens.send("Semáforo: verde a partir de R$ ${c.ofertaPorHoraReais}/h") }
+    }
 
     // ================================================================== manutenção
 
@@ -439,6 +481,10 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     }
 
     companion object {
+        /** Sem horas em lugar nenhum, a jornada comum. */
+        const val HORAS_PADRAO = 8
+        const val DIAS_DA_MEDIA = 30
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 MaisViewModel(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as MotoristaApp)

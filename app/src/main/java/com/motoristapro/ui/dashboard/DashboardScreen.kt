@@ -376,6 +376,15 @@ private fun QuantoFalta(e: DashboardUiState, agora: Long) {
                 if (ritmo != null) {
                     append(" No seu ritmo de ")
                     withStyle(negrito) { append("${ritmo.emReais()}/h") }
+                    // Comparado com a meta por hora: dá para saber no meio do
+                    // dia se o ritmo fecha a conta, sem esperar a noite.
+                    val metaHora = e.metaPorHoraCentavos
+                    if (metaHora > 0) {
+                        val bate = ritmo >= metaHora
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = if (bate) Lima else AmareloAlerta)) {
+                            append(" (meta ${metaHora.emReais()}/h${if (bate) " ✓" else ""})")
+                        }
+                    }
                     val chega = previsao.chegaEmMillis
                     if (chega != null) {
                         val hora = Instant.ofEpochMilli(chega).atZone(ZoneId.systemDefault())
@@ -472,10 +481,10 @@ private fun JornadaCard(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             val segundos = jornada?.segundosRodando(agora) ?: estado.segundosTrabalhados(agora)
             AnelPequeno(
-                fracao = segundos.toFloat() / TURNO_DE_REFERENCIA_SEG,
+                fracao = segundos.toFloat() / estado.turnoDeReferenciaSeg,
                 cor = when {
                     jornada?.pausada == true -> AmareloAlerta
-                    segundos > TURNO_DE_REFERENCIA_SEG -> AmareloAlerta
+                    segundos > estado.turnoDeReferenciaSeg -> AmareloAlerta
                     else -> Turquesa
                 }
             )
@@ -578,10 +587,7 @@ private fun BlocoAtalho(icone: ImageVector, rotulo: String, cor: Color, modifier
 private val FORMATO_INICIO = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
- * O turno de referência do anel: 8 horas.
- *
- * O app ainda não pergunta quantas horas o motorista pretende rodar — só a meta
- * de dinheiro. Oito horas é a jornada comum e serve de escala; passando disso o
- * anel fica âmbar, que é o aviso de dia esticado.
+ * O turno de referência do anel: as horas por dia de Menu ▸ Suas metas (8 se
+ * ninguém disse). Passando disso o anel fica âmbar, que é o aviso de dia esticado.
  */
-private const val TURNO_DE_REFERENCIA_SEG = 8L * 3600
+private val DashboardUiState.turnoDeReferenciaSeg: Long get() = horasPorDia.coerceAtLeast(1) * 3600L

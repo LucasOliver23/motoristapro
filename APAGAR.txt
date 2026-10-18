@@ -1,18 +1,31 @@
-NADA PARA APAGAR NESTA VERSAO (4.9.2)
-=====================================
+NADA PARA APAGAR NESTA VERSAO (4.10.0)
+======================================
 
-Nenhum arquivo removido. Banco continua na versao 13.
+Nenhum arquivo removido. Banco continua na versao 13 (as horas por dia
+ficam nas preferencias, sem migracao).
 
-Correcao: reguas do Semaforo de valores lentas / falhando.
-- Cada pixel do arrasto gravava nas preferencias e redesenhava a tela
-  inteira do Menu. Agora o valor anda so na regua e grava quando o dedo solta.
-- O toque vale na faixa inteira (nao so na bolinha): pega o polegar mais
-  perto. Com os dois colados, arrastar para a esquerda move o vermelho e
-  para a direita o azul.
-- Reguas mais justas: R$/km de 0,30 a 4,00 (era ate 6,00) e R$/hora de 5 a
-  80 (era ate 120) - cada movimento do dedo muda menos o valor.
+Novo: meta por hora.
+- Menu > Suas metas: escolhe as horas por dia e o app mostra o lucro por
+  hora, o custo do carro por hora, quanto faturar por hora e quanto a
+  OFERTA precisa pagar por hora de corrida (o tempo com passageiro sai dos
+  turnos dos ultimos 30 dias; sem turno medido, 60%).
+- Botao "Usar no semaforo": verde do R$/hora a partir da meta, amarelo 30%
+  abaixo. Na regua do R$/hora aparece um risco branco na meta.
+- Inicio: o ritmo do dia mostra a meta por hora ao lado (com ✓ quando bate)
+  e o anel da jornada usa as horas escolhidas no lugar de 8 h fixas.
+- O assistente de custo passa as horas dele para a meta por hora.
+
+Arquivos novos:
+  app/src/main/java/com/motoristapro/custo/MetaPorHora.kt
+  app/src/main/java/com/motoristapro/ui/mais/MetaPorHoraScreen.kt
+  app/src/test/java/com/motoristapro/custo/MetaPorHoraTest.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
+  app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
   app/src/main/java/com/motoristapro/ui/componentes/Faixas.kt
+  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoViewModel.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardViewModel.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt

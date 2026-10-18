@@ -66,7 +66,24 @@ class PreferenciasApp(context: Context) {
         _pacote.value = c
     }
 
+    // ------------------------------------------------------- meta por hora (4.10)
+
+    private val _horasPorDia = MutableStateFlow(prefs.getInt(KEY_HORAS_DIA, 0).takeIf { it > 0 })
+
+    /**
+     * Horas que o motorista roda por dia, para a meta por hora. null = ainda não
+     * escolheu (aí vale o que ele disse no assistente de custo, ou 8 h).
+     */
+    val horasPorDia: StateFlow<Int?> = _horasPorDia
+
+    fun definirHorasPorDia(h: Int) {
+        val v = h.coerceIn(1, 18)
+        prefs.edit().putInt(KEY_HORAS_DIA, v).apply()
+        _horasPorDia.value = v
+    }
+
     private companion object {
+        const val KEY_HORAS_DIA = "horas_por_dia"
         const val KEY_PACOTE_PLANO = "pacote99_plano"
         const val KEY_NOTIF_OFERTA = "notificacao_oferta"
         const val KEY_PACOTE_SOZINHO = "pacote99_lancar_sozinho"
