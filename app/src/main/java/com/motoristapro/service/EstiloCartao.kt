@@ -86,7 +86,9 @@ data class ConfigCartao(
     val mostrarApp: Boolean = true,
     /** A faixa com ACEITAR / ATENÇÃO / RECUSAR em cima do cartão. */
     val avisoEmDestaque: Boolean = true,
-    val paleta: PaletaCartao = PaletaCartao.CLASSICA
+    val paleta: PaletaCartao = PaletaCartao.CLASSICA,
+    /** Botões Registrar / Embarque / Destino no cartão (desligado: cartão compacto). */
+    val botoes: Boolean = false
 ) {
 
     /**
@@ -226,7 +228,8 @@ class EstiloCartao(context: Context) {
             segundosNaTela = prefs.getInt(KEY_SEGUNDOS, padrao.segundosNaTela).coerceIn(5, 60),
             mostrarApp = prefs.getBoolean(KEY_APP, padrao.mostrarApp),
             avisoEmDestaque = prefs.getBoolean(KEY_AVISO, padrao.avisoEmDestaque),
-            paleta = enumOu(KEY_PALETA, padrao.paleta) { PaletaCartao.valueOf(it) }
+            paleta = enumOu(KEY_PALETA, padrao.paleta) { PaletaCartao.valueOf(it) },
+            botoes = prefs.getBoolean(KEY_BOTOES, padrao.botoes)
         )
     }
 
@@ -241,6 +244,7 @@ class EstiloCartao(context: Context) {
             .putBoolean(KEY_APP, c.mostrarApp)
             .putBoolean(KEY_AVISO, c.avisoEmDestaque)
             .putString(KEY_PALETA, c.paleta.name)
+            .putBoolean(KEY_BOTOES, c.botoes)
             .apply()
     }
 
@@ -264,5 +268,6 @@ class EstiloCartao(context: Context) {
         const val KEY_NOVO_APLICADO = "tema_novo_aplicado"
         const val KEY_CAMPOS_48 = "campos_4_8"
         const val KEY_PALETA = "paleta"
+        const val KEY_BOTOES = "botoes"
     }
 }
