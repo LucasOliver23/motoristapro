@@ -56,6 +56,8 @@ fun MetaPorHoraConteudo(
     horasPorDia: Int,
     conta: ContaMetaHora?,
     horaBoaAtual: Float,
+    /** "moto" ou "carro", conforme o assistente de custo. */
+    veiculo: String,
     onHoras: (Int) -> Unit,
     onUsarNoSemaforo: () -> Unit,
     onEditarMeta: () -> Unit
@@ -130,20 +132,32 @@ fun MetaPorHoraConteudo(
         LinhaConta("Meta do dia ÷ ${conta.horasPorDia} horas", "${conta.lucroPorHoraCentavos.emReais()}/h")
         LinhaConta(
             String.format(
-                PT_BR, "+ custo do carro (%.0f km/h × %s)",
-                conta.kmPorHora, cfg.custoKmCentavos.emReais()
+                PT_BR, "+ custo %s %s (%.0f km/h × %s)",
+                if (veiculo == "carro") "do" else "da", veiculo, conta.kmPorHora, cfg.custoKmCentavos.emReais()
             ),
             "${conta.custoPorHoraCentavos.emReais()}/h"
         )
         LinhaConta("= faturar por hora trabalhada", "${conta.faturarPorHoraCentavos.emReais()}/h")
         LinhaConta(
-            "Tempo com passageiro" + if (conta.fracaoEstimada) " (estimado)" else " (suas corridas)",
+            "÷ tempo com passageiro" + if (conta.fracaoEstimada) " (estimado)" else " (suas corridas)",
             "${Math.round(conta.fracaoComPassageiro * 100)}%"
+        )
+        // Por que a oferta pede mais que o "faturar por hora": o R$/hora do
+        // cartão conta só os minutos da corrida, e a espera também tem que
+        // ser paga por ela. Sem esta linha, o número parecia errado.
+        val pct = Math.round(conta.fracaoComPassageiro * 100)
+        val minutos = Math.round(conta.fracaoComPassageiro * 60)
+        val faturar = conta.faturarPorHoraCentavos.emReais()
+        Text(
+            "O R$/hora da oferta conta só o tempo da corrida. Em cada hora você fica uns " +
+                "$minutos min com passageiro, e esses $minutos min têm que pagar os $faturar da hora " +
+                "inteira: $faturar ÷ $pct% = R$ ${conta.ofertaPorHoraReais} por hora de corrida.",
+            style = MaterialTheme.typography.labelSmall, color = TextoSecundario
         )
         HorizontalDivider(color = Contorno, modifier = Modifier.padding(vertical = 4.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Oferta precisa pagar", Modifier.weight(1f),
+                "Oferta precisa pagar (por hora de corrida)", Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold
             )
             Text(
@@ -176,7 +190,7 @@ fun MetaPorHoraConteudo(
                 "Os ${Math.round(conta.fracaoComPassageiro * 100)}% saem dos seus turnos dos últimos 30 dias: " +
                     "o resto do tempo é esperando chamada e indo buscar o passageiro."
             )
-            if (conta.kmPorHoraEstimado) add("Km por hora estimado; com o GPS da jornada ele passa a ser medido.")
+            if (conta.kmPorHoraEstimado) add("Km por hora estimado (15 km/h); preencha o km por dia no assistente ou rode com o GPS da jornada.")
             if (cfg.custoKmCentavos <= 0) add("Sem custo por km cadastrado: a conta usa só o lucro.")
         }.joinToString(" "),
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))

@@ -1,31 +1,17 @@
-NADA PARA APAGAR NESTA VERSAO (4.10.0)
+NADA PARA APAGAR NESTA VERSAO (4.10.1)
 ======================================
 
-Nenhum arquivo removido. Banco continua na versao 13 (as horas por dia
-ficam nas preferencias, sem migracao).
+Nenhum arquivo removido. Banco continua na versao 13.
 
-Novo: meta por hora.
-- Menu > Suas metas: escolhe as horas por dia e o app mostra o lucro por
-  hora, o custo do carro por hora, quanto faturar por hora e quanto a
-  OFERTA precisa pagar por hora de corrida (o tempo com passageiro sai dos
-  turnos dos ultimos 30 dias; sem turno medido, 60%).
-- Botao "Usar no semaforo": verde do R$/hora a partir da meta, amarelo 30%
-  abaixo. Na regua do R$/hora aparece um risco branco na meta.
-- Inicio: o ritmo do dia mostra a meta por hora ao lado (com ✓ quando bate)
-  e o anel da jornada usa as horas escolhidas no lugar de 8 h fixas.
-- O assistente de custo passa as horas dele para a meta por hora.
-
-Arquivos novos:
-  app/src/main/java/com/motoristapro/custo/MetaPorHora.kt
-  app/src/main/java/com/motoristapro/ui/mais/MetaPorHoraScreen.kt
-  app/src/test/java/com/motoristapro/custo/MetaPorHoraTest.kt
+Ajustes da meta por hora (Menu > Suas metas):
+- "custo do carro" vira "custo da moto" quando o veiculo do assistente e moto.
+- Km por hora: sem GPS da jornada, usa o km por dia / horas do assistente
+  (antes era 15 km/h fixo).
+- A conta explica por que a oferta pede mais que o "faturar por hora": o
+  R$/hora da oferta so conta o tempo da corrida (ex.: 29,55 / 60% = 50).
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
-  app/src/main/java/com/motoristapro/ui/componentes/Faixas.kt
-  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoViewModel.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardViewModel.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt
+  app/src/main/java/com/motoristapro/ui/mais/MetaPorHoraScreen.kt

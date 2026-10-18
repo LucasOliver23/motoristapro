@@ -750,6 +750,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         horasPorDia = horasPorDia,
                         conta = metaPorHora,
                         horaBoaAtual = faixas.horaBoa,
+                        veiculo = (dadosCusto?.tipoVeiculo ?: TipoVeiculo.CARRO).rotulo.lowercase(PT),
                         onHoras = vm::definirHorasPorDia,
                         onUsarNoSemaforo = vm::usarMetaNoSemaforo,
                         onEditarMeta = { assistenteAberto = true }
