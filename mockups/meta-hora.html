@@ -1,0 +1,105 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#4CC9F0;--verm:#FF5252;--amar:#FFC94D;--turq:#2DE2C5;--roxo:#BC8CFF;--lar:#F97316;--azul:#58A6FF;--txt:#fff;--sec:#8B949E;--cont:#21262D}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05070a;font-family:Inter,sans-serif;color:var(--txt);padding:40px 30px;width:1400px}
+h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
+.sub{color:var(--sec);font-size:16px;margin-bottom:30px}
+.linha{display:flex;gap:34px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:14px}
+.rot{font-weight:700;font-size:18px;height:56px}.rot small{display:block;color:var(--sec);font-weight:400;font-size:13px;margin-top:4px;max-width:400px}
+.cel{width:400px;height:840px;border-radius:44px;background:var(--fundo);border:10px solid #1e232b;overflow:hidden;position:relative;box-shadow:0 30px 60px #0008}
+.sb{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:13px;color:var(--sec);font-weight:600}
+.pad{padding:10px 16px}
+.sg{font-family:'Space Grotesk';font-weight:700}
+.card{background:var(--card);border-radius:20px;margin-bottom:10px}
+.dest{background:linear-gradient(135deg,#132536,#161C24 60%)}
+.lbl{font-size:10px;letter-spacing:1.2px;color:var(--sec);font-weight:700;text-transform:uppercase;margin:14px 4px 6px}
+.row{display:flex;align-items:center;gap:10px}
+.item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--cont)}.item:last-child{border:0}
+.qd{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.t{font-size:14px;font-weight:700}.s{font-size:11px;color:var(--sec);margin-top:1px}.s.ok{color:var(--lucro)}
+.nav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:12px 0 18px;background:var(--card);border-top:1px solid var(--cont)}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sec)}.nav .on{color:var(--lucro)}
+.tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:#12283a;color:var(--lucro)}
+.bar{height:8px;border-radius:4px;background:var(--alto);overflow:hidden;margin:8px 0 4px}.bar i{display:block;height:100%;background:var(--lucro)}
+.qm{flex:1;background:var(--alto);border-radius:12px;padding:9px 0;text-align:center}
+.qm b{display:block;font-family:'Space Grotesk';font-size:18px;margin-top:3px}
+.qm span{font-size:9px;letter-spacing:1px;color:var(--sec);font-weight:700}
+.qm.h{background:#12283a;border:2px solid var(--lucro)}.qm.h b{color:var(--lucro)}
+.conta{background:var(--alto);border-radius:14px;padding:12px 14px;font-size:13px}
+.conta .l{display:flex;justify-content:space-between;padding:5px 0}.conta .l span{color:var(--sec)}
+.conta .tot{border-top:1px solid var(--mais);margin-top:4px;padding-top:9px;font-weight:800}
+.btn{background:var(--lucro);color:#0D1117;text-align:center;font-weight:800;padding:14px;border-radius:14px;font-size:15px;margin-top:10px}
+.dica{background:#12283a;color:#bfeaf8;font-size:12px;border-radius:12px;padding:10px 12px;line-height:1.5}
+.horas{display:flex;gap:6px;margin-top:8px}.horas div{flex:1;height:38px;border-radius:10px;background:var(--alto);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--sec);font-size:13px}.horas .on{background:var(--lucro);color:#0D1117}
+.faixa{position:relative;height:14px;border-radius:7px;margin:22px 4px 8px;background:linear-gradient(90deg,var(--verm) 0 30%,var(--amar) 30% 50%,var(--turq) 50% 100%)}
+.faixa i{position:absolute;top:-6px;width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid #0D1117}
+.faixa em{position:absolute;top:-30px;transform:translateX(-50%);font-style:normal;font-size:11px;font-weight:800;color:var(--lucro);white-space:nowrap}
+.faixa u{position:absolute;top:-8px;bottom:-8px;width:2px;background:var(--lucro);text-decoration:none}
+.anel{display:flex;gap:8px;margin-top:12px}.anel div{flex:1;background:var(--alto);border-radius:12px;padding:9px 0;text-align:center}
+.anel span{font-size:9px;letter-spacing:1px;color:var(--sec);font-weight:700}.anel b{display:block;font-family:'Space Grotesk';font-size:17px;margin-top:3px}
+.anel small{display:block;font-size:10px;margin-top:2px}
+</style></head><body>
+<h1>MotoristaPro · Meta por hora</h1>
+<div class="sub">Desenho para aprovar. Você diz quantas horas roda por dia e o app mostra quanto precisa ganhar por hora para bater a meta, e quanto a oferta tem que pagar.</div>
+<div class="linha">
+
+<div class="col"><div class="rot">1 · Suas metas, agora com "Por hora"<small>Menu → Suas metas. Escolhe as horas por dia e o app faz a conta com o seu custo por km.</small></div>
+<div class="cel"><div class="sb"><span>9:12</span><span>81%</span></div><div class="pad">
+<div class="row" style="margin:6px 0 10px"><span style="font-size:20px;color:var(--sec)">‹</span><span class="sg" style="font-size:20px">Suas metas</span></div>
+<div class="card" style="padding:14px">
+<div class="row" style="gap:8px"><div class="qm"><span>POR DIA</span><b>R$ 95</b></div><div class="qm"><span>SEMANA</span><b>R$ 462</b></div><div class="qm"><span>MÊS</span><b>R$ 2.000</b></div></div>
+<div class="row" style="gap:8px;margin-top:8px"><div class="qm h"><span>POR HORA</span><b>R$ 19</b></div></div>
+<div class="s" style="margin-top:8px">21 dias por mês · lucro limpo, já tirados os custos</div>
+</div>
+<div class="lbl">Horas por dia</div>
+<div class="horas"><div>4h</div><div class="on">5h</div><div>6h</div><div>8h</div><div>10h</div><div>…</div></div>
+<div class="lbl">Como chega no valor da oferta</div>
+<div class="conta">
+<div class="l"><span>Meta do dia ÷ 5 horas</span><b>R$ 19,00/h</b></div>
+<div class="l"><span>+ custo do carro (15 km/h × R$ 0,50)</span><b>R$ 7,50/h</b></div>
+<div class="l"><span>= faturar por hora trabalhada</span><b>R$ 26,50/h</b></div>
+<div class="l"><span>Tempo com passageiro (suas corridas)</span><b>62%</b></div>
+<div class="l tot"><span style="color:#fff">Oferta precisa pagar</span><b style="color:var(--lucro)">R$ 43/h</b></div>
+</div>
+<div class="btn">Usar R$ 43/h no semáforo</div>
+<div class="dica" style="margin-top:10px">Os 62% saem das suas últimas corridas: o resto do tempo é esperando chamada e indo buscar o passageiro.</div>
+</div></div></div>
+
+<div class="col"><div class="rot">2 · Semáforo ajustado pela meta<small>Menu → Leitor de ofertas. O verde do R$/hora começa na sua meta; a linha azul marca onde ela está.</small></div>
+<div class="cel"><div class="sb"><span>9:13</span><span>81%</span></div><div class="pad">
+<div class="row" style="margin:6px 0 10px"><span style="font-size:20px;color:var(--sec)">‹</span><span class="sg" style="font-size:20px">Leitor de ofertas</span></div>
+<div class="card" style="padding:14px">
+<div class="row" style="justify-content:space-between"><div class="t">R$ por hora</div><span class="tag">pela meta</span></div>
+<div class="faixa"><u style="left:50%"></u><em style="left:50%">sua meta R$ 43</em><i style="left:calc(30% - 13px)"></i><i style="left:calc(50% - 13px)"></i></div>
+<div class="row" style="justify-content:space-between;font-size:12px;margin-top:14px"><span style="color:var(--verm)">● abaixo de R$ 30</span><span style="color:var(--amar)">● R$ 30 a 43</span><span style="color:var(--turq)">● R$ 43+</span></div>
+</div>
+<div class="card" style="padding:14px">
+<div class="t">R$ por km</div>
+<div class="faixa" style="background:linear-gradient(90deg,var(--verm) 0 25%,var(--amar) 25% 45%,var(--turq) 45% 100%)"><i style="left:calc(25% - 13px)"></i><i style="left:calc(45% - 13px)"></i></div>
+<div class="row" style="justify-content:space-between;font-size:12px;margin-top:14px"><span style="color:var(--verm)">● até 1,20</span><span style="color:var(--amar)">● 1,20 a 1,80</span><span style="color:var(--turq)">● 1,80+</span></div>
+</div>
+<div class="dica">O amarelo fica 30% abaixo da meta: a corrida não bate a meta, mas ainda dá lucro. Você pode arrastar as bolinhas como antes.</div>
+</div></div></div>
+
+<div class="col"><div class="rot">3 · Início compara com a meta<small>No resumo do dia, o "por hora" mostra se você está acima ou abaixo da sua meta.</small></div>
+<div class="cel"><div class="sb"><span>14:40</span><span>63%</span></div><div class="pad">
+<div class="s" style="margin-top:6px">Boa tarde,</div><div class="sg" style="font-size:22px">Lucas</div>
+<div class="card dest" style="padding:18px;margin-top:12px">
+<div class="lbl" style="margin:0 0 4px">Lucro hoje</div>
+<div class="sg" style="font-size:40px">R$ 61<span style="font-size:22px;color:var(--sec)">,20</span></div>
+<div class="bar"><i style="width:64%"></i></div><div class="s">64% da meta de R$ 95 · 3h10 rodadas</div>
+<div class="anel">
+<div><span>CORRIDAS</span><b>9</b></div>
+<div><span>POR HORA</span><b style="color:var(--turq)">R$ 19,30</b><small style="color:var(--turq)">meta R$ 19 ✓</small></div>
+<div><span>FALTA</span><b>R$ 33,80</b><small style="color:var(--sec)">~1h45 no ritmo</small></div>
+</div>
+</div>
+<div class="card" style="padding:14px"><div class="t">No ritmo certo</div><div class="s ok">Mantendo R$ 19/h você bate a meta lá pelas 16:25.</div></div>
+</div>
+<div class="nav"><div class="on">⌂<span>Início</span></div><div>☰<span>Corridas</span></div><div>▭<span>Finanças</span></div><div>↗<span>Atividade</span></div><div>◯<span>Menu</span></div></div>
+</div></div>
+
+</div></body></html>
