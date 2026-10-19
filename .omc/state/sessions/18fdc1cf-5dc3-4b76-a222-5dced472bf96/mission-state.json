@@ -1,0 +1,77 @@
+{
+  "updatedAt": "2026-10-19T17:23:36.355Z",
+  "missions": [
+    {
+      "id": "session:18fdc1cf-5dc3-4b76-a222-5dced472bf96:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-10-19T17:05:06.042Z",
+      "updatedAt": "2026-10-19T17:23:36.355Z",
+      "status": "done",
+      "workerCount": 1,
+      "taskCounts": {
+        "total": 1,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 0,
+        "completed": 1,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "ecc:kotlin-reviewer:a0c0eda",
+          "role": "ecc:kotlin-reviewer",
+          "ownership": "a0c0eda83f4a1c87d",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-19T17:23:36.355Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-start:a0c0eda83f4a1c87d:2026-10-19T17:05:06.042Z",
+          "at": "2026-10-19T17:05:06.042Z",
+          "kind": "update",
+          "agent": "ecc:kotlin-reviewer:a0c0eda",
+          "detail": "started ecc:kotlin-reviewer:a0c0eda",
+          "sourceKey": "session-start:a0c0eda83f4a1c87d"
+        },
+        {
+          "id": "session-stop:a523902dbee07c3e2:2026-10-19T17:05:38.058Z",
+          "at": "2026-10-19T17:05:38.058Z",
+          "kind": "completion",
+          "agent": "ecc:kotlin-reviewer:a0c0eda",
+          "detail": "completed",
+          "sourceKey": "session-stop:a523902dbee07c3e2"
+        },
+        {
+          "id": "session-stop:ad781e028c8ad9c1c:2026-10-19T17:06:11.387Z",
+          "at": "2026-10-19T17:06:11.387Z",
+          "kind": "completion",
+          "agent": "ecc:kotlin-reviewer:a0c0eda",
+          "detail": "completed",
+          "sourceKey": "session-stop:ad781e028c8ad9c1c"
+        },
+        {
+          "id": "session-stop:a0c0eda83f4a1c87d:2026-10-19T17:06:39.539Z",
+          "at": "2026-10-19T17:06:39.539Z",
+          "kind": "completion",
+          "agent": "ecc:kotlin-reviewer:a0c0eda",
+          "detail": "completed",
+          "sourceKey": "session-stop:a0c0eda83f4a1c87d"
+        },
+        {
+          "id": "session-stop:a27453af7111c3b74:2026-10-19T17:23:36.355Z",
+          "at": "2026-10-19T17:23:36.355Z",
+          "kind": "completion",
+          "agent": "ecc:kotlin-reviewer:a0c0eda",
+          "detail": "completed",
+          "sourceKey": "session-stop:a27453af7111c3b74"
+        }
+      ]
+    }
+  ]
+}

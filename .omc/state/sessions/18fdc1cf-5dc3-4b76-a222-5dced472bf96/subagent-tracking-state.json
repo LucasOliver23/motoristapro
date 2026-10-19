@@ -1,0 +1,39 @@
+{
+  "agents": [
+    {
+      "agent_id": "a0c0eda83f4a1c87d",
+      "agent_type": "ecc:kotlin-reviewer",
+      "started_at": "2026-10-19T17:05:06.042Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-10-19T17:06:39.539Z",
+      "duration_ms": 93497
+    },
+    {
+      "agent_id": "ad781e028c8ad9c1c",
+      "agent_type": "untracked-native-fork",
+      "started_at": "2026-10-19T17:06:11.387Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-10-19T17:06:11.387Z",
+      "synthetic": true,
+      "telemetry_status": "unmatched_stop",
+      "telemetry_note": "SubagentStop arrived without a matching SubagentStart; native Agent/Task start telemetry was not observed."
+    },
+    {
+      "agent_id": "a27453af7111c3b74",
+      "agent_type": "untracked-native-fork",
+      "started_at": "2026-10-19T17:23:36.355Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-10-19T17:23:36.355Z",
+      "synthetic": true,
+      "telemetry_status": "unmatched_stop",
+      "telemetry_note": "SubagentStop arrived without a matching SubagentStart; native Agent/Task start telemetry was not observed."
+    }
+  ],
+  "total_spawned": 1,
+  "total_completed": 4,
+  "total_failed": 0,
+  "last_updated": "2026-10-19T17:23:36.445Z"
+}

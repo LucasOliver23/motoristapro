@@ -350,3 +350,22 @@ fun ConfirmarExclusao(texto: String, onDismiss: () -> Unit, onConfirmar: () -> U
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
+
+/** Pergunta de sim/não antes de uma ação séria: título, explicação, confirmar e "Cancelar". */
+@Composable
+fun DialogoConfirmacao(
+    titulo: String,
+    texto: String,
+    rotuloConfirmar: String,
+    onDismiss: () -> Unit,
+    onConfirmar: () -> Unit,
+    corConfirmar: Color = Color.Unspecified
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(titulo) },
+        text = { Text(texto) },
+        confirmButton = { TextButton(onClick = onConfirmar) { Text(rotuloConfirmar, color = corConfirmar) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}

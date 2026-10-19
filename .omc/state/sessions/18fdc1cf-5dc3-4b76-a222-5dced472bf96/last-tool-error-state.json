@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ls \\\"/c/Program Files/Android/Android Studio/jbr/bin/java.exe\\\" 2>&1; ls \\\"/c/Program Files/Android/\\\" 2>&1; ls \\\"/c/Program Files/Java\\\" 2>&1; ls ~/.jdks 2>&1\",\"description\":\"Locate a JDK...",
+  "error": "Exit code 2\n/c/Program Files/Android/Android Studio/jbr/bin/java.exe\nAndroid Studio\nls: cannot access '/c/Program Files/Java': No such file or directory\nls: cannot access '/c/Users/Lucas/.jdks': No such file or directory",
+  "timestamp": "2026-10-19T16:54:54.602Z",
+  "retry_count": 1
+}
