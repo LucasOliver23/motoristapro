@@ -1,0 +1,101 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--fundo:#0D1117;--card:#161C24;--alto:#21262D;--mais:#2B323B;--lucro:#4CC9F0;--verm:#FF5252;--amar:#FFC94D;--turq:#2DE2C5;--roxo:#BC8CFF;--lar:#F97316;--azul:#58A6FF;--txt:#fff;--sec:#8B949E;--cont:#21262D}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05070a;font-family:Inter,sans-serif;color:var(--txt);padding:40px 30px;width:1400px}
+h1{font-family:'Space Grotesk';font-size:34px;margin-bottom:6px}
+.sub{color:var(--sec);font-size:16px;margin-bottom:30px}
+.linha{display:flex;gap:34px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:14px}
+.rot{font-weight:700;font-size:18px;height:56px}.rot small{display:block;color:var(--sec);font-weight:400;font-size:13px;margin-top:4px;max-width:400px}
+.cel{width:400px;height:840px;border-radius:44px;background:var(--fundo);border:10px solid #1e232b;overflow:hidden;position:relative;box-shadow:0 30px 60px #0008}
+.sb{display:flex;justify-content:space-between;padding:12px 24px 0;font-size:13px;color:var(--sec);font-weight:600}
+.pad{padding:10px 16px}
+.sg{font-family:'Space Grotesk';font-weight:700}
+.card{background:var(--card);border-radius:20px;margin-bottom:10px}
+.dest{background:linear-gradient(135deg,#132536,#161C24 60%)}
+.lbl{font-size:10px;letter-spacing:1.2px;color:var(--sec);font-weight:700;text-transform:uppercase;margin:14px 4px 6px}
+.row{display:flex;align-items:center;gap:10px}
+.item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--cont)}.item:last-child{border:0}
+.qd{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.t{font-size:14px;font-weight:700}.s{font-size:11px;color:var(--sec);margin-top:1px}.s.ok{color:var(--lucro)}
+.nav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:12px 0 18px;background:var(--card);border-top:1px solid var(--cont)}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--sec)}.nav .on{color:var(--lucro)}
+.btn{background:var(--lucro);color:#0D1117;text-align:center;font-weight:800;padding:14px;border-radius:14px;font-size:15px}
+.btn2{background:var(--alto);color:var(--sec);text-align:center;font-weight:700;padding:14px;border-radius:14px;font-size:15px}
+.veu{position:absolute;inset:0;background:#000a;display:flex;align-items:flex-end}
+.folha{background:var(--card);width:100%;border-radius:26px 26px 0 0;padding:20px 18px 26px}
+.campo{background:var(--alto);border:2px solid var(--lucro);border-radius:16px;padding:12px 16px;margin:14px 0 8px}
+.campo small{font-size:11px;color:var(--sec);font-weight:600}.campo b{display:block;font-family:'Space Grotesk';font-size:34px;margin-top:2px}.campo b span{font-size:16px;color:var(--sec)}
+.dica{background:#12283a;color:#bfeaf8;font-size:12px;border-radius:12px;padding:10px 12px;line-height:1.5}
+.it{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:8px}
+.anel{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.anel i{width:30px;height:30px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:14px}
+.st{font-size:10px;font-weight:800;padding:3px 7px;border-radius:6px;display:inline-block}
+.ok{background:#0f2e2a;color:var(--turq)}.at{background:#33290f;color:var(--amar)}.ve{background:#331616;color:var(--verm)}
+.alerta{display:flex;align-items:center;gap:10px;border:1.5px solid var(--verm);background:#2b1515;border-radius:16px;padding:12px 14px;margin-bottom:10px;font-size:13px}
+.alerta .b{margin-left:auto;background:var(--verm);color:#fff;font-weight:800;font-size:12px;padding:8px 12px;border-radius:10px;white-space:nowrap}
+.mini{display:flex;justify-content:space-between;font-size:13px;padding:6px 0}.mini span{color:var(--sec)}
+.auto{font-size:9px;font-weight:800;background:#12283a;color:var(--lucro);padding:2px 5px;border-radius:4px}
+</style></head><body>
+<h1>MotoristaPro · Km do veículo e manutenção</h1>
+<div class="sub">Desenho para aprovar. O app pergunta o km ao iniciar e ao encerrar o dia; no meio, o GPS vai somando sozinho. Assim o uso pessoal também conta e cada troca aparece no km certo.</div>
+<div class="linha">
+
+<div class="col"><div class="rot">1 · Ao iniciar a jornada<small>Pergunta o km do painel. Já vem preenchido com o último km; é só conferir e tocar em Confirmar.</small></div>
+<div class="cel"><div class="sb"><span>07:02</span><span>95%</span></div><div class="pad">
+<div class="s" style="margin-top:6px">Bom dia,</div><div class="sg" style="font-size:22px">Lucas</div>
+</div>
+<div class="veu"><div class="folha">
+<div class="row" style="gap:10px"><svg width="44" height="30" viewBox="0 0 64 40" fill="none" stroke="#4CC9F0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="28" r="9"/><circle cx="52" cy="28" r="9"/><path d="M12 28 L26 14 H38 L46 26"/><path d="M24 14 L20 8 H14"/><path d="M38 14 L44 8 H50"/><path d="M28 22 H40"/></svg><div><div class="sg" style="font-size:20px">Km atual da moto</div><div class="s">Honda CG 160 Fan</div></div></div>
+<div class="s" style="font-size:13px;margin-top:4px">Olhe o painel e confira. Se usou a moto fora do app, o número muda aqui.</div>
+<div class="campo"><small>HODÔMETRO</small><b>83.544 <span>km</span></b></div>
+<div class="mini"><span>Ontem ao encerrar</span><b>83.510 km</b></div>
+<div class="mini"><span>Uso fora do app</span><b style="color:var(--amar)">+ 34 km</b></div>
+<div class="dica" style="margin:10px 0 14px">🔧 Troca de óleo em <b>456 km</b> (84.000 km)</div>
+<div class="btn">Confirmar e iniciar</div>
+<div style="text-align:center;color:var(--sec);font-size:13px;margin-top:12px">Pular hoje</div>
+</div></div>
+</div></div>
+
+<div class="col"><div class="rot">2 · Ao encerrar o dia<small>Sugere o km somando o que o GPS mediu. Você corrige se o painel mostrar outro número.</small></div>
+<div class="cel"><div class="sb"><span>18:40</span><span>31%</span></div><div class="pad">
+<div class="s" style="margin-top:6px">Boa noite,</div><div class="sg" style="font-size:22px">Lucas</div>
+</div>
+<div class="veu"><div class="folha">
+<div class="row" style="gap:10px"><svg width="44" height="30" viewBox="0 0 64 40" fill="none" stroke="#4CC9F0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="28" r="9"/><circle cx="52" cy="28" r="9"/><path d="M12 28 L26 14 H38 L46 26"/><path d="M24 14 L20 8 H14"/><path d="M38 14 L44 8 H50"/><path d="M28 22 H40"/></svg><div><div class="sg" style="font-size:20px">Km ao encerrar</div><div class="s">Honda CG 160 Fan</div></div></div>
+<div class="s" style="font-size:13px;margin-top:4px">Pelo GPS você rodou uns 98 km hoje. Confira no painel.</div>
+<div class="campo"><small>HODÔMETRO</small><b>83.644 <span>km</span></b></div>
+<div class="mini"><span>Começou o dia em</span><b>83.544 km</b></div>
+<div class="mini"><span>Rodou hoje</span><b style="color:var(--lucro)">100 km</b></div>
+<div class="mini"><span>Custo da moto no dia (R$ 0,43/km)</span><b>R$ 43,00</b></div>
+<div class="dica" style="margin:10px 0 14px">🔧 Troca de óleo agora em <b>356 km</b> · uns 3 dias no seu ritmo</div>
+<div class="btn">Confirmar e encerrar</div>
+</div></div>
+</div></div>
+
+<div class="col"><div class="rot">3 · Manutenção com o km sempre certo<small>Menu → Manutenção. Mostra o veículo (desenho de moto ou carro), odômetro com "Corrigir", aviso do que venceu e cada item com o anel do quanto já rodou.</small></div>
+<div class="cel"><div class="sb"><span>18:41</span><span>31%</span></div><div class="pad">
+<div class="row" style="margin:6px 0 10px"><span style="font-size:20px;color:var(--sec)">‹</span><span class="sg" style="font-size:20px">Manutenção</span></div>
+<div class="card" style="padding:12px 14px">
+<div class="row"><div style="width:58px;height:44px;border-radius:12px;background:#12283a;display:flex;align-items:center;justify-content:center"><svg width="44" height="30" viewBox="0 0 64 40" fill="none" stroke="#4CC9F0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="28" r="9"/><circle cx="52" cy="28" r="9"/><path d="M12 28 L26 14 H38 L46 26"/><path d="M24 14 L20 8 H14"/><path d="M38 14 L44 8 H50"/><path d="M28 22 H40"/></svg></div>
+<div style="flex:1"><div class="row" style="gap:6px"><span class="t">Honda CG 160 Fan</span><span class="st ok">ATIVO</span></div><div class="s">Moto · gasolina · 38 km/L</div></div></div>
+<div class="s" style="margin-top:8px">Vem do assistente de custo · <span style="color:var(--lucro)">trocar veículo</span></div>
+</div>
+<div class="card" style="padding:12px 16px">
+<div class="row" style="justify-content:space-between"><div class="lbl" style="margin:0">Odômetro atual</div><span style="color:var(--lucro);font-size:13px;font-weight:700">Corrigir</span></div>
+<div class="sg" style="font-size:30px;margin-top:2px">83.644 <span style="font-size:15px;color:var(--sec)">km</span></div>
+<div class="row" style="gap:6px;margin-top:4px"><span class="auto">AUTO</span><span class="s">atualizado ao encerrar o dia · hoje, 18:40</span></div>
+</div>
+<div class="alerta">⚠️<div>Corrente/relação · <b style="color:var(--verm)">144 km</b> além do prazo</div><div class="b">Fiz agora</div></div>
+<div class="row" style="justify-content:space-between;margin:4px 2px 8px"><b style="font-size:15px">Itens</b><span style="color:var(--lucro);font-size:13px">Histórico ›</span></div>
+<div class="it"><div class="anel" style="background:conic-gradient(var(--amar) 64%,var(--alto) 0)"><i>💧</i></div><div style="flex:1"><div class="t">Troca de óleo</div><div class="s">83.000 → 84.000 km</div></div><div style="text-align:right"><span class="st at">ATENÇÃO</span><div class="s" style="margin-top:4px">faltam 356 km</div></div></div>
+<div class="it"><div class="anel" style="background:conic-gradient(var(--verm) 100%,var(--alto) 0)"><i>⛓</i></div><div style="flex:1"><div class="t">Corrente/relação</div><div class="s">73.500 → 83.500 km</div></div><div style="text-align:right"><span class="st ve">ATRASADA</span><div class="s" style="margin-top:4px">144 km além</div></div></div>
+<div class="it"><div class="anel" style="background:conic-gradient(var(--turq) 30%,var(--alto) 0)"><i>◎</i></div><div style="flex:1"><div class="t">Pneu traseiro</div><div class="s">80.644 → 90.644 km</div></div><div style="text-align:right"><span class="st ok">EM DIA</span><div class="s" style="margin-top:4px">faltam 7.000 km</div></div></div>
+<div style="border:1.5px dashed var(--mais);border-radius:16px;text-align:center;padding:12px;color:var(--sec);font-size:14px">+ Adicionar item</div>
+</div>
+<div class="nav"><div>⌂<span>Início</span></div><div>☰<span>Corridas</span></div><div>▭<span>Finanças</span></div><div>↗<span>Atividade</span></div><div class="on">◯<span>Menu</span></div></div>
+</div></div>
+
+</div></body></html>
