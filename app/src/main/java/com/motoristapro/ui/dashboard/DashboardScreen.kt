@@ -1,5 +1,9 @@
 package com.motoristapro.ui.dashboard
 
+import com.motoristapro.ui.manutencao.DadosKm
+import com.motoristapro.ui.manutencao.KmDoPainelDialog
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -168,6 +172,14 @@ fun DashboardRoute(
         vm.iniciarJornada(comGps = resultado[Manifest.permission.ACCESS_FINE_LOCATION] == true)
     }
 
+    // O km do painel, perguntado ao abrir e ao fechar a jornada: é o que
+    // mantém a manutenção certa mesmo com o uso da moto fora do app.
+    val escopo = rememberCoroutineScope()
+    var perguntaKm by remember { mutableStateOf<Pair<Boolean, DadosKm>?>(null) }
+    fun perguntarKm(encerrando: Boolean) {
+        escopo.launch { perguntaKm = encerrando to vm.dadosKm(encerrando) }
+    }
+
     // Botão "Iniciar jornada" do widget: espera o Início carregar e segue o
     // mesmo caminho do botão da tela (pede a localização e abre o turno).
     val pedidoWidget by NavegacaoRapida.iniciarJornadaPedido.collectAsStateWithLifecycle()
@@ -231,9 +243,9 @@ fun DashboardRoute(
                     estado = estado,
                     agora = agora,
                     gpsRodando = gpsOk,
-                    onIniciar = { pedirPermissoes.launch(permissoes) },
+                    onIniciar = { perguntarKm(encerrando = false) },
                     onPausar = vm::alternarPausa,
-                    onEncerrar = vm::encerrarJornada,
+                    onEncerrar = { perguntarKm(encerrando = true) },
                     onRetomarGps = vm::retomarGps
                 )
 
@@ -249,7 +261,21 @@ fun DashboardRoute(
             sequencia = sequencia,
             turnoAberto = estado.jornada != null,
             onContinuar = { comemorar = false },
-            onEncerrar = { comemorar = false; vm.encerrarJornada() }
+            onEncerrar = { comemorar = false; perguntarKm(encerrando = true) }
+        )
+    }
+
+    perguntaKm?.let { (encerrando, dados) ->
+        val seguir = {
+            perguntaKm = null
+            if (encerrando) vm.encerrarJornada() else pedirPermissoes.launch(permissoes)
+        }
+        KmDoPainelDialog(
+            encerrando = encerrando,
+            dados = dados,
+            onConfirmar = { km -> vm.registrarKm(km, encerrando); seguir() },
+            onPular = { seguir() },
+            onDismiss = { perguntaKm = null }
         )
     }
 }
