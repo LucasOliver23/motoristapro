@@ -1,17 +1,33 @@
-NADA PARA APAGAR NESTA VERSAO (4.10.1)
+NADA PARA APAGAR NESTA VERSAO (4.11.0)
 ======================================
 
-Nenhum arquivo removido. Banco continua na versao 13.
+Nenhum arquivo removido. Banco continua na versao 13 (o km do painel fica
+nas preferencias; a foto do veiculo num arquivo dentro do app).
 
-Ajustes da meta por hora (Menu > Suas metas):
-- "custo do carro" vira "custo da moto" quando o veiculo do assistente e moto.
-- Km por hora: sem GPS da jornada, usa o km por dia / horas do assistente
-  (antes era 15 km/h fixo).
-- A conta explica por que a oferta pede mais que o "faturar por hora": o
-  R$/hora da oferta so conta o tempo da corrida (ex.: 29,55 / 60% = 50).
+Novo: km do veiculo e manutencao.
+- Ao iniciar a jornada o app pergunta o km do painel (ja preenchido) e
+  mostra o uso fora do app; ao encerrar sugere o km somando o GPS, mostra
+  quanto rodou no dia e o custo do veiculo no dia. Da para pular.
+- Odometro do app = ultima leitura do painel (inicio/fim/correcao ou
+  abastecimento, a mais nova) + km do GPS das jornadas depois dela.
+- Menu > Manutencao refeita: veiculo no alto (desenho de moto ou carro, ou
+  a foto que o motorista escolher na galeria), odometro com Corrigir, faixa
+  vermelha do item atrasado com "Fiz agora", itens com anel e etiqueta
+  EM DIA / ATENCAO / ATRASADA. Tocar no item abre Fiz agora / Editar / Excluir.
+
+Arquivos novos:
+  app/src/main/java/com/motoristapro/veiculo/Odometro.kt
+  app/src/main/java/com/motoristapro/veiculo/OdometroVeiculo.kt
+  app/src/main/java/com/motoristapro/veiculo/FotoVeiculo.kt
+  app/src/main/java/com/motoristapro/ui/manutencao/KmDoPainelDialog.kt
+  app/src/test/java/com/motoristapro/veiculo/OdometroTest.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
+  app/src/main/java/com/motoristapro/MotoristaApp.kt
+  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardViewModel.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt
-  app/src/main/java/com/motoristapro/ui/mais/MetaPorHoraScreen.kt
+  app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt

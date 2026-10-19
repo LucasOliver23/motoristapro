@@ -29,6 +29,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import com.motoristapro.custo.TipoVeiculo
+import com.motoristapro.ui.custo.paraDados
+import com.motoristapro.ui.manutencao.DadosKm
+import com.motoristapro.ui.manutencao.maisUrgente
+import com.motoristapro.veiculo.OrigemOdometro
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -178,6 +184,23 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
                 .onFailure { _mensagens.send("Erro ao iniciar turno: ${it.message}") }
         }
     }
+
+    /** O que a pergunta do km do painel mostra (início ou fim da jornada). */
+    suspend fun dadosKm(encerrando: Boolean): DadosKm {
+        val perfil = runCatching { repo.obterPerfilCusto() }.getOrNull()?.paraDados()
+        val cfg = runCatching { repo.obterConfiguracao() }.getOrNull()
+        return DadosKm(
+            atual = app.odometro.atual(),
+            inicio = if (encerrando) app.odometro.leituraDoInicio() else null,
+            urgente = maisUrgente(runCatching { repo.manutencoes().first() }.getOrDefault(emptyList())),
+            custoKmCentavos = cfg?.custoKmCentavos ?: 0,
+            tipo = perfil?.tipoVeiculo ?: TipoVeiculo.MOTO,
+            nomeVeiculo = cfg?.veiculoNome?.takeIf { it.isNotBlank() } ?: perfil?.veiculoNome?.takeIf { it.isNotBlank() }
+        )
+    }
+
+    fun registrarKm(km: Long, encerrando: Boolean) =
+        app.odometro.registrar(km, if (encerrando) OrigemOdometro.FIM else OrigemOdometro.INICIO)
 
     /** Religa o GPS de um turno que ficou aberto (ex.: o sistema encerrou o serviço). */
     fun retomarGps() = JornadaService.iniciar(app)

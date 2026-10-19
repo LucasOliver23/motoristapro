@@ -3,6 +3,9 @@ package com.motoristapro.ui.mais
 import com.motoristapro.custo.ContaMetaHora
 import com.motoristapro.custo.DadosCusto
 import com.motoristapro.custo.MetaPorHora
+import com.motoristapro.ui.manutencao.kmPainel
+import com.motoristapro.veiculo.OdometroAtual
+import com.motoristapro.veiculo.OrigemOdometro
 import com.motoristapro.data.repository.Periodo
 import com.motoristapro.ui.custo.paraDados
 import androidx.lifecycle.ViewModel
@@ -141,19 +144,32 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
-     * O hodômetro de hoje, tirado do último abastecimento com km informado.
-     *
-     * É o número que o motorista já digita quando abastece — pedir de novo só
-     * para a manutenção seria obrigá-lo a manter dois hodômetros na cabeça.
-     * Zero = ainda não informou km em nenhum abastecimento.
+     * O hodômetro de hoje: a última leitura do painel (início/fim do dia,
+     * correção ou abastecimento, a mais nova) mais o GPS desde então.
+     * null = o motorista ainda não informou km em lugar nenhum.
      */
-    private val _odometroAtual = MutableStateFlow(0L)
-    val odometroAtual: StateFlow<Long> = _odometroAtual.asStateFlow()
+    private val _odometro = MutableStateFlow<OdometroAtual?>(null)
+    val odometro: StateFlow<OdometroAtual?> = _odometro.asStateFlow()
+
+    /** Só o número, para as linhas do Menu. 0 = sem km. */
+    val odometroAtual: StateFlow<Long> = _odometro.map { it?.km ?: 0L }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0L)
+
+    init {
+        // Leitura salva no Início (jornada) também atualiza aqui.
+        viewModelScope.launch { app.odometro.mudou.collect { conferirOdometro() } }
+    }
 
     fun conferirOdometro() {
         viewModelScope.launch {
-            _odometroAtual.value = runCatching { repo.ultimoOdometro() }.getOrNull() ?: 0L
+            _odometro.value = runCatching { app.odometro.atual() }.getOrNull()
         }
+    }
+
+    /** "Corrigir": o motorista leu o painel e digitou. */
+    fun corrigirOdometro(km: Long) {
+        app.odometro.registrar(km, OrigemOdometro.MANUAL)
+        viewModelScope.launch { _mensagens.send("Odômetro: ${km.kmPainel()} km") }
     }
 
     fun salvarManutencao(item: ItemManutencao) {

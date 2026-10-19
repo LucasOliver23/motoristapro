@@ -32,6 +32,7 @@ import com.motoristapro.pacote.PlanoPacote
 import android.util.Log
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -295,6 +296,19 @@ class FinanceiroRepository(
         despesaDao.observarTotalPorCategoria(inicio, fim)
 
     suspend fun ultimoOdometro(): Long? = despesaDao.ultimoAbastecimentoComOdometro()?.odometroKm
+
+    /** O último abastecimento com km do painel (km e quando), para o hodômetro do app. */
+    suspend fun ultimoAbastecimentoComOdometro(): Despesa? = despesaDao.ultimoAbastecimentoComOdometro()
+
+    /**
+     * Metros que o GPS mediu em jornadas que COMEÇARAM a partir de [desde],
+     * contando a aberta. É o que soma ao último km lido no painel.
+     */
+    suspend fun metrosGpsDesde(desde: Long): Long {
+        val encerradas = jornadaDao.observarTotaisEncerradas(desde, Long.MAX_VALUE).first().metros
+        val aberta = jornadaDao.ativa()?.takeIf { it.inicioEm >= desde }?.metrosGps ?: 0
+        return encerradas + aberta
+    }
 
     // ================================================================== totais de HOJE
 

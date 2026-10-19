@@ -12,6 +12,7 @@ import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.nuvem.SincronizacaoNuvem
 import com.motoristapro.resumo.ResumoDiarioWorker
 import com.motoristapro.service.AvisoLeitor
+import com.motoristapro.veiculo.OdometroVeiculo
 import com.motoristapro.widget.WidgetLucro
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,7 @@ class MotoristaApp : Application() {
     val database: AppDatabase by lazy { AppDatabase.get(this) }
     val repository: FinanceiroRepository by lazy { FinanceiroRepository(database) { preferencias.pacote.value } }
     val preferencias: PreferenciasApp by lazy { PreferenciasApp(this) }
+    val odometro: OdometroVeiculo by lazy { OdometroVeiculo(this, repository) }
     val autenticacao: AutenticacaoManager by lazy { AutenticacaoManager(this) }
     val nuvem: SincronizacaoNuvem by lazy { SincronizacaoNuvem(this, database, autenticacao) }
     val atualizacao: AtualizacaoManager by lazy { AtualizacaoManager(this) }

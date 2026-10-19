@@ -10,6 +10,7 @@ import com.motoristapro.custo.CalculadoraCusto
 import com.motoristapro.custo.DadosCusto
 import com.motoristapro.custo.FatiasCusto
 import com.motoristapro.custo.TipoVeiculo
+import com.motoristapro.ui.manutencao.VeiculoResumo
 import com.motoristapro.ui.custo.BarraFatias
 import com.motoristapro.ui.custo.CorCombustivel
 import com.motoristapro.ui.custo.CorManutencao
@@ -192,6 +193,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val metaPorHora by vm.metaPorHora.collectAsStateWithLifecycle()
     val manutencoes by vm.manutencoes.collectAsStateWithLifecycle()
     val odometro by vm.odometroAtual.collectAsStateWithLifecycle()
+    val odometroLido by vm.odometro.collectAsStateWithLifecycle()
     var assistenteAberto by remember { mutableStateOf(false) }
     var sub by remember { mutableStateOf<SubTela?>(null) }
     var novoCusto by remember { mutableStateOf(false) }
@@ -398,7 +400,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         icone = "🔧",
                         estado = when {
                             manutencoes.isEmpty() -> "óleo, pneus e revisão por km"
-                            odometro <= 0L -> "informe o km ao abastecer"
+                            odometro <= 0L -> "informe o km do painel"
                             else -> maisUrgente(manutencoes)!!.let { item ->
                                 "${item.nome.lowercase(PT)} ${textoDaManutencao(item, odometro)}"
                             }
@@ -761,9 +763,21 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     }
                     SubTela.MANUTENCAO -> ManutencaoConteudo(
                         itens = manutencoes,
-                        odometroAtual = odometro,
+                        odometro = odometroLido,
+                        veiculo = VeiculoResumo(
+                            tipo = dadosCusto?.tipoVeiculo ?: TipoVeiculo.MOTO,
+                            nome = cfg.veiculoNome?.takeIf { it.isNotBlank() }
+                                ?: dadosCusto?.veiculoNome?.takeIf { it.isNotBlank() },
+                            detalhe = listOfNotNull(
+                                (dadosCusto?.tipoVeiculo ?: TipoVeiculo.MOTO).rotulo,
+                                dadosCusto?.combustivel?.rotulo?.lowercase(PT),
+                                cfg.consumoKmLx100.takeIf { it > 0 }?.let { String.format(PT, "%.1f km/L", it / 100.0) }
+                            ).joinToString(" · ")
+                        ),
                         onSalvar = vm::salvarManutencao,
-                        onExcluir = vm::excluirManutencao
+                        onExcluir = vm::excluirManutencao,
+                        onCorrigirKm = vm::corrigirOdometro,
+                        onEditarVeiculo = { assistenteAberto = true }
                     )
                     SubTela.APARENCIA -> AparenciaScreen()
                     SubTela.VERSAO ->
