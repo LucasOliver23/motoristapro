@@ -2,3 +2,4 @@
 {"t":0,"agent":"a523902","agent_type":"ecc:kotlin-reviewer","event":"agent_stop","success":true,"duration_ms":32016}
 {"t":0,"agent":"ad781e0","agent_type":"untracked-native-fork","event":"agent_stop","success":true,"synthetic":true,"telemetry_status":"unmatched_stop","reason":"SubagentStop arrived without a matching SubagentStart; native Agent/Task start telemetry was not observed."}
 {"t":0,"agent":"a0c0eda","agent_type":"ecc:kotlin-reviewer","event":"agent_stop","success":true,"duration_ms":93497}
+{"t":0,"agent":"a27453a","agent_type":"untracked-native-fork","event":"agent_stop","success":true,"synthetic":true,"telemetry_status":"unmatched_stop","reason":"SubagentStop arrived without a matching SubagentStart; native Agent/Task start telemetry was not observed."}
