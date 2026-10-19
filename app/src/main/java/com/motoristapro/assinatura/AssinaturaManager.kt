@@ -1,5 +1,6 @@
 package com.motoristapro.assinatura
 
+import com.motoristapro.diagnostico.RegistroErros
 import android.content.Context
 import android.util.Log
 import com.google.firebase.FirebaseApp
@@ -45,7 +46,7 @@ class AssinaturaManager(
 ) {
 
     private val prefs = context.getSharedPreferences("assinatura", Context.MODE_PRIVATE)
-    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.IO + RegistroErros.handler("assinatura"))
 
     private val firestore: FirebaseFirestore? = try {
         if (FirebaseApp.getApps(context).isEmpty()) null else FirebaseFirestore.getInstance()

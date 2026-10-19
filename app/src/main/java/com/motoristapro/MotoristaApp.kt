@@ -6,6 +6,7 @@ import com.motoristapro.assinatura.AssinaturaManager
 import com.motoristapro.atualizacao.AtualizacaoManager
 import com.motoristapro.auth.AutenticacaoManager
 import com.motoristapro.data.local.AppDatabase
+import com.motoristapro.diagnostico.RegistroErros
 import com.motoristapro.data.prefs.PreferenciasApp
 import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.jornada.Notificacoes
@@ -33,10 +34,11 @@ class MotoristaApp : Application() {
     val assinatura: AssinaturaManager by lazy { AssinaturaManager(this, autenticacao) }
 
     /** Escopo para tarefas curtas de manutenção (vive enquanto o processo viver). */
-    val escopoApp = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val escopoApp = CoroutineScope(SupervisorJob() + Dispatchers.IO + RegistroErros.handler("app"))
 
     override fun onCreate() {
         super.onCreate()
+        RegistroErros.instalar(this)
         Notificacoes.criarCanais(this)
         runCatching { AvisoLeitor.criarCanal(this) }
         try {

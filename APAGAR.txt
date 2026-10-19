@@ -1,16 +1,24 @@
-NADA PARA APAGAR NESTA VERSAO (4.11.1)
+NADA PARA APAGAR NESTA VERSAO (4.11.2)
 ======================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Correcao: item novo da manutencao vinha com o km de HOJE como "ultima
-troca" - quem ja tinha trocado o oleo antes salvava sem ver e a conta saia
-errada (ex.: trocou a 82.000, app contava a partir de 82.651).
-- Campo da ultima troca agora comeca vazio.
-- Escolha "Ultima troca em" ou "Proxima troca em" (o km da etiqueta da
-  oficina; o app desconta o intervalo).
-- Antes de salvar mostra a conta: "Proxima em 84.000 km - faltam 1.349 km".
+Correcao: leitor de ofertas desligando sozinho ("Nao esta funcionando").
+- Erros nas tarefas do leitor (salvar oferta, registrar, resumo da 99), da
+  jornada e da assinatura nao derrubam mais o processo: ficam anotados.
+- "Ler agora" (segurar a bolha) e a leitura por imagem protegidos tambem
+  contra falta de memoria.
+- Novo: o app guarda o ultimo erro. Menu > Checkup do app > "Ultimo erro do
+  app" mostra, com Copiar e Apagar - para mandar e saber o que quebrou.
+
+Arquivos novos:
+  app/src/main/java/com/motoristapro/diagnostico/RegistroErros.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt
+  app/src/main/java/com/motoristapro/MotoristaApp.kt
+  app/src/main/java/com/motoristapro/assinatura/AssinaturaManager.kt
+  app/src/main/java/com/motoristapro/jornada/JornadaService.kt
+  app/src/main/java/com/motoristapro/service/LeitorOcr.kt
+  app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
+  app/src/main/java/com/motoristapro/ui/mais/CheckupScreen.kt

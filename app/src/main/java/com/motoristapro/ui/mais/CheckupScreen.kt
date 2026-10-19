@@ -1,6 +1,17 @@
 package com.motoristapro.ui.mais
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import com.motoristapro.diagnostico.RegistroErros
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -139,6 +150,45 @@ fun CheckupConteudo(
     itens.forEach { LinhaCheckup(it) }
 
     DiagnosticoCard(diagnostico, leitorOk, ocrLigado)
+
+    UltimoErroCard()
+}
+
+/**
+ * O último erro anotado pelo app (ver RegistroErros). Só aparece se houver:
+ * é o que o motorista copia e manda quando o leitor "desliga sozinho".
+ */
+@Composable
+private fun UltimoErroCard() {
+    val context = LocalContext.current
+    var texto by remember { mutableStateOf(RegistroErros.ler(context)) }
+    val erro = texto ?: return
+    CardSecao(titulo = "ÚLTIMO ERRO DO APP") {
+        Text(
+            "Se o leitor desligou sozinho, o motivo costuma estar aqui. Toque em Copiar e " +
+                "mande para o suporte.",
+            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+        )
+        Text(
+            erro.lines().take(8).joinToString("\n"),
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(SuperficieAlta).padding(10.dp),
+            style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = AmareloAlerta
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(
+                onClick = {
+                    val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    cb.setPrimaryClip(ClipData.newPlainText("Erro MotoristaPro", erro))
+                    Toast.makeText(context, "Erro copiado", Toast.LENGTH_SHORT).show()
+                },
+                modifier = Modifier.weight(1f)
+            ) { Text("Copiar") }
+            OutlinedButton(
+                onClick = { RegistroErros.apagar(context); texto = null },
+                modifier = Modifier.weight(1f)
+            ) { Text("Apagar") }
+        }
+    }
 }
 
 private enum class Situacao { OK, ATENCAO, GRAVE, CONFERIR }
