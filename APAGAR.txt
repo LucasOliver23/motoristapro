@@ -1,33 +1,16 @@
-NADA PARA APAGAR NESTA VERSAO (4.11.0)
+NADA PARA APAGAR NESTA VERSAO (4.11.1)
 ======================================
 
-Nenhum arquivo removido. Banco continua na versao 13 (o km do painel fica
-nas preferencias; a foto do veiculo num arquivo dentro do app).
+Nenhum arquivo removido. Banco continua na versao 13.
 
-Novo: km do veiculo e manutencao.
-- Ao iniciar a jornada o app pergunta o km do painel (ja preenchido) e
-  mostra o uso fora do app; ao encerrar sugere o km somando o GPS, mostra
-  quanto rodou no dia e o custo do veiculo no dia. Da para pular.
-- Odometro do app = ultima leitura do painel (inicio/fim/correcao ou
-  abastecimento, a mais nova) + km do GPS das jornadas depois dela.
-- Menu > Manutencao refeita: veiculo no alto (desenho de moto ou carro, ou
-  a foto que o motorista escolher na galeria), odometro com Corrigir, faixa
-  vermelha do item atrasado com "Fiz agora", itens com anel e etiqueta
-  EM DIA / ATENCAO / ATRASADA. Tocar no item abre Fiz agora / Editar / Excluir.
-
-Arquivos novos:
-  app/src/main/java/com/motoristapro/veiculo/Odometro.kt
-  app/src/main/java/com/motoristapro/veiculo/OdometroVeiculo.kt
-  app/src/main/java/com/motoristapro/veiculo/FotoVeiculo.kt
-  app/src/main/java/com/motoristapro/ui/manutencao/KmDoPainelDialog.kt
-  app/src/test/java/com/motoristapro/veiculo/OdometroTest.kt
+Correcao: item novo da manutencao vinha com o km de HOJE como "ultima
+troca" - quem ja tinha trocado o oleo antes salvava sem ver e a conta saia
+errada (ex.: trocou a 82.000, app contava a partir de 82.651).
+- Campo da ultima troca agora comeca vazio.
+- Escolha "Ultima troca em" ou "Proxima troca em" (o km da etiqueta da
+  oficina; o app desconta o intervalo).
+- Antes de salvar mostra a conta: "Proxima em 84.000 km - faltam 1.349 km".
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/java/com/motoristapro/MotoristaApp.kt
-  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardViewModel.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt
   app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt

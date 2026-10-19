@@ -440,14 +440,15 @@ private fun ManutencaoDialog(
 ) {
     var nome by rememberSaveable { mutableStateOf(inicial?.nome ?: "") }
     var intervalo by rememberSaveable { mutableStateOf(inicial?.intervaloKm?.toString() ?: "") }
-    var ultima by rememberSaveable {
-        mutableStateOf(
-            inicial?.odometroUltimaKm?.toString()
-                ?: odometroAtual.takeIf { it > 0 }?.toString().orEmpty()
-        )
-    }
+    // Item novo começa VAZIO: vir preenchido com o km de hoje fazia quem
+    // trocou o óleo há 600 km salvar sem ver, e a conta saía 600 km errada.
+    var ultima by rememberSaveable { mutableStateOf(inicial?.odometroUltimaKm?.toString().orEmpty()) }
+    // Dá para dizer a próxima troca em vez da última: é o que vem escrito
+    // na etiqueta da oficina ("próxima troca 84.000").
+    var pelaProxima by rememberSaveable { mutableStateOf(false) }
     val km = intervalo.trim().toLongOrNull()
-    val odo = ultima.trim().toLongOrNull()
+    val digitado = ultima.trim().toLongOrNull()
+    val odo = if (pelaProxima) digitado?.let { p -> km?.let { p - it } } else digitado
     val valido = nome.isNotBlank() && km != null && km > 0 && odo != null && odo >= 0
 
     AlertDialog(
@@ -472,13 +473,54 @@ private fun ManutencaoDialog(
                 CampoFormulario(
                     "A cada quantos km", intervalo, { intervalo = it.filter(Char::isDigit) },
                     erro = intervalo.isNotBlank() && (km == null || km <= 0),
-                    ajuda = "óleo de moto costuma ser 3.000 km"
+                    ajuda = "óleo de moto: 1.000 a 3.000 km, conforme o óleo"
                 )
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(SuperficieAlta).padding(3.dp)
+                ) {
+                    listOf(false to "Última troca em", true to "Próxima troca em").forEach { (proxima, rotulo) ->
+                        val ativo = pelaProxima == proxima
+                        Box(
+                            Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                                .background(if (ativo) Lima.copy(alpha = 0.18f) else Color.Transparent)
+                                .clickable { pelaProxima = proxima }.padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                rotulo, style = MaterialTheme.typography.labelMedium,
+                                color = if (ativo) Lima else TextoSecundario, fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
                 CampoFormulario(
-                    "Hodômetro da última vez", ultima, { ultima = it.filter(Char::isDigit) },
-                    erro = ultima.isNotBlank() && odo == null,
-                    ajuda = if (odometroAtual > 0) "hoje o app está em $odometroAtual km" else null
+                    if (pelaProxima) "Km da próxima troca (etiqueta)" else "Km em que fez a última troca",
+                    ultima, { ultima = it.filter(Char::isDigit).take(7) },
+                    erro = ultima.isNotBlank() && (odo == null || odo < 0),
+                    ajuda = if (odometroAtual > 0) "hoje a moto está em ${odometroAtual.kmPainel()} km" else null
                 )
+                // A conta pronta, antes de salvar: é aqui que o engano aparece.
+                if (km != null && km > 0 && odo != null && odo >= 0) {
+                    val vence = odo + km
+                    val faltam = vence - odometroAtual
+                    Text(
+                        if (odometroAtual > 0) {
+                            if (faltam > 0) "Próxima em ${vence.kmPainel()} km · faltam ${faltam.kmPainel()} km"
+                            else "Próxima em ${vence.kmPainel()} km · já passou ${(-faltam).kmPainel()} km"
+                        } else "Próxima em ${vence.kmPainel()} km",
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                            .background(corDaManutencao(if (odometroAtual > 0) faltam else Long.MAX_VALUE).copy(alpha = 0.12f))
+                            .padding(10.dp),
+                        style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold,
+                        color = corDaManutencao(if (odometroAtual > 0) faltam else Long.MAX_VALUE)
+                    )
+                    if (odometroAtual in 1 until odo) {
+                        Text(
+                            "A última troca está depois do km de hoje. Confira o número.",
+                            style = MaterialTheme.typography.labelSmall, color = AmareloAlerta
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
