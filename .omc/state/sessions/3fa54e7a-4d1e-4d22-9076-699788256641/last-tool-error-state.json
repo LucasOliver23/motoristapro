@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd ~/.claude && node -e 'const j=require(\\\"./settings.json\\\");console.log(JSON.stringify(j.env||null,null,2))'; ls settings.local.json 2>/dev/null\",\"description\":\"Show current env block in...",
+  "error": "Exit code 2\n{\n  \"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\": \"1\"\n}",
+  "timestamp": "2026-10-19T16:44:44.700Z",
+  "retry_count": 1
+}

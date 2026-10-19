@@ -1,0 +1,189 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1792427882767,
+  "projectRoot": "C:\\Users\\Lucas\\Documents\\GitHub\\motoristapro",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Kotlin",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "build.gradle.kts"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "gradle",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "app",
+      "docs"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "app": {
+      "path": "app",
+      "purpose": "Application code",
+      "fileCount": 3,
+      "lastAccessed": 1792427882622,
+      "keyFiles": [
+        "build.gradle.kts",
+        "google-services.json",
+        "proguard-rules.pro"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 4,
+      "lastAccessed": 1792427882623,
+      "keyFiles": [
+        "assinatura.md",
+        "atualizacao.md",
+        "firebase.md",
+        "schema.sql"
+      ]
+    },
+    "ferramentas": {
+      "path": "ferramentas",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1792427882624,
+      "keyFiles": [
+        "Criar_Chave_De_Assinatura.bat",
+        "KEYSTORE_BASE64.txt",
+        "motoristapro.jks",
+        "Ver_SHA1.bat"
+      ]
+    },
+    "gradle": {
+      "path": "gradle",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1792427882625,
+      "keyFiles": []
+    },
+    "servidor": {
+      "path": "servidor",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1792427882625,
+      "keyFiles": [
+        "firebase.json",
+        "firestore.rules"
+      ]
+    },
+    "app\\schemas": {
+      "path": "app\\schemas",
+      "purpose": "Schema definitions",
+      "fileCount": 1,
+      "lastAccessed": 1792427882626,
+      "keyFiles": []
+    },
+    "app\\src": {
+      "path": "app\\src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1792427882627,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt",
+      "accessCount": 7,
+      "lastAccessed": 1792429520153,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/ContaScreen.kt",
+      "accessCount": 2,
+      "lastAccessed": 1792429289119,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/RiscoScreen.kt",
+      "accessCount": 2,
+      "lastAccessed": 1792429607849,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/componentes/Dialogos.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429086042,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/componentes/Telas.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429088483,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/componentes/Controles.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429091060,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/SubTela.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429135722,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/MaisLista.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429138162,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/PerfilScreen.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429189934,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/VeiculoCustosScreen.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429192173,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/SemaforoScreen.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429227073,
+      "type": "file"
+    },
+    {
+      "path": "app/src/main/java/com/motoristapro/ui/mais/LeitorScreen.kt",
+      "accessCount": 1,
+      "lastAccessed": 1792429274773,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
