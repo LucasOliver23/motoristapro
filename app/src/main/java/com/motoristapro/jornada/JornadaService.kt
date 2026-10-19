@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
+import com.motoristapro.diagnostico.RegistroErros
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -40,7 +41,7 @@ import java.util.Locale
  */
 class JornadaService : Service() {
 
-    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.Main + RegistroErros.handler("jornada"))
     private var locationManager: LocationManager? = null
 
     private var jornadaId: Long = 0

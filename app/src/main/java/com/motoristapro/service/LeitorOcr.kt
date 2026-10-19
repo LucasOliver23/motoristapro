@@ -48,7 +48,9 @@ class LeitorOcr(private val servico: AccessibilityService) {
                     override fun onSuccess(resultado: AccessibilityService.ScreenshotResult) {
                         val recorte = try {
                             prepararImagem(resultado)
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
+                            // Throwable: falta de memória na cópia da imagem também
+                            // (tela cheia em ARGB = ~10 MB) não pode derrubar o leitor.
                             Log.e(TAG, "Falha ao preparar a captura", e)
                             null
                         }
@@ -119,8 +121,8 @@ class LeitorOcr(private val servico: AccessibilityService) {
         ocupado = false
         try {
             aoTerminar(linhas)
-        } catch (e: Exception) {
-            Log.e(TAG, "Erro ao processar leitura OCR", e)
+        } catch (e: Throwable) {
+            com.motoristapro.diagnostico.RegistroErros.anotar("processar leitura OCR", e)
         }
     }
 

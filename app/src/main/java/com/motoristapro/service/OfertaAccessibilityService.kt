@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.motoristapro.diagnostico.RegistroErros
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.motoristapro.MotoristaApp
@@ -43,7 +44,9 @@ import kotlinx.coroutines.launch
 class OfertaAccessibilityService : AccessibilityService() {
 
     private val handler = Handler(Looper.getMainLooper())
-    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    // Com o handler, um erro numa tarefa (salvar, registrar, conferir o
+    // resumo) fica anotado e o leitor continua; sem ele, o processo inteiro caía.
+    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.Main + RegistroErros.handler("leitor"))
 
     private var overlay: OverlayOferta? = null
     private var cartaoResumo: CartaoResumo? = null
@@ -117,7 +120,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         try {
             conectar()
         } catch (e: Throwable) {
-            Log.e(TAG, "Falha ao conectar o leitor", e)
+            RegistroErros.anotar("conectar o leitor", e)
             _conectado.value = true
         }
     }
@@ -256,8 +259,8 @@ class OfertaAccessibilityService : AccessibilityService() {
     private fun varrerTelaComSeguranca() {
         try {
             varrerTela()
-        } catch (e: Exception) {
-            Log.e(TAG, "Erro ao varrer a tela", e)
+        } catch (e: Throwable) {
+            RegistroErros.anotar("varrer a tela", e)
         }
     }
 
@@ -865,9 +868,14 @@ class OfertaAccessibilityService : AccessibilityService() {
         assinaturaDispensada = null
         ultimaAssinatura = null
         varredurasVazias = 0
-        varrerTela()
-        if (overlay?.visivel != true && ocrDisponivel()) {
-            solicitarOcr(ultimoPacote ?: OfertaInDrive.PACOTE)
+        // Vem de um toque na bolha: fora do try, um erro aqui derrubava o leitor.
+        varrerTelaComSeguranca()
+        try {
+            if (overlay?.visivel != true && ocrDisponivel()) {
+                solicitarOcr(ultimoPacote ?: OfertaInDrive.PACOTE)
+            }
+        } catch (e: Throwable) {
+            RegistroErros.anotar("ler agora", e)
         }
     }
 
