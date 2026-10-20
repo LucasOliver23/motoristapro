@@ -9,7 +9,9 @@ import com.motoristapro.data.local.entity.Configuracao
 import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.entity.CustoFixo
 import com.motoristapro.data.local.entity.Despesa
+import com.motoristapro.data.local.entity.ItemManutencao
 import com.motoristapro.data.local.entity.Jornada
+import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Tudo que vai e volta da nuvem. O histórico de ofertas fica só no celular (é grande e local). */
@@ -19,8 +21,16 @@ data class Pacote(
     val despesas: List<Despesa>,
     val jornadas: List<Jornada>,
     val custosFixos: List<CustoFixo>,
-    val configuracao: Configuracao?
-)
+    val configuracao: Configuracao?,
+    /** null = backup antigo, de antes da manutenção ir junto: aí as do celular ficam. */
+    val manutencoes: List<ItemManutencao>? = null,
+    /** As respostas do assistente de custo. null = backup antigo (ou assistente nunca usado). */
+    val perfilCusto: PerfilCusto? = null
+) {
+    /** Sem corrida, despesa, jornada nem manutenção: é celular recém-instalado (ou zerado). */
+    val vazio: Boolean
+        get() = corridas.isEmpty() && despesas.isEmpty() && jornadas.isEmpty() && manutencoes.isNullOrEmpty()
+}
 
 /** Leitura e escrita em bloco, usada só pela sincronização e pela restauração. */
 @Dao
@@ -32,6 +42,8 @@ interface SincronizacaoDao {
     @Query("SELECT * FROM jornadas ORDER BY inicio_em") suspend fun jornadas(): List<Jornada>
     @Query("SELECT * FROM custos_fixos ORDER BY id") suspend fun custosFixos(): List<CustoFixo>
     @Query("SELECT * FROM configuracoes WHERE id = 1") suspend fun configuracao(): Configuracao?
+    @Query("SELECT * FROM manutencoes ORDER BY id") suspend fun manutencoes(): List<ItemManutencao>
+    @Query("SELECT * FROM perfil_custo WHERE id = 1") suspend fun perfilCusto(): PerfilCusto?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirPlataformas(itens: List<Plataforma>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirCorridas(itens: List<Corrida>)
@@ -39,6 +51,8 @@ interface SincronizacaoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirJornadas(itens: List<Jornada>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirCustosFixos(itens: List<CustoFixo>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirConfiguracao(item: Configuracao)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirManutencoes(itens: List<ItemManutencao>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirPerfilCusto(item: PerfilCusto)
 
     @Query("DELETE FROM corridas") suspend fun limparCorridas()
     @Query("DELETE FROM despesas") suspend fun limparDespesas()
@@ -48,6 +62,7 @@ interface SincronizacaoDao {
     @Query("DELETE FROM ofertas") suspend fun limparOfertas()
     @Query("DELETE FROM perfil_custo") suspend fun limparPerfilCusto()
     @Query("DELETE FROM configuracoes") suspend fun limparConfiguracao()
+    @Query("DELETE FROM manutencoes") suspend fun limparManutencoes()
 
     /**
      * Deixa o celular como se o app tivesse acabado de ser instalado.
@@ -67,6 +82,7 @@ interface SincronizacaoDao {
         limparCustosFixos()
         limparOfertas()
         limparPerfilCusto()
+        limparManutencoes()
         limparConfiguracao()
         inserirConfiguracao(Configuracao())
     }
@@ -78,7 +94,9 @@ interface SincronizacaoDao {
         despesas = despesas(),
         jornadas = jornadas(),
         custosFixos = custosFixos(),
-        configuracao = configuracao()
+        configuracao = configuracao(),
+        manutencoes = manutencoes(),
+        perfilCusto = perfilCusto()
     )
 
     /**
@@ -100,5 +118,14 @@ interface SincronizacaoDao {
         inserirJornadas(p.jornadas)
         inserirCustosFixos(p.custosFixos)
         p.configuracao?.let { inserirConfiguracao(it) }
+        // Backup antigo não traz estes: o que está no celular fica.
+        p.manutencoes?.let {
+            limparManutencoes()
+            inserirManutencoes(it)
+        }
+        p.perfilCusto?.let {
+            limparPerfilCusto()
+            inserirPerfilCusto(it)
+        }
     }
 }

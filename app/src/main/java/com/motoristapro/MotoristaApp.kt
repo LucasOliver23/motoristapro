@@ -13,6 +13,8 @@ import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.nuvem.SincronizacaoNuvem
 import com.motoristapro.resumo.ResumoDiarioWorker
 import com.motoristapro.service.AvisoLeitor
+import com.motoristapro.service.OfertaAccessibilityService
+import kotlinx.coroutines.delay
 import com.motoristapro.veiculo.OdometroVeiculo
 import com.motoristapro.widget.WidgetLucro
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +54,12 @@ class MotoristaApp : Application() {
                 .onFailure { Log.w("MotoristaPro", "Falha ao limpar ofertas antigas", it) }
         }
         escopoApp.launch { adotarNomeDaConta() }
+        // O Android religa o leitor sozinho em poucos segundos depois que o
+        // processo sobe. Se passado 1 min e meio ele não ligou, ele travou.
+        escopoApp.launch {
+            delay(90_000)
+            runCatching { AvisoLeitor.conferir(this@MotoristaApp, OfertaAccessibilityService.conectado.value) }
+        }
         // Widget da tela inicial acompanha cada corrida/despesa enquanto o app vive.
         WidgetLucro.acompanhar(this, escopoApp)
     }

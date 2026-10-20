@@ -55,13 +55,14 @@ class BackupManager(private val context: Context) {
 
             validarBackup(temp)
 
-            // Troca atômica: fecha o Room, renomeia o temporário e apaga os arquivos do WAL antigo.
+            // Troca: fecha o Room, põe o temporário no lugar e SÓ DEPOIS apaga o WAL
+            // antigo — se a troca falhar, o banco atual continua inteiro.
             AppDatabase.fechar()
-            File(arquivoBanco.path + "-wal").delete()
-            File(arquivoBanco.path + "-shm").delete()
             if (!temp.renameTo(arquivoBanco)) {
                 temp.copyTo(arquivoBanco, overwrite = true)
             }
+            File(arquivoBanco.path + "-wal").delete()
+            File(arquivoBanco.path + "-shm").delete()
             Unit
         } finally {
             temp.delete()

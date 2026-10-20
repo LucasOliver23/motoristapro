@@ -72,6 +72,7 @@ class SincronizacaoNuvem(
      * trazer tudo de volta com "Baixar da nuvem" se tiver se arrependido.
      */
     suspend fun zerarCelular() = withContext(Dispatchers.IO) {
+        guardarCopiaLocal("antes_de_zerar")
         db.sincronizacaoDao().zerar()
         limparPreferenciasDoMotorista()
         dono = autenticacao.usuario.value?.uid
@@ -188,22 +189,33 @@ class SincronizacaoNuvem(
         val trocouDeConta = dono != null && dono != uid
         // Já sincronizou esta conta neste celular antes: o que está aqui é o mais novo.
         val primeiraVezAqui = dono != uid
-        if (trocouDeConta) {
-            db.sincronizacaoDao().zerar()
-            limparPreferenciasDoMotorista()
-        }
 
         try {
+            // A nuvem é consultada ANTES de apagar qualquer coisa: sem internet,
+            // a troca de conta não acontece pela metade (dados apagados e nada no lugar).
             val snapshot = doc.get().esperar()
             val temNuvem = snapshot.getBlob("dados") != null
+
+            if (trocouDeConta) {
+                // Cópia dos dados do motorista anterior dentro do celular antes de
+                // zerar: o que ele não tinha subido para a nuvem não se perde.
+                guardarCopiaLocal("antes_troca_de_conta")
+                db.sincronizacaoDao().zerar()
+                limparPreferenciasDoMotorista()
+            }
+
             val pacoteLocal = db.sincronizacaoDao().exportar()
-            val localVazio = pacoteLocal.corridas.isEmpty() && pacoteLocal.despesas.isEmpty()
+            val localVazio = pacoteLocal.vazio
 
             val mensagem = when {
                 temNuvem && localVazio && primeiraVezAqui ->
                     "Dados da sua conta restaurados (${baixar()} corridas)"
                 // Conta nova e sem backup: comeca do zero mesmo, sem subir nada.
                 trocouDeConta -> "Conta nova neste celular — começando do zero"
+                // Celular vazio (zerado ou recém-instalado) NUNCA sobe por cima de
+                // um backup com dados: era assim que o "Zerar celular" apagava a nuvem.
+                temNuvem && localVazio ->
+                    "Celular sem dados: o backup da nuvem foi mantido. Use \"Baixar da nuvem\" para trazer."
                 else -> "Backup na nuvem atualizado (${enviar()} corridas)"
             }
             dono = uid
@@ -213,6 +225,21 @@ class SincronizacaoNuvem(
             _estado.value = _estado.value.copy(ocupado = false, erro = e.message)
             "Não foi possível sincronizar agora: ${e.message}"
         }
+    }
+
+    /**
+     * Guarda os dados deste celular num arquivo dentro do app (backups/), em JSON
+     * compactado. Fica as últimas [MAX_COPIAS] cópias.
+     */
+    private suspend fun guardarCopiaLocal(motivo: String) {
+        runCatching {
+            val pasta = java.io.File(context.filesDir, "backups").apply { mkdirs() }
+            val pacote = db.sincronizacaoDao().exportar()
+            if (pacote.vazio) return
+            java.io.File(pasta, "${motivo}_${System.currentTimeMillis()}.json.gz")
+                .writeBytes(comprimir(DadosJson.paraJson(pacote)))
+            pasta.listFiles()?.sortedByDescending { it.lastModified() }?.drop(MAX_COPIAS)?.forEach { it.delete() }
+        }.onFailure { Log.w(TAG, "Não deu para guardar a cópia local", it) }
     }
 
     // ================================================================== compactação
@@ -230,5 +257,6 @@ class SincronizacaoNuvem(
         const val TAG = "MotoristaPro"
         const val KEY_ULTIMO_ENVIO = "ultimo_envio_em"
         const val KEY_DONO = "dono_dos_dados"
+        const val MAX_COPIAS = 5
     }
 }

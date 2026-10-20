@@ -14,6 +14,7 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
@@ -53,7 +54,25 @@ class JornadaService : Service() {
     private var ultimaGravacaoEm: Long = 0
     private var ultimaNotificacaoEm: Long = 0
 
-    private val listener = LocationListener { loc -> processarLocalizacao(loc) }
+    // Objeto completo, e não lambda: antes do Android 11 os outros métodos do
+    // LocationListener não têm corpo padrão, e desligar o GPS no meio da
+    // jornada fechava o app inteiro (o leitor de ofertas caía junto).
+    private val listener = object : LocationListener {
+        override fun onLocationChanged(loc: Location) {
+            try {
+                processarLocalizacao(loc)
+            } catch (e: Throwable) {
+                RegistroErros.anotar("GPS da jornada", e)
+            }
+        }
+
+        override fun onProviderEnabled(provider: String) = Unit
+        override fun onProviderDisabled(provider: String) = Unit
+
+        @Deprecated("Só existe até o Android 10")
+        @Suppress("OVERRIDE_DEPRECATION")
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 

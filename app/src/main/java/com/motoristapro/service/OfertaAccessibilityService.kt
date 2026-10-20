@@ -106,8 +106,28 @@ class OfertaAccessibilityService : AccessibilityService() {
     private var leitorOcr: LeitorOcr? = null
     private var ultimoOcrEm = 0L
 
-    /** Apps em que a oferta só foi reconhecida pela imagem (ex.: 99). */
-    private val pacotesQuePrecisamOcr = mutableSetOf<String>()
+    /**
+     * Apps em que a oferta só foi reconhecida pela imagem (ex.: 99), com a hora
+     * em que isso aconteceu. Vale [VALIDADE_OCR_MS]: antes era para sempre, e
+     * uma leitura por imagem na Uber (segurar a bolha) deixava o app tirando
+     * print do mapa parado a cada 1,2 s até o celular reiniciar.
+     */
+    private val pacotesQuePrecisamOcr = HashMap<String, Long>()
+
+    private fun precisaOcr(pacote: String): Boolean {
+        val em = pacotesQuePrecisamOcr[pacote] ?: return false
+        if (System.currentTimeMillis() - em > VALIDADE_OCR_MS) {
+            pacotesQuePrecisamOcr.remove(pacote)
+            return false
+        }
+        return true
+    }
+
+    /** Leituras por imagem seguidas sem oferta (ou com falha): cada uma alonga a espera da próxima. */
+    private var ocrVaziosSeguidos = 0
+
+    /** Corridas registradas há pouco (assinatura -> hora): toque duplo não vira duas corridas. */
+    private val registradasAgora = HashMap<String, Long>()
 
     // ================================================================== ciclo de vida
 
@@ -121,7 +141,8 @@ class OfertaAccessibilityService : AccessibilityService() {
             conectar()
         } catch (e: Throwable) {
             RegistroErros.anotar("conectar o leitor", e)
-            _conectado.value = true
+            // Sem cartão não há leitura: mostra "desligado" em vez de fingir que lê.
+            _conectado.value = overlay != null && limites != null
         }
     }
 
@@ -208,6 +229,10 @@ class OfertaAccessibilityService : AccessibilityService() {
                 AccessibilityEvent.TYPE_WINDOWS_CHANGED -> {
                     val agora = System.currentTimeMillis()
                     ultimoEvento[pacote] = agora
+                    // Janela nova (o card da oferta abrindo) zera a espera da
+                    // leitura por imagem: ela só cresce com o mapa parado, nunca
+                    // pode atrasar a oferta que acabou de chegar.
+                    if (event.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) ocrVaziosSeguidos = 0
                     // Debounce com prazo: o mapa do inDrive (ou o cronômetro da
                     // oferta) dispara eventos sem parar, e um debounce puro
                     // adiava a leitura para sempre — a corrida da Uber que tocava
@@ -312,7 +337,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         // (evita ficar tirando print à toa em telas que têm texto mas não têm oferta).
         val semValorEmTexto = leituras.none { l -> l.textos.any { it.contains("R$") } }
         val quaseSemTexto = leituras.sumOf { it.textos.size } < 15
-        val pacoteOcr = leituras.any { it.pacote in pacotesQuePrecisamOcr }
+        val pacoteOcr = leituras.any { precisaOcr(it.pacote) }
 
         // inDrive: se o motorista esta decidindo uma corrida mas a leitura nao
         // fechou, falta o km da viagem — o mapa pode nao estar na arvore de
@@ -341,7 +366,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         // da imagem. A conta agora é app por app.
         val appSemTexto = leituras.groupBy { it.pacote }.entries.firstOrNull { (p, janelas) ->
             val t = janelas.flatMap { it.textos }
-            t.none { it.contains("R$") } && (t.size < 15 || p in pacotesQuePrecisamOcr)
+            t.none { it.contains("R$") } && (t.size < 15 || precisaOcr(p))
         }?.key
 
         if (resultado == null && ocrDisponivel() &&
@@ -489,6 +514,14 @@ class OfertaAccessibilityService : AccessibilityService() {
     }
 
     /** Limita o OCR a uma captura por [INTERVALO_OCR_MS]; pedidos no meio do intervalo são reagendados. */
+    /**
+     * Espera entre duas leituras por imagem. Com oferta na tela, a mínima; a
+     * cada leitura vazia seguida ela dobra (até [INTERVALO_OCR_MAX_MS], 3 s): o mapa
+     * parado não precisa de print a cada 1,2 s, e o card da 99 fica 15 s na tela.
+     */
+    private fun intervaloOcr(): Long =
+        (INTERVALO_OCR_MS shl (ocrVaziosSeguidos - 1).coerceIn(0, 3)).coerceAtMost(INTERVALO_OCR_MAX_MS)
+
     private fun solicitarOcr(pacote: String) {
         val ocr = leitorOcr ?: LeitorOcr(this).also { leitorOcr = it }
         if (ocr.ocupado) return
@@ -501,7 +534,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         // Quem manda é quem está na frente AGORA: o pacote que veio do pedido
         // pode ser de uma leitura de alguns décimos atrás, de outro aplicativo.
         val alvo = emFrente?.takeIf { it in PACOTES_ALVO || it in PACOTES_FOTO } ?: pacote
-        val espera = INTERVALO_OCR_MS - (System.currentTimeMillis() - ultimoOcrEm)
+        val espera = intervaloOcr() - (System.currentTimeMillis() - ultimoOcrEm)
         if (espera > 0) {
             handler.removeCallbacks(varrerRunnable)
             handler.postDelayed(varrerRunnable, espera)
@@ -510,6 +543,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         ultimoOcrEm = System.currentTimeMillis()
         ocr.ler { linhas ->
             if (linhas == null) {
+                ocrVaziosSeguidos++
                 // A captura falhou — quase sempre porque o Android recusa dois
                 // prints muito seguidos. Antes isto era silencioso: o leitor
                 // parecia "não ler nada" e o diagnóstico mostrava a leitura por
@@ -519,8 +553,12 @@ class OfertaAccessibilityService : AccessibilityService() {
                     origem = "imagem (OCR)",
                     motivo = "a captura da tela falhou — tentando de novo em seguida"
                 )
-                handler.removeCallbacks(varrerRunnable)
-                handler.postDelayed(varrerRunnable, INTERVALO_OCR_MS)
+                // Tenta de novo só algumas vezes: tela protegida (banco, senha)
+                // falha sempre, e repetir sem fim era bateria jogada fora.
+                if (ocrVaziosSeguidos <= MAX_FALHAS_OCR) {
+                    handler.removeCallbacks(varrerRunnable)
+                    handler.postDelayed(varrerRunnable, intervaloOcr())
+                }
                 return@ler
             }
             // Capturou a nossa própria tela: não é leitura, é ruído. Sai sem
@@ -542,7 +580,12 @@ class OfertaAccessibilityService : AccessibilityService() {
                 OfertaInDrive.porQueNaoLeu(linhas, listaInDriveValida())
             } else null
             registrarDiagnostico(linhas, listOf(alvo), 1, achado?.oferta, origem = "imagem (OCR)", motivo = motivo)
-            if (achado != null) pacotesQuePrecisamOcr += achado.pacote
+            if (achado != null) {
+                pacotesQuePrecisamOcr[achado.pacote] = System.currentTimeMillis()
+                ocrVaziosSeguidos = 0
+            } else {
+                ocrVaziosSeguidos++
+            }
             processarResultado(achado?.oferta, achado?.pacote ?: alvo, achado?.total ?: 1)
         }
     }
@@ -795,6 +838,11 @@ class OfertaAccessibilityService : AccessibilityService() {
         idHistorico: Long? = ultimaOfertaId
     ) {
         val repo = (application as MotoristaApp).repository
+        // Toque duplo, ou cartão + notificação: a mesma oferta só vira UMA corrida.
+        val agora = System.currentTimeMillis()
+        registradasAgora.entries.removeAll { agora - it.value > JANELA_REGISTRO_MS }
+        if (registradasAgora.containsKey(oferta.assinatura)) return
+        registradasAgora[oferta.assinatura] = agora
         // Registrou (pelo cartão ou pela notificação): a notificação sai, para
         // não registrar a mesma corrida duas vezes.
         ofertaDaNotificacao = null
@@ -805,7 +853,10 @@ class OfertaAccessibilityService : AccessibilityService() {
                 if (idHistorico != null) repo.marcarOfertaRegistrada(idHistorico)
             }
                 .onSuccess { overlay?.marcarRegistrada() }
-                .onFailure { Log.e(TAG, "Falha ao registrar corrida", it) }
+                .onFailure {
+                    registradasAgora.remove(oferta.assinatura)
+                    RegistroErros.anotar("registrar corrida", it)
+                }
         }
     }
 
@@ -868,6 +919,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         assinaturaDispensada = null
         ultimaAssinatura = null
         varredurasVazias = 0
+        ocrVaziosSeguidos = 0
         // Vem de um toque na bolha: fora do try, um erro aqui derrubava o leitor.
         varrerTelaComSeguranca()
         try {
@@ -921,11 +973,23 @@ class OfertaAccessibilityService : AccessibilityService() {
          * calada — e a 99, que só é lida por imagem, simplesmente não aparecia.
          */
         private const val INTERVALO_OCR_MS = 1_200L
+
+        /** Teto da espera entre leituras por imagem sem oferta. */
+        private const val INTERVALO_OCR_MAX_MS = 3_000L
+
+        /** Capturas que falham seguidas antes de parar de insistir (até o próximo evento da tela). */
+        private const val MAX_FALHAS_OCR = 4
+
+        /** Quanto tempo "precisa de imagem" vale para um app depois de uma leitura por imagem. */
+        private const val VALIDADE_OCR_MS = 10 * 60 * 1000L
+
+        /** A mesma oferta registrada de novo dentro disto é toque duplo. */
+        private const val JANELA_REGISTRO_MS = 2 * 60 * 1000L
         private const val VALIDADE_LISTA_MS = 10 * 60 * 1000L
         private const val MAX_CORRIDAS_LISTA = 40
 
         /** Loga todos os textos lidos (para calibrar as Regex). Mude para false na versão final. */
-        const val LOG_TEXTOS = true
+        val LOG_TEXTOS = com.motoristapro.BuildConfig.DEBUG
 
         const val PACOTE_IFOOD = "br.com.ifood.driver.app"
 

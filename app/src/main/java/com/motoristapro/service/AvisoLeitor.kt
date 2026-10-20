@@ -48,9 +48,33 @@ object AvisoLeitor {
         runCatching { NotificationManagerCompat.from(context).cancel(ID) }
     }
 
+    /** O leitor está marcado em Configurações > Acessibilidade (ligado pelo motorista). */
+    fun habilitadoNasConfiguracoes(context: Context): Boolean = runCatching {
+        Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            ?.contains(context.packageName + "/") == true
+    }.getOrDefault(false)
+
+    /**
+     * Conferência quando o processo do app sobe (abrir o app, widget, resumo das
+     * 22h): marcado nas Configurações e mesmo assim parado é o "Não está
+     * funcionando" do Xiaomi. Nesse caso o onDestroy nunca roda, então o aviso
+     * tem que sair daqui.
+     */
+    fun conferir(context: Context, conectado: Boolean) {
+        if (conectado) return
+        if (!prefs(context).getBoolean(CHAVE_LIGADO, false)) return
+        if (!habilitadoNasConfiguracoes(context)) return
+        aoCair(context)
+    }
+
     /** Chamado no onDestroy do serviço. Só avisa se ele estava de fato trabalhando. */
     fun aoCair(context: Context) {
         if (!prefs(context).getBoolean(CHAVE_LIGADO, false)) return
+        // Desmarcado nas Configurações = o motorista desligou de propósito.
+        if (!habilitadoNasConfiguracoes(context)) {
+            marcarDesligadoDeProposito(context)
+            return
+        }
         if (!Notificacoes.podeNotificar(context)) return
         criarCanal(context)
 

@@ -26,8 +26,8 @@ android {
         applicationId = "com.motoristapro"
         minSdk = 26                              // java.time nativo, sem desugaring
         targetSdk = 35
-        versionCode = 87
-        versionName = "4.11.2"
+        versionCode = 89
+        versionName = "4.11.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -154,6 +154,8 @@ dependencies {
 
     // ---------- Testes ----------
     testImplementation("junit:junit:4.13.2")
+    // org.json de verdade nos testes (o do android.jar é só casca): DadosJsonTest
+    testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("androidx.room:room-testing:$roomVersion")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
