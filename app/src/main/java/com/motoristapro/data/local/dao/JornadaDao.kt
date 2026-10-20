@@ -77,6 +77,13 @@ interface JornadaDao {
     )
     fun observarTotaisEncerradas(inicio: Long, fim: Long): Flow<TotaisJornada>
 
+    /** Metros do GPS das jornadas encerradas de um veículo que começaram a partir de [desde]. */
+    @Query(
+        "SELECT COALESCE(SUM(metros_gps), 0) FROM jornadas " +
+            "WHERE fim_em IS NOT NULL AND inicio_em >= :desde AND veiculo_id = :veiculoId"
+    )
+    suspend fun metrosEncerradosDesde(desde: Long, veiculoId: Long): Long
+
     /**
      * Tempo conectado no período, CONTANDO a jornada que ainda está aberta.
      *

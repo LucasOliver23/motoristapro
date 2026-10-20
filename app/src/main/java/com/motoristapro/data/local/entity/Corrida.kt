@@ -70,7 +70,11 @@ data class Corrida(
     val observacao: String? = null,
 
     @ColumnInfo(name = "criado_em")
-    val criadoEm: Long = System.currentTimeMillis()
+    val criadoEm: Long = System.currentTimeMillis(),
+
+    /** Veículo da corrida (v14). 1 = o que já existia antes de ter vários. */
+    @ColumnInfo(name = "veiculo_id", defaultValue = "1")
+    val veiculoId: Long = 1
 ) {
     /** Valor + gorjeta. */
     val receitaCentavos: Long get() = valorCentavos + gorjetaCentavos

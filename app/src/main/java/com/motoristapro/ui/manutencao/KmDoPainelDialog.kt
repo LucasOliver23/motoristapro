@@ -1,6 +1,7 @@
 package com.motoristapro.ui.manutencao
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,6 +47,9 @@ fun Long.kmPainel(): String = String.format(PT_BR, "%,d", this)
 
 /** Tudo que a pergunta do km precisa mostrar, já lido do banco. */
 data class DadosKm(
+    /** Os veículos para escolher (só no início, e só aparece com 2 ou mais). */
+    val veiculos: List<com.motoristapro.data.local.entity.Veiculo> = emptyList(),
+    val veiculoAtivo: Long = 1,
     val atual: OdometroAtual?,
     /** A leitura do início da jornada (só no encerrar). */
     val inicio: LeituraOdometro?,
@@ -67,9 +71,11 @@ fun KmDoPainelDialog(
     dados: DadosKm,
     onConfirmar: (Long) -> Unit,
     onPular: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onTrocarVeiculo: (Long) -> Unit = {}
 ) {
-    var texto by rememberSaveable { mutableStateOf(dados.atual?.km?.takeIf { it > 0 }?.toString().orEmpty()) }
+    // Chave no veículo: trocou de veículo, o km sugerido é o do outro.
+    var texto by rememberSaveable(dados.veiculoAtivo) { mutableStateOf(dados.atual?.km?.takeIf { it > 0 }?.toString().orEmpty()) }
     val km = texto.toLongOrNull() ?: 0L
     val aviso = if (texto.isBlank()) null else CalculoOdometro.aviso(km, dados.atual)
 
@@ -91,6 +97,23 @@ fun KmDoPainelDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (dados.veiculos.size > 1) {
+                    Text("Com qual veículo você vai rodar?", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        dados.veiculos.forEach { v ->
+                            val ativo = v.id == dados.veiculoAtivo
+                            Text(
+                                (if (v.tipo == TipoVeiculo.CARRO.name) "🚗 " else "🏍️ ") + v.nome,
+                                modifier = Modifier.clip(RoundedCornerShape(99.dp))
+                                    .background(if (ativo) Lima else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { if (!ativo) onTrocarVeiculo(v.id) }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                color = if (ativo) androidx.compose.ui.graphics.Color(0xFF0D1117) else MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
                 Text(
                     when {
                         encerrando && dados.atual?.estimado == true ->

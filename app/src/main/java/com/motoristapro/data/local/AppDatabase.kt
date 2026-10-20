@@ -25,12 +25,14 @@ import com.motoristapro.data.local.entity.CustoFixo
 import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.local.entity.Despesa
 import com.motoristapro.data.local.entity.ItemManutencao
+import com.motoristapro.data.local.entity.Veiculo
+import com.motoristapro.data.local.dao.VeiculoDao
 import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.data.local.entity.OfertaRecebida
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Versão atual do esquema do banco (constante de topo: pode ser usada na anotação). */
-const val VERSAO_BANCO = 13
+const val VERSAO_BANCO = 14
 
 /**
  * Banco local do MotoristaPro.
@@ -57,7 +59,8 @@ const val VERSAO_BANCO = 13
         OfertaRecebida::class,
         CustoFixo::class,
         PerfilCusto::class,
-        ItemManutencao::class
+        ItemManutencao::class,
+        Veiculo::class
     ],
     version = VERSAO_BANCO,
     exportSchema = true
@@ -76,6 +79,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sincronizacaoDao(): SincronizacaoDao
     abstract fun perfilCustoDao(): PerfilCustoDao
     abstract fun manutencaoDao(): ManutencaoDao
+    abstract fun veiculoDao(): VeiculoDao
 
     companion object {
         /** Versão atual do esquema (usada também para validar backups). */
@@ -93,7 +97,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         private fun construir(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NOME_BANCO)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                 .addCallback(SEED)
                 // NÃO use fallbackToDestructiveMigration(): apagaria o histórico do motorista.
                 .build()
@@ -187,6 +191,47 @@ abstract class AppDatabase : RoomDatabase() {
          * motorista cadastra o item, de quantos em quantos km se faz e o
          * hodômetro da última troca — sem esses três números o aviso mentiria.
          */
+        /**
+         * v13 -> v14: vários veículos. Tabela `veiculos` e `veiculo_id` em
+         * corridas, despesas, jornadas e manutenções. Tudo o que já estava no
+         * celular fica no veículo 1, criado com o nome e o custo da configuração
+         * (e o tipo/combustível do assistente de custo, se houver).
+         */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `veiculos` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`nome` TEXT NOT NULL, " +
+                        "`tipo` TEXT NOT NULL, " +
+                        "`combustivel` TEXT NOT NULL, " +
+                        "`consumo_km_l_x100` INTEGER NOT NULL, " +
+                        "`preco_litro_centavos` INTEGER NOT NULL, " +
+                        "`custo_km_centavos` INTEGER NOT NULL, " +
+                        "`tarifa_minima_centavos` INTEGER NOT NULL, " +
+                        "`criado_em` INTEGER NOT NULL)"
+                )
+                listOf("corridas", "despesas", "jornadas", "manutencoes").forEach { tabela ->
+                    db.execSQL("ALTER TABLE `$tabela` ADD COLUMN `veiculo_id` INTEGER NOT NULL DEFAULT 1")
+                }
+                val agora = System.currentTimeMillis()
+                db.execSQL(
+                    "INSERT OR IGNORE INTO veiculos (id, nome, tipo, combustivel, consumo_km_l_x100, " +
+                        "preco_litro_centavos, custo_km_centavos, tarifa_minima_centavos, criado_em) " +
+                        "SELECT 1, COALESCE(NULLIF(TRIM(c.veiculo_nome), ''), NULLIF(TRIM(p.veiculo_nome), ''), 'Meu veículo'), " +
+                        "COALESCE(p.tipo_veiculo, 'MOTO'), COALESCE(p.combustivel, 'GASOLINA'), " +
+                        "c.consumo_km_l_x100, c.preco_litro_centavos, c.custo_km_centavos, c.tarifa_minima_centavos, $agora " +
+                        "FROM configuracoes c LEFT JOIN perfil_custo p ON p.id = 1 WHERE c.id = 1"
+                )
+                // Sem configuração ainda: o veículo 1 nasce com o padrão.
+                db.execSQL(
+                    "INSERT OR IGNORE INTO veiculos (id, nome, tipo, combustivel, consumo_km_l_x100, " +
+                        "preco_litro_centavos, custo_km_centavos, tarifa_minima_centavos, criado_em) " +
+                        "VALUES (1, 'Meu veículo', 'MOTO', 'GASOLINA', 0, 0, 0, 0, $agora)"
+                )
+            }
+        }
+
         val MIGRATION_12_13 = object : Migration(12, 13) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -337,6 +382,13 @@ abstract class AppDatabase : RoomDatabase() {
                         preco_litro_centavos
                     ) VALUES (1, 20000, 500000, 45, 800, 26, 120000, 1200, 600)
                     """.trimIndent()
+                )
+                // O primeiro veículo (v14): tudo o que for lançado cai nele até o
+                // motorista cadastrar outro.
+                db.execSQL(
+                    "INSERT INTO veiculos (id, nome, tipo, combustivel, consumo_km_l_x100, " +
+                        "preco_litro_centavos, custo_km_centavos, tarifa_minima_centavos, criado_em) " +
+                        "VALUES (1, 'Meu veículo', 'MOTO', 'GASOLINA', 1200, 600, 45, 800, ${System.currentTimeMillis()})"
                 )
             }
         }

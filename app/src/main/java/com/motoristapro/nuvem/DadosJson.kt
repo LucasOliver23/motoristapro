@@ -10,6 +10,7 @@ import com.motoristapro.data.local.entity.Despesa
 import com.motoristapro.data.local.entity.ItemManutencao
 import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.data.local.entity.PerfilCusto
+import com.motoristapro.data.local.entity.Veiculo
 import com.motoristapro.data.local.entity.Plataforma
 import org.json.JSONArray
 import org.json.JSONObject
@@ -46,7 +47,8 @@ object DadosJson {
                     .put("valorCentavos", it.valorCentavos).put("gorjetaCentavos", it.gorjetaCentavos)
                     .put("distanciaMetros", it.distanciaMetros).put("deslocamentoMetros", it.deslocamentoMetros)
                     .put("duracaoSegundos", it.duracaoSegundos).put("inicioEm", it.inicioEm)
-                    .put("observacao", it.observacao ?: JSONObject.NULL).put("criadoEm", it.criadoEm))
+                    .put("observacao", it.observacao ?: JSONObject.NULL).put("criadoEm", it.criadoEm)
+                    .put("veiculoId", it.veiculoId))
             }
         })
         raiz.put("despesas", JSONArray().apply {
@@ -57,7 +59,7 @@ object DadosJson {
                     .put("descricao", it.descricao ?: JSONObject.NULL)
                     .put("litrosMl", it.litrosMl ?: JSONObject.NULL)
                     .put("odometroKm", it.odometroKm ?: JSONObject.NULL)
-                    .put("criadoEm", it.criadoEm))
+                    .put("criadoEm", it.criadoEm).put("veiculoId", it.veiculoId))
             }
         })
         raiz.put("jornadas", JSONArray().apply {
@@ -72,7 +74,8 @@ object DadosJson {
                     .put("segEmViagem", it.segEmViagem)
                     .put("segUber", it.segUber).put("seg99", it.seg99)
                     .put("segIfood", it.segIfood).put("segInDrive", it.segInDrive)
-                    .put("pausadaEm", it.pausadaEm).put("segPausados", it.segPausados))
+                    .put("pausadaEm", it.pausadaEm).put("segPausados", it.segPausados)
+                    .put("veiculoId", it.veiculoId))
             }
         })
         raiz.put("custosFixos", JSONArray().apply {
@@ -104,7 +107,7 @@ object DadosJson {
                     put(JSONObject()
                         .put("id", it.id).put("nome", it.nome)
                         .put("intervaloKm", it.intervaloKm).put("odometroUltimaKm", it.odometroUltimaKm)
-                        .put("atualizadoEm", it.atualizadoEm))
+                        .put("atualizadoEm", it.atualizadoEm).put("veiculoId", it.veiculoId))
                 }
             })
         }
@@ -129,6 +132,17 @@ object DadosJson {
                 .put("diasPorSemana", c.diasPorSemana).put("horasPorDia", c.horasPorDia)
                 .put("metaLucroMensalCentavos", c.metaLucroMensalCentavos)
                 .put("calculadoEm", c.calculadoEm))
+        }
+        p.veiculos?.let { lista ->
+            raiz.put("veiculos", JSONArray().apply {
+                lista.forEach {
+                    put(JSONObject()
+                        .put("id", it.id).put("nome", it.nome).put("tipo", it.tipo).put("combustivel", it.combustivel)
+                        .put("consumoKmLx100", it.consumoKmLx100).put("precoLitroCentavos", it.precoLitroCentavos)
+                        .put("custoKmCentavos", it.custoKmCentavos).put("tarifaMinimaCentavos", it.tarifaMinimaCentavos)
+                        .put("criadoEm", it.criadoEm))
+                }
+            })
         }
         return raiz.toString()
     }
@@ -159,7 +173,8 @@ object DadosJson {
                 duracaoSegundos = o.optLong("duracaoSegundos"),
                 inicioEm = o.optLong("inicioEm"),
                 observacao = o.textoOuNulo("observacao"),
-                criadoEm = o.optLong("criadoEm")
+                criadoEm = o.optLong("criadoEm"),
+                veiculoId = o.optLong("veiculoId", 1L)
             )
         }
         val despesas = raiz.optJSONArray("despesas").mapear { o ->
@@ -172,7 +187,8 @@ object DadosJson {
                 descricao = o.textoOuNulo("descricao"),
                 litrosMl = o.longOuNulo("litrosMl"),
                 odometroKm = o.longOuNulo("odometroKm"),
-                criadoEm = o.optLong("criadoEm")
+                criadoEm = o.optLong("criadoEm"),
+                veiculoId = o.optLong("veiculoId", 1L)
             )
         }
         val jornadas = raiz.optJSONArray("jornadas").mapear { o ->
@@ -191,7 +207,8 @@ object DadosJson {
                 segIfood = o.optLong("segIfood"),
                 segInDrive = o.optLong("segInDrive"),
                 pausadaEm = o.optLong("pausadaEm"),
-                segPausados = o.optLong("segPausados")
+                segPausados = o.optLong("segPausados"),
+                veiculoId = o.optLong("veiculoId", 1L)
             )
         }
         val custos = raiz.optJSONArray("custosFixos").mapear { o ->
@@ -225,7 +242,8 @@ object DadosJson {
                 nome = o.optString("nome"),
                 intervaloKm = o.optLong("intervaloKm"),
                 odometroUltimaKm = o.optLong("odometroUltimaKm"),
-                atualizadoEm = o.optLong("atualizadoEm")
+                atualizadoEm = o.optLong("atualizadoEm"),
+                veiculoId = o.optLong("veiculoId", 1L)
             )
         } else null
         val perfil = raiz.optJSONObject("perfilCusto")?.let { o ->
@@ -262,7 +280,20 @@ object DadosJson {
                 calculadoEm = o.optLong("calculadoEm")
             )
         }
-        return Pacote(plataformas, corridas, despesas, jornadas, custos, config, manutencoes, perfil)
+        val veiculos = if (raiz.has("veiculos")) raiz.optJSONArray("veiculos").mapear { o ->
+            Veiculo(
+                id = o.optLong("id"),
+                nome = o.optString("nome", "Meu veículo"),
+                tipo = o.optString("tipo", "MOTO"),
+                combustivel = o.optString("combustivel", "GASOLINA"),
+                consumoKmLx100 = o.optLong("consumoKmLx100"),
+                precoLitroCentavos = o.optLong("precoLitroCentavos"),
+                custoKmCentavos = o.optLong("custoKmCentavos"),
+                tarifaMinimaCentavos = o.optLong("tarifaMinimaCentavos"),
+                criadoEm = o.optLong("criadoEm")
+            )
+        } else null
+        return Pacote(plataformas, corridas, despesas, jornadas, custos, config, manutencoes, perfil, veiculos)
     }
 
     private fun <T> JSONArray?.mapear(bloco: (JSONObject) -> T): List<T> {

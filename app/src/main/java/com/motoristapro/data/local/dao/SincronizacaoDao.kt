@@ -12,6 +12,7 @@ import com.motoristapro.data.local.entity.Despesa
 import com.motoristapro.data.local.entity.ItemManutencao
 import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.data.local.entity.PerfilCusto
+import com.motoristapro.data.local.entity.Veiculo
 import com.motoristapro.data.local.entity.Plataforma
 
 /** Tudo que vai e volta da nuvem. O histórico de ofertas fica só no celular (é grande e local). */
@@ -25,7 +26,9 @@ data class Pacote(
     /** null = backup antigo, de antes da manutenção ir junto: aí as do celular ficam. */
     val manutencoes: List<ItemManutencao>? = null,
     /** As respostas do assistente de custo. null = backup antigo (ou assistente nunca usado). */
-    val perfilCusto: PerfilCusto? = null
+    val perfilCusto: PerfilCusto? = null,
+    /** Os veículos (v14). null = backup de antes de ter vários: os do celular ficam. */
+    val veiculos: List<Veiculo>? = null
 ) {
     /** Sem corrida, despesa, jornada nem manutenção: é celular recém-instalado (ou zerado). */
     val vazio: Boolean
@@ -44,6 +47,7 @@ interface SincronizacaoDao {
     @Query("SELECT * FROM configuracoes WHERE id = 1") suspend fun configuracao(): Configuracao?
     @Query("SELECT * FROM manutencoes ORDER BY id") suspend fun manutencoes(): List<ItemManutencao>
     @Query("SELECT * FROM perfil_custo WHERE id = 1") suspend fun perfilCusto(): PerfilCusto?
+    @Query("SELECT * FROM veiculos ORDER BY id") suspend fun veiculos(): List<Veiculo>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirPlataformas(itens: List<Plataforma>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirCorridas(itens: List<Corrida>)
@@ -53,6 +57,7 @@ interface SincronizacaoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirConfiguracao(item: Configuracao)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirManutencoes(itens: List<ItemManutencao>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirPerfilCusto(item: PerfilCusto)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun inserirVeiculos(itens: List<Veiculo>)
 
     @Query("DELETE FROM corridas") suspend fun limparCorridas()
     @Query("DELETE FROM despesas") suspend fun limparDespesas()
@@ -63,6 +68,7 @@ interface SincronizacaoDao {
     @Query("DELETE FROM perfil_custo") suspend fun limparPerfilCusto()
     @Query("DELETE FROM configuracoes") suspend fun limparConfiguracao()
     @Query("DELETE FROM manutencoes") suspend fun limparManutencoes()
+    @Query("DELETE FROM veiculos") suspend fun limparVeiculos()
 
     /**
      * Deixa o celular como se o app tivesse acabado de ser instalado.
@@ -85,6 +91,9 @@ interface SincronizacaoDao {
         limparManutencoes()
         limparConfiguracao()
         inserirConfiguracao(Configuracao())
+        // Volta a ter só o veículo 1, como num app recém-instalado.
+        limparVeiculos()
+        inserirVeiculos(listOf(Veiculo(id = Veiculo.PRIMEIRO, nome = "Meu veículo")))
     }
 
     @Transaction
@@ -96,7 +105,8 @@ interface SincronizacaoDao {
         custosFixos = custosFixos(),
         configuracao = configuracao(),
         manutencoes = manutencoes(),
-        perfilCusto = perfilCusto()
+        perfilCusto = perfilCusto(),
+        veiculos = veiculos()
     )
 
     /**
@@ -126,6 +136,10 @@ interface SincronizacaoDao {
         p.perfilCusto?.let {
             limparPerfilCusto()
             inserirPerfilCusto(it)
+        }
+        p.veiculos?.takeIf { it.isNotEmpty() }?.let {
+            limparVeiculos()
+            inserirVeiculos(it)
         }
     }
 }

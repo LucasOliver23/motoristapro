@@ -100,6 +100,10 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val odometro by vm.odometroAtual.collectAsStateWithLifecycle()
     val odometroLido by vm.odometro.collectAsStateWithLifecycle()
     val avisoManutencao by appPrefs.avisoManutencaoKm.collectAsStateWithLifecycle()
+    val repoApp = (LocalContext.current.applicationContext as com.motoristapro.MotoristaApp).repository
+    val listaVeiculos by remember { repoApp.veiculos() }.collectAsStateWithLifecycle(initialValue = emptyList())
+    val idAtivo by appPrefs.veiculoAtivo.collectAsStateWithLifecycle()
+    val veiculoAtivoObj = listaVeiculos.firstOrNull { it.id == idAtivo }
     var assistenteAberto by remember { mutableStateOf(false) }
     var sub by remember { mutableStateOf<SubTela?>(null) }
     var novoCusto by remember { mutableStateOf(false) }
@@ -324,6 +328,14 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         icone = "📄",
                         estado = "PDF para imposto, banco ou financiamento",
                         onClick = { sub = SubTela.RELATORIO }
+                    ),
+                    Ferramenta(
+                        titulo = "Meus veículos",
+                        icone = "🚗",
+                        estado = veiculoAtivoObj?.let { a ->
+                            if (listaVeiculos.size > 1) "${a.nome} ativo · ${listaVeiculos.size} veículos" else a.nome
+                        } ?: "moto e carro, cada um com seu km",
+                        onClick = { sub = SubTela.VEICULOS }
                     ),
                     Ferramenta(
                         titulo = "Manutenção",
@@ -578,6 +590,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     SubTela.RADAR -> RadarScreen(cidade = cfg.cidade)
                     SubTela.COMPARAR -> CompararAppsScreen()
                     SubTela.RELATORIO -> RelatorioMesScreen()
+                    SubTela.VEICULOS -> VeiculosScreen()
                     SubTela.METAS -> MetaPorHoraConteudo(
                         cfg = cfg,
                         horasPorDia = horasPorDia,
@@ -596,11 +609,14 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         itens = manutencoes,
                         odometro = odometroLido,
                         veiculo = VeiculoResumo(
-                            tipo = dadosCusto?.tipoVeiculo ?: TipoVeiculo.MOTO,
-                            nome = cfg.veiculoNome?.takeIf { it.isNotBlank() }
+                            id = veiculoAtivoObj?.id ?: 1L,
+                            tipo = veiculoAtivoObj?.tipo?.let { t -> runCatching { TipoVeiculo.valueOf(t) }.getOrNull() }
+                                ?: dadosCusto?.tipoVeiculo ?: TipoVeiculo.MOTO,
+                            nome = veiculoAtivoObj?.nome ?: cfg.veiculoNome?.takeIf { it.isNotBlank() }
                                 ?: dadosCusto?.veiculoNome?.takeIf { it.isNotBlank() },
                             detalhe = listOfNotNull(
-                                (dadosCusto?.tipoVeiculo ?: TipoVeiculo.MOTO).rotulo,
+                                (veiculoAtivoObj?.tipo?.let { t -> runCatching { TipoVeiculo.valueOf(t) }.getOrNull() }
+                                    ?: dadosCusto?.tipoVeiculo ?: TipoVeiculo.MOTO).rotulo,
                                 dadosCusto?.combustivel?.rotulo?.lowercase(PT),
                                 cfg.consumoKmLx100.takeIf { it > 0 }?.let { String.format(PT, "%.1f km/L", it / 100.0) }
                             ).joinToString(" · ")

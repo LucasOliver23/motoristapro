@@ -16,6 +16,10 @@ interface ManutencaoDao {
     @Query("SELECT * FROM manutencoes ORDER BY (odometro_ultima_km + intervalo_km) ASC")
     fun observarTodos(): Flow<List<ItemManutencao>>
 
+    /** Só os itens de um veículo (o ativo, na tela e no lembrete). */
+    @Query("SELECT * FROM manutencoes WHERE veiculo_id = :veiculoId ORDER BY (odometro_ultima_km + intervalo_km) ASC")
+    fun observarDoVeiculo(veiculoId: Long): Flow<List<ItemManutencao>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inserir(item: ItemManutencao): Long
 
