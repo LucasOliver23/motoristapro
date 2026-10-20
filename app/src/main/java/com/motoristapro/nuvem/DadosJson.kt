@@ -7,7 +7,9 @@ import com.motoristapro.data.local.entity.Configuracao
 import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.entity.CustoFixo
 import com.motoristapro.data.local.entity.Despesa
+import com.motoristapro.data.local.entity.ItemManutencao
 import com.motoristapro.data.local.entity.Jornada
+import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.local.entity.Plataforma
 import org.json.JSONArray
 import org.json.JSONObject
@@ -62,14 +64,23 @@ object DadosJson {
             p.jornadas.forEach {
                 put(JSONObject()
                     .put("id", it.id).put("inicioEm", it.inicioEm)
-                    .put("fimEm", it.fimEm ?: JSONObject.NULL).put("metrosGps", it.metrosGps))
+                    .put("fimEm", it.fimEm ?: JSONObject.NULL).put("metrosGps", it.metrosGps)
+                    // Tempo por estado e por app: sem eles a Atividade perdia
+                    // "parado" e "R$/h conectado" depois de restaurar.
+                    .put("segOffline", it.segOffline).put("segAguardando", it.segAguardando)
+                    .put("segBuscando", it.segBuscando).put("segEsperando", it.segEsperando)
+                    .put("segEmViagem", it.segEmViagem)
+                    .put("segUber", it.segUber).put("seg99", it.seg99)
+                    .put("segIfood", it.segIfood).put("segInDrive", it.segInDrive)
+                    .put("pausadaEm", it.pausadaEm).put("segPausados", it.segPausados))
             }
         })
         raiz.put("custosFixos", JSONArray().apply {
             p.custosFixos.forEach {
                 put(JSONObject()
                     .put("id", it.id).put("nome", it.nome)
-                    .put("valorMensalCentavos", it.valorMensalCentavos).put("ativo", it.ativo))
+                    .put("valorMensalCentavos", it.valorMensalCentavos).put("ativo", it.ativo)
+                    .put("origem", it.origem))
             }
         })
         p.configuracao?.let { c ->
@@ -86,6 +97,38 @@ object DadosJson {
                 .put("nomeMotorista", c.nomeMotorista ?: JSONObject.NULL)
                 .put("telefone", c.telefone ?: JSONObject.NULL)
                 .put("cidade", c.cidade ?: JSONObject.NULL))
+        }
+        p.manutencoes?.let { lista ->
+            raiz.put("manutencoes", JSONArray().apply {
+                lista.forEach {
+                    put(JSONObject()
+                        .put("id", it.id).put("nome", it.nome)
+                        .put("intervaloKm", it.intervaloKm).put("odometroUltimaKm", it.odometroUltimaKm)
+                        .put("atualizadoEm", it.atualizadoEm))
+                }
+            })
+        }
+        p.perfilCusto?.let { c ->
+            raiz.put("perfilCusto", JSONObject()
+                .put("forma", c.forma).put("tipoVeiculo", c.tipoVeiculo)
+                .put("veiculoNome", c.veiculoNome ?: JSONObject.NULL).put("tipoTrabalho", c.tipoTrabalho)
+                .put("valorVeiculoCentavos", c.valorVeiculoCentavos)
+                .put("parcelaMensalCentavos", c.parcelaMensalCentavos)
+                .put("aluguelMensalCentavos", c.aluguelMensalCentavos)
+                .put("seguroMensalCentavos", c.seguroMensalCentavos)
+                .put("ipvaPercentX100", c.ipvaPercentX100).put("ipvaEmReais", c.ipvaEmReais)
+                .put("ipvaAnualCentavos", c.ipvaAnualCentavos)
+                .put("desvalorizacaoAnualX100", c.desvalorizacaoAnualX100)
+                .put("outrosMensaisCentavos", c.outrosMensaisCentavos)
+                .put("revisaoCentavos", c.revisaoCentavos).put("intervaloRevisaoKm", c.intervaloRevisaoKm)
+                .put("trocaOleoCentavos", c.trocaOleoCentavos).put("intervaloOleoKm", c.intervaloOleoKm)
+                .put("jogoPneusCentavos", c.jogoPneusCentavos).put("duracaoPneusKm", c.duracaoPneusKm)
+                .put("outrosDesgasteCentavos", c.outrosDesgasteCentavos).put("outrosDesgasteKm", c.outrosDesgasteKm)
+                .put("combustivel", c.combustivel).put("precoLitroCentavos", c.precoLitroCentavos)
+                .put("consumoX100", c.consumoX100).put("kmPorDia", c.kmPorDia)
+                .put("diasPorSemana", c.diasPorSemana).put("horasPorDia", c.horasPorDia)
+                .put("metaLucroMensalCentavos", c.metaLucroMensalCentavos)
+                .put("calculadoEm", c.calculadoEm))
         }
         return raiz.toString()
     }
@@ -107,8 +150,8 @@ object DadosJson {
             Corrida(
                 id = o.optLong("id"),
                 plataformaId = o.optLong("plataformaId"),
-                origem = o.optString("origem"),
-                destino = o.optString("destino"),
+                origem = o.textoOuNulo("origem").orEmpty(),
+                destino = o.textoOuNulo("destino").orEmpty(),
                 valorCentavos = o.optLong("valorCentavos"),
                 gorjetaCentavos = o.optLong("gorjetaCentavos"),
                 distanciaMetros = o.optLong("distanciaMetros"),
@@ -137,7 +180,18 @@ object DadosJson {
                 id = o.optLong("id"),
                 inicioEm = o.optLong("inicioEm"),
                 fimEm = o.longOuNulo("fimEm"),
-                metrosGps = o.optLong("metrosGps")
+                metrosGps = o.optLong("metrosGps"),
+                segOffline = o.optLong("segOffline"),
+                segAguardando = o.optLong("segAguardando"),
+                segBuscando = o.optLong("segBuscando"),
+                segEsperando = o.optLong("segEsperando"),
+                segEmViagem = o.optLong("segEmViagem"),
+                segUber = o.optLong("segUber"),
+                seg99 = o.optLong("seg99"),
+                segIfood = o.optLong("segIfood"),
+                segInDrive = o.optLong("segInDrive"),
+                pausadaEm = o.optLong("pausadaEm"),
+                segPausados = o.optLong("segPausados")
             )
         }
         val custos = raiz.optJSONArray("custosFixos").mapear { o ->
@@ -145,7 +199,8 @@ object DadosJson {
                 id = o.optLong("id"),
                 nome = o.optString("nome"),
                 valorMensalCentavos = o.optLong("valorMensalCentavos"),
-                ativo = o.optBoolean("ativo", true)
+                ativo = o.optBoolean("ativo", true),
+                origem = o.optString("origem", CustoFixo.MANUAL)
             )
         }
         val config = raiz.optJSONObject("configuracao")?.let { o ->
@@ -164,7 +219,50 @@ object DadosJson {
                 cidade = o.textoOuNulo("cidade")
             )
         }
-        return Pacote(plataformas, corridas, despesas, jornadas, custos, config)
+        val manutencoes = if (raiz.has("manutencoes")) raiz.optJSONArray("manutencoes").mapear { o ->
+            ItemManutencao(
+                id = o.optLong("id"),
+                nome = o.optString("nome"),
+                intervaloKm = o.optLong("intervaloKm"),
+                odometroUltimaKm = o.optLong("odometroUltimaKm"),
+                atualizadoEm = o.optLong("atualizadoEm")
+            )
+        } else null
+        val perfil = raiz.optJSONObject("perfilCusto")?.let { o ->
+            val padrao = PerfilCusto()
+            PerfilCusto(
+                forma = o.optString("forma", padrao.forma),
+                tipoVeiculo = o.optString("tipoVeiculo", padrao.tipoVeiculo),
+                veiculoNome = o.textoOuNulo("veiculoNome"),
+                tipoTrabalho = o.optString("tipoTrabalho", padrao.tipoTrabalho),
+                valorVeiculoCentavos = o.optLong("valorVeiculoCentavos"),
+                parcelaMensalCentavos = o.optLong("parcelaMensalCentavos"),
+                aluguelMensalCentavos = o.optLong("aluguelMensalCentavos"),
+                seguroMensalCentavos = o.optLong("seguroMensalCentavos"),
+                ipvaPercentX100 = o.optLong("ipvaPercentX100", padrao.ipvaPercentX100),
+                ipvaEmReais = o.optBoolean("ipvaEmReais", false),
+                ipvaAnualCentavos = o.optLong("ipvaAnualCentavos"),
+                desvalorizacaoAnualX100 = o.optLong("desvalorizacaoAnualX100", padrao.desvalorizacaoAnualX100),
+                outrosMensaisCentavos = o.optLong("outrosMensaisCentavos"),
+                revisaoCentavos = o.optLong("revisaoCentavos"),
+                intervaloRevisaoKm = o.optLong("intervaloRevisaoKm"),
+                trocaOleoCentavos = o.optLong("trocaOleoCentavos"),
+                intervaloOleoKm = o.optLong("intervaloOleoKm"),
+                jogoPneusCentavos = o.optLong("jogoPneusCentavos"),
+                duracaoPneusKm = o.optLong("duracaoPneusKm"),
+                outrosDesgasteCentavos = o.optLong("outrosDesgasteCentavos"),
+                outrosDesgasteKm = o.optLong("outrosDesgasteKm"),
+                combustivel = o.optString("combustivel", padrao.combustivel),
+                precoLitroCentavos = o.optLong("precoLitroCentavos"),
+                consumoX100 = o.optLong("consumoX100"),
+                kmPorDia = o.optLong("kmPorDia"),
+                diasPorSemana = o.optInt("diasPorSemana", padrao.diasPorSemana),
+                horasPorDia = o.optInt("horasPorDia", padrao.horasPorDia),
+                metaLucroMensalCentavos = o.optLong("metaLucroMensalCentavos"),
+                calculadoEm = o.optLong("calculadoEm")
+            )
+        }
+        return Pacote(plataformas, corridas, despesas, jornadas, custos, config, manutencoes, perfil)
     }
 
     private fun <T> JSONArray?.mapear(bloco: (JSONObject) -> T): List<T> {

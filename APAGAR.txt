@@ -1,9 +1,9 @@
-NADA PARA APAGAR NESTA VERSAO (4.11.3)
+NADA PARA APAGAR NESTA VERSAO (4.11.4)
 ======================================
 
 Nenhum arquivo removido. Banco continua na versao 13.
 
-Leitor estavel:
+Leitor estavel (4.11.3):
 - Leitura por imagem nao fica mais ligada para sempre num app: vale 10 min
   depois da ultima oferta lida por imagem. Sem oferta, a espera entre prints
   cresce (1,2 s ate 3 s) e volta ao minimo quando uma janela nova abre.
@@ -21,9 +21,28 @@ Leitor estavel:
 - Registro de erros: quebra do app e erro tratado em arquivos separados, e o
   mesmo erro repetido grava no maximo 1 vez por minuto.
 
+Backup seguro (4.11.4):
+- "Zerar celular" e celular vazio nunca sobem por cima de um backup com
+  dados na nuvem (antes o backup era apagado na abertura seguinte).
+- Troca de conta: consulta a nuvem antes de apagar (sem internet nao apaga)
+  e guarda uma copia dos dados do motorista anterior no proprio celular
+  (pasta backups/, ultimas 5). "Zerar celular" tambem guarda a copia.
+- Backup na nuvem agora leva a Manutencao, as respostas do assistente de
+  custo, o tempo por estado/app das jornadas, as pausas e a origem dos
+  custos fixos. Backup antigo restaurado nao apaga a manutencao do celular.
+- Restaurar arquivo: so apaga o WAL antigo depois de trocar o banco.
+- Teste novo: DadosJsonTest (ida e volta sem perder campo).
+
+Arquivos novos:
+  app/src/test/java/com/motoristapro/nuvem/DadosJsonTest.kt
+
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
   app/src/main/java/com/motoristapro/MotoristaApp.kt
+  app/src/main/java/com/motoristapro/data/backup/BackupManager.kt
+  app/src/main/java/com/motoristapro/data/local/dao/SincronizacaoDao.kt
+  app/src/main/java/com/motoristapro/nuvem/DadosJson.kt
+  app/src/main/java/com/motoristapro/nuvem/SincronizacaoNuvem.kt
   app/src/main/java/com/motoristapro/diagnostico/RegistroErros.kt
   app/src/main/java/com/motoristapro/jornada/JornadaService.kt
   app/src/main/java/com/motoristapro/service/AvisoLeitor.kt
