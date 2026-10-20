@@ -1,51 +1,39 @@
-NADA PARA APAGAR NESTA VERSAO (4.11.4)
+NADA PARA APAGAR NESTA VERSAO (4.12.0)
 ======================================
 
-Nenhum arquivo removido. Banco continua na versao 13.
+Nenhum arquivo removido. Banco continua na versao 13 (consulta nova, sem
+tabela nova). A tela antiga de "Melhores horarios" (que nao estava ligada a
+nada) foi reescrita no mesmo arquivo.
 
-Leitor estavel (4.11.3):
-- Leitura por imagem nao fica mais ligada para sempre num app: vale 10 min
-  depois da ultima oferta lida por imagem. Sem oferta, a espera entre prints
-  cresce (1,2 s ate 3 s) e volta ao minimo quando uma janela nova abre.
-  Captura que falha (tela protegida) tenta no maximo 4 vezes.
-- Copia e reducao da imagem fora da thread principal (nao trava o cartao),
-  imagem reduzida para 720 px e buffer da captura sempre fechado.
-- Notificacao da corrida e aviso "leitor desligou" com numeros diferentes
-  (um apagava o outro).
-- Aviso de leitor travado tambem quando o Xiaomi mata o app (conferido 1 min
-  e meio depois que o app sobe); nao avisa quando o motorista desliga de
-  proposito.
-- Toque duplo em Registrar (ou cartao + notificacao) nao vira duas corridas.
-- GPS da jornada nao fecha mais o app no Android 8, 9 e 10 ao desligar o GPS.
-- Textos da tela (enderecos) so vao para o log na versao de teste.
-- Registro de erros: quebra do app e erro tratado em arquivos separados, e o
-  mesmo erro repetido grava no maximo 1 vez por minuto.
-
-Backup seguro (4.11.4):
-- "Zerar celular" e celular vazio nunca sobem por cima de um backup com
-  dados na nuvem (antes o backup era apagado na abertura seguinte).
-- Troca de conta: consulta a nuvem antes de apagar (sem internet nao apaga)
-  e guarda uma copia dos dados do motorista anterior no proprio celular
-  (pasta backups/, ultimas 5). "Zerar celular" tambem guarda a copia.
-- Backup na nuvem agora leva a Manutencao, as respostas do assistente de
-  custo, o tempo por estado/app das jornadas, as pausas e a origem dos
-  custos fixos. Backup antigo restaurado nao apaga a manutencao do celular.
-- Restaurar arquivo: so apaga o WAL antigo depois de trocar o banco.
-- Teste novo: DadosJsonTest (ida e volta sem perder campo).
+Novidades:
+- Melhores horarios (Menu > Melhores horarios, e atalho na Atividade): com
+  as corridas registradas, os 3 melhores horarios (dia x faixa de 2 h, pelo
+  menos 3 corridas) em R$/h de corrida e R$/km, mapa da semana e quanto cada
+  app pagou no melhor horario. Semana / Mes / 90 dias.
+- Lembrete de manutencao: aviso na barra quando faltar 100/300/500 km
+  (escolha em Menu > Manutencao > "Me avisar antes", padrao 300) e quando
+  vencer, com "Fiz agora" e "Lembrar amanha". Confere quando o app abre e a
+  cada km novo do painel. Cartao amarelo/vermelho no Inicio.
 
 Arquivos novos:
-  app/src/test/java/com/motoristapro/nuvem/DadosJsonTest.kt
+  app/src/main/java/com/motoristapro/horarios/MelhoresHorarios.kt
+  app/src/main/java/com/motoristapro/veiculo/LembreteManutencao.kt
+  app/src/main/java/com/motoristapro/veiculo/AvisoManutencao.kt
+  app/src/test/java/com/motoristapro/horarios/MelhoresHorariosTest.kt
+  app/src/test/java/com/motoristapro/veiculo/CalculoLembreteTest.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
+  app/src/main/AndroidManifest.xml
   app/src/main/java/com/motoristapro/MotoristaApp.kt
-  app/src/main/java/com/motoristapro/data/backup/BackupManager.kt
-  app/src/main/java/com/motoristapro/data/local/dao/SincronizacaoDao.kt
-  app/src/main/java/com/motoristapro/nuvem/DadosJson.kt
-  app/src/main/java/com/motoristapro/nuvem/SincronizacaoNuvem.kt
-  app/src/main/java/com/motoristapro/diagnostico/RegistroErros.kt
-  app/src/main/java/com/motoristapro/jornada/JornadaService.kt
-  app/src/main/java/com/motoristapro/service/AvisoLeitor.kt
-  app/src/main/java/com/motoristapro/service/LeitorOcr.kt
-  app/src/main/java/com/motoristapro/service/NotificacaoOferta.kt
-  app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
+  app/src/main/java/com/motoristapro/data/local/dao/CorridaDao.kt
+  app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
+  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
+  app/src/main/java/com/motoristapro/ui/AppRaiz.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardViewModel.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MelhoresHorariosScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/SubTela.kt
+  app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt
+  app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt

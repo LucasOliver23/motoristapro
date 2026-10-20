@@ -15,6 +15,7 @@ import com.motoristapro.resumo.ResumoDiarioWorker
 import com.motoristapro.service.AvisoLeitor
 import com.motoristapro.service.OfertaAccessibilityService
 import kotlinx.coroutines.delay
+import com.motoristapro.veiculo.AvisoManutencao
 import com.motoristapro.veiculo.OdometroVeiculo
 import com.motoristapro.widget.WidgetLucro
 import kotlinx.coroutines.CoroutineScope
@@ -54,6 +55,13 @@ class MotoristaApp : Application() {
                 .onFailure { Log.w("MotoristaPro", "Falha ao limpar ofertas antigas", it) }
         }
         escopoApp.launch { adotarNomeDaConta() }
+        // Lembrete de manutenção: confere quando o app sobe e a cada km novo do painel.
+        escopoApp.launch {
+            odometro.mudou.collect {
+                delay(2_000)
+                AvisoManutencao.conferir(this@MotoristaApp)
+            }
+        }
         // O Android religa o leitor sozinho em poucos segundos depois que o
         // processo sobe. Se passado 1 min e meio ele não ligou, ele travou.
         escopoApp.launch {

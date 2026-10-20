@@ -3,6 +3,7 @@ package com.motoristapro.data.prefs
 import android.content.Context
 import com.motoristapro.pacote.ConfigPacote
 import com.motoristapro.pacote.PlanoPacote
+import com.motoristapro.veiculo.CalculoLembrete
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -82,7 +83,22 @@ class PreferenciasApp(context: Context) {
         _horasPorDia.value = v
     }
 
+    // ------------------------------------------------- lembrete de manutenção
+
+    private val _avisoManutencaoKm = MutableStateFlow(
+        prefs.getInt(KEY_AVISO_MANUTENCAO, CalculoLembrete.PADRAO_KM)
+    )
+
+    /** Quantos km antes do vencimento o lembrete de manutenção avisa. */
+    val avisoManutencaoKm: StateFlow<Int> = _avisoManutencaoKm
+
+    fun definirAvisoManutencaoKm(km: Int) {
+        prefs.edit().putInt(KEY_AVISO_MANUTENCAO, km).apply()
+        _avisoManutencaoKm.value = km
+    }
+
     private companion object {
+        const val KEY_AVISO_MANUTENCAO = "aviso_manutencao_km"
         const val KEY_HORAS_DIA = "horas_por_dia"
         const val KEY_PACOTE_PLANO = "pacote99_plano"
         const val KEY_NOTIF_OFERTA = "notificacao_oferta"

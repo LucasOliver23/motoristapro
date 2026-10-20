@@ -98,7 +98,7 @@ fun AppRaiz() {
                 Aba.INICIO -> DashboardRoute(irPara = { abaIndice = it.ordinal })
                 Aba.CORRIDAS -> CorridasRoute()
                 Aba.FINANCAS -> FinancasRoute()
-                Aba.RELATORIOS -> RelatoriosRoute()
+                Aba.RELATORIOS -> RelatoriosRoute(irPara = { abaIndice = it.ordinal })
                 Aba.MAIS -> MaisRoute()
             }
         }

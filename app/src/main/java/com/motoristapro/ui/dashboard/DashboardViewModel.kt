@@ -36,6 +36,8 @@ import com.motoristapro.ui.manutencao.DadosKm
 import com.motoristapro.ui.manutencao.maisUrgente
 import com.motoristapro.veiculo.OrigemOdometro
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.mapLatest
+import com.motoristapro.data.local.entity.ItemManutencao
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -164,6 +166,22 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
 
     val leitorConectado: StateFlow<Boolean> = OfertaAccessibilityService.conectado
     val gpsRodando: StateFlow<Boolean> = JornadaService.rodando
+
+    /**
+     * O item de manutenção mais perto de vencer, quando já está dentro do aviso
+     * (Menu ▸ Manutenção ▸ "Me avisar antes"). É o cartão amarelo do Início.
+     */
+    val manutencaoChegando: StateFlow<Pair<ItemManutencao, Long>?> =
+        combine(repo.manutencoes(), app.odometro.mudou, app.preferencias.avisoManutencaoKm) { itens, _, aviso ->
+            itens to aviso
+        }.mapLatest { (itens, aviso) ->
+            val km = app.odometro.atual()?.km ?: return@mapLatest null
+            itens.filter { it.intervaloKm > 0 }
+                .map { it to it.faltamKm(km) }
+                .filter { it.second <= aviso }
+                .minByOrNull { it.second }
+        }.catch { emit(null) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val plataformas: StateFlow<List<Plataforma>> = repo.plataformasAtivas()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
