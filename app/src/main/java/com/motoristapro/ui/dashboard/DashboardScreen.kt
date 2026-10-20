@@ -104,6 +104,7 @@ import com.motoristapro.ui.theme.SuperficieAlta
 import com.motoristapro.ui.theme.TextoPrincipal
 import com.motoristapro.ui.theme.Turquesa
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -133,6 +134,7 @@ fun DashboardRoute(
     val gpsOk by vm.gpsRodando.collectAsStateWithLifecycle()
     val plataformas by vm.plataformas.collectAsStateWithLifecycle()
     val sequencia by vm.sequencia.collectAsStateWithLifecycle()
+    val manutencao by vm.manutencaoChegando.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
@@ -217,6 +219,12 @@ fun DashboardRoute(
                 LucroDoDia(estado, agora, onVerFinancas = { irPara(Aba.FINANCAS) })
 
                 PacoteValeuAPena(estado)
+
+                manutencao?.let { (item, faltam) ->
+                    ManutencaoChegando(item.nome, faltam, item.odometroDoVencimento) {
+                        irParaAjuste(SubTela.MANUTENCAO, irPara)
+                    }
+                }
 
                 QuatroNumeros(estado)
 
@@ -333,6 +341,42 @@ private fun LinhaDaConta(rotulo: String, valor: String, cor: Color) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(rotulo, style = MaterialTheme.typography.bodyMedium, color = TextoSecundario, modifier = Modifier.weight(1f))
         Text(valor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = cor)
+    }
+}
+
+/** Cartão amarelo (ou vermelho, se venceu) do item de manutenção que está chegando. */
+@Composable
+private fun ManutencaoChegando(nome: String, faltam: Long, vence: Long, onClick: () -> Unit) {
+    val vencido = faltam <= 0
+    val cor = if (vencido) VermelhoPrejuizo else AmareloAlerta
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Superficie)
+            .border(1.5.dp, cor, RoundedCornerShape(20.dp))
+            .clickable { onClick() }.padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(cor.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center
+        ) { Text("🔧", fontSize = 18.sp) }
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (vencido) "$nome venceu" else "$nome chegando",
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold
+            )
+            Text(
+                (if (vencido) "passou ${-faltam} km" else "faltam $faltam km") +
+                    " · " + String.format(java.util.Locale("pt", "BR"), "%,d km", vence),
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        }
+        Text(
+            if (vencido) "ATRASADA" else "ATENÇÃO",
+            fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = cor,
+            modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(cor.copy(alpha = 0.14f))
+                .padding(horizontal = 7.dp, vertical = 2.dp)
+        )
     }
 }
 

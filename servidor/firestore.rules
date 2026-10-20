@@ -42,6 +42,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Quem administra o app: o documento admins/{uid} é criado À MÃO no
+    // console do Firebase. Pelo app ninguém se promove.
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Radar de eventos: todo motorista logado lê; só admin publica e apaga.
+    match /eventos/{id} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
     // Recibos de pagamento, só para auditoria. Escritos pela função.
     match /pagamentos/{id} {
       allow read, write: if false;

@@ -448,6 +448,16 @@ class FinanceiroRepository(
     suspend fun salvarPerfilCusto(perfil: PerfilCusto) = perfilCustoDao.salvar(perfil)
 
     /** Faixas de 2 h do dia com o R$/km médio das ofertas — os "melhores horários". */
+    /** As corridas registradas somadas por dia × faixa de 2 h × app (Melhores horários). */
+    fun fatiasHorariasDasCorridas(inicio: Long, fim: Long): Flow<List<com.motoristapro.horarios.FatiaCorridas>> =
+        corridaDao.observarFatiasHorarias(inicio, fim).map { lista ->
+            lista.map {
+                com.motoristapro.horarios.FatiaCorridas(
+                    it.diaSemana, it.faixa, it.plataforma, it.corridas, it.valorCentavos, it.metros, it.segundos
+                )
+            }
+        }
+
     fun faixasHorarias(inicio: Long, fim: Long, minimoOfertas: Int = 3): Flow<List<FaixaHoraria>> =
         ofertaDao.observarFaixasHorarias(inicio, fim, minimoOfertas)
 

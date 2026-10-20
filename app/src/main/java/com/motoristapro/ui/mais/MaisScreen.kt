@@ -99,6 +99,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val manutencoes by vm.manutencoes.collectAsStateWithLifecycle()
     val odometro by vm.odometroAtual.collectAsStateWithLifecycle()
     val odometroLido by vm.odometro.collectAsStateWithLifecycle()
+    val avisoManutencao by appPrefs.avisoManutencaoKm.collectAsStateWithLifecycle()
     var assistenteAberto by remember { mutableStateOf(false) }
     var sub by remember { mutableStateOf<SubTela?>(null) }
     var novoCusto by remember { mutableStateOf(false) }
@@ -299,6 +300,18 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         } ?: "sem meta cadastrada",
                         aceso = metaPorHora != null,
                         onClick = { sub = SubTela.METAS }
+                    ),
+                    Ferramenta(
+                        titulo = "Melhores horários",
+                        icone = "⏰",
+                        estado = "quando suas corridas pagam mais",
+                        onClick = { sub = SubTela.HORARIOS }
+                    ),
+                    Ferramenta(
+                        titulo = "Radar de eventos",
+                        icone = "📡",
+                        estado = "jogos, shows e festas com a hora de saída",
+                        onClick = { sub = SubTela.RADAR }
                     ),
                     Ferramenta(
                         titulo = "Manutenção",
@@ -549,6 +562,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
                     SubTela.PACOTE -> PacoteTaxaScreen(onSalvo = { sub = null })
+                    SubTela.HORARIOS -> MelhoresHorariosScreen()
+                    SubTela.RADAR -> RadarScreen(cidade = cfg.cidade)
                     SubTela.METAS -> MetaPorHoraConteudo(
                         cfg = cfg,
                         horasPorDia = horasPorDia,
@@ -579,7 +594,9 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onSalvar = vm::salvarManutencao,
                         onExcluir = vm::excluirManutencao,
                         onCorrigirKm = vm::corrigirOdometro,
-                        onEditarVeiculo = { assistenteAberto = true }
+                        onEditarVeiculo = { assistenteAberto = true },
+                        avisoKm = avisoManutencao,
+                        onAvisoKm = appPrefs::definirAvisoManutencaoKm
                     )
                     SubTela.APARENCIA -> AparenciaScreen()
                     SubTela.VERSAO ->

@@ -69,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Color
 import com.motoristapro.ui.theme.AmareloAlerta
 import com.motoristapro.ui.theme.Superficie
@@ -432,7 +433,10 @@ private fun QuadroDoPeriodo(e: RelatoriosUiState) {
 }
 
 @Composable
-fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosViewModel.Factory)) {
+fun RelatoriosRoute(
+    irPara: (com.motoristapro.ui.Aba) -> Unit = {},
+    vm: RelatoriosViewModel = viewModel(factory = RelatoriosViewModel.Factory)
+) {
     val e by vm.uiState.collectAsStateWithLifecycle()
 
     TelaAba(titulo = "Atividade", subtitulo = "Desempenho ${e.periodo.detalhe}") { padding ->
@@ -452,6 +456,20 @@ fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosView
             LucroDoPeriodo(e)
 
             MapaDeCalor(e)
+
+            // As telas que respondem "quando sair": ficam no Menu, mas a pergunta nasce aqui.
+            AtalhoAtividade("⏰", "Melhores horários", "quando as suas corridas pagam mais") {
+                com.motoristapro.ui.NavegacaoRapida.pedirSubTela(
+                    com.motoristapro.ui.mais.SubTela.HORARIOS.name, com.motoristapro.ui.Aba.MAIS.ordinal
+                )
+                irPara(com.motoristapro.ui.Aba.MAIS)
+            }
+            AtalhoAtividade("📡", "Radar de eventos", "jogos, shows e festas com a hora de saída") {
+                com.motoristapro.ui.NavegacaoRapida.pedirSubTela(
+                    com.motoristapro.ui.mais.SubTela.RADAR.name, com.motoristapro.ui.Aba.MAIS.ordinal
+                )
+                irPara(com.motoristapro.ui.Aba.MAIS)
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 NumeroCentral(
@@ -568,5 +586,24 @@ fun RelatoriosRoute(vm: RelatoriosViewModel = viewModel(factory = RelatoriosView
             }
             Spacer(Modifier.height(8.dp))
         }
+    }
+}
+
+
+/** Uma linha que abre outra tela, no estilo das listas do Menu. */
+@Composable
+private fun AtalhoAtividade(icone: String, titulo: String, sub: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Superficie)
+            .clickable { onClick() }.padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(icone, fontSize = 20.sp)
+        Column(Modifier.weight(1f)) {
+            Text(titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(sub, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+        }
+        Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
     }
 }

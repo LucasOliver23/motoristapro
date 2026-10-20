@@ -104,6 +104,11 @@
             android:name=".service.RegistrarOfertaReceiver"
             android:exported="false" />
 
+        <!-- "Fiz agora" / "Lembrar amanhã" do lembrete de manutenção. -->
+        <receiver
+            android:name=".veiculo.AvisoManutencaoReceiver"
+            android:exported="false" />
+
         <!-- Widget "Lucro de hoje" na tela inicial. -->
         <receiver
             android:name=".widget.WidgetLucro"

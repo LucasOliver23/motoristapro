@@ -25,6 +25,7 @@ import com.motoristapro.ui.componentes.Icones
 import com.motoristapro.ui.componentes.Rotulo
 import com.motoristapro.ui.theme.EstiloValor
 import com.motoristapro.ui.theme.Superficie
+import com.motoristapro.veiculo.CalculoLembrete
 import com.motoristapro.veiculo.CalculoOdometro
 import com.motoristapro.veiculo.FotoVeiculo
 import com.motoristapro.veiculo.OdometroAtual
@@ -119,7 +120,9 @@ fun ManutencaoConteudo(
     onSalvar: (ItemManutencao) -> Unit,
     onExcluir: (Long) -> Unit,
     onCorrigirKm: (Long) -> Unit,
-    onEditarVeiculo: () -> Unit
+    onEditarVeiculo: () -> Unit,
+    avisoKm: Int = CalculoLembrete.PADRAO_KM,
+    onAvisoKm: (Int) -> Unit = {}
 ) {
     val odometroAtual = odometro?.km ?: 0L
     var editando by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -180,6 +183,30 @@ fun ManutencaoConteudo(
             .clickable { novo = true }.padding(vertical = 13.dp),
         contentAlignment = Alignment.Center
     ) { Text("+ Adicionar item", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium) }
+
+    // Quantos km antes o lembrete avisa na barra do celular (e o cartão do Início aparece).
+    Cartao(espaco = 6) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Me avisar antes", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text("quando faltar", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                CalculoLembrete.OPCOES_KM.forEach { km ->
+                    val ativo = km == avisoKm
+                    Text(
+                        "$km km",
+                        modifier = Modifier.clip(RoundedCornerShape(99.dp))
+                            .background(if (ativo) Lima else SuperficieAlta)
+                            .clickable { onAvisoKm(km) }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        color = if (ativo) Color(0xFF0D1117) else TextoSecundario,
+                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
 
     itens.firstOrNull { it.id == acoes }?.let { item ->
         AlertDialog(

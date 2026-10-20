@@ -11,10 +11,12 @@ import com.motoristapro.data.prefs.PreferenciasApp
 import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.nuvem.SincronizacaoNuvem
+import com.motoristapro.radar.RadarEventos
 import com.motoristapro.resumo.ResumoDiarioWorker
 import com.motoristapro.service.AvisoLeitor
 import com.motoristapro.service.OfertaAccessibilityService
 import kotlinx.coroutines.delay
+import com.motoristapro.veiculo.AvisoManutencao
 import com.motoristapro.veiculo.OdometroVeiculo
 import com.motoristapro.widget.WidgetLucro
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +32,7 @@ class MotoristaApp : Application() {
     val repository: FinanceiroRepository by lazy { FinanceiroRepository(database) { preferencias.pacote.value } }
     val preferencias: PreferenciasApp by lazy { PreferenciasApp(this) }
     val odometro: OdometroVeiculo by lazy { OdometroVeiculo(this, repository) }
+    val radar: RadarEventos by lazy { RadarEventos(this, autenticacao) }
     val autenticacao: AutenticacaoManager by lazy { AutenticacaoManager(this) }
     val nuvem: SincronizacaoNuvem by lazy { SincronizacaoNuvem(this, database, autenticacao) }
     val atualizacao: AtualizacaoManager by lazy { AtualizacaoManager(this) }
@@ -54,6 +57,13 @@ class MotoristaApp : Application() {
                 .onFailure { Log.w("MotoristaPro", "Falha ao limpar ofertas antigas", it) }
         }
         escopoApp.launch { adotarNomeDaConta() }
+        // Lembrete de manutenção: confere quando o app sobe e a cada km novo do painel.
+        escopoApp.launch {
+            odometro.mudou.collect {
+                delay(2_000)
+                AvisoManutencao.conferir(this@MotoristaApp)
+            }
+        }
         // O Android religa o leitor sozinho em poucos segundos depois que o
         // processo sobe. Se passado 1 min e meio ele não ligou, ele travou.
         escopoApp.launch {
