@@ -196,8 +196,14 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
         viewModelScope.launch {
             runCatching { repo.iniciarJornada() }
                 .onSuccess {
-                    if (comGps) JornadaService.iniciar(app)
-                    _mensagens.send(if (comGps) "Turno iniciado • GPS medindo os km" else "Turno iniciado (sem GPS)")
+                    val gpsLigou = comGps && JornadaService.iniciar(app)
+                    _mensagens.send(
+                        when {
+                            gpsLigou -> "Turno iniciado • GPS medindo os km"
+                            comGps -> "Turno iniciado • o GPS não ligou agora, toque em Retomar GPS"
+                            else -> "Turno iniciado (sem GPS)"
+                        }
+                    )
                 }
                 .onFailure { _mensagens.send("Erro ao iniciar turno: ${it.message}") }
         }
@@ -230,7 +236,12 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
         app.odometro.registrar(km, if (encerrando) OrigemOdometro.FIM else OrigemOdometro.INICIO)
 
     /** Religa o GPS de um turno que ficou aberto (ex.: o sistema encerrou o serviço). */
-    fun retomarGps() = JornadaService.iniciar(app)
+    fun retomarGps() {
+        if (JornadaService.iniciar(app)) return
+        viewModelScope.launch {
+            _mensagens.send("Não deu para ligar o GPS: confira a localização precisa nas permissões do app")
+        }
+    }
 
     /** Pausar/retomar o turno sem encerrar: o almoço não conta como hora rodada. */
     fun alternarPausa() {

@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import com.motoristapro.diagnostico.RegistroErros
 import android.view.accessibility.AccessibilityEvent
@@ -352,8 +353,20 @@ class OfertaAccessibilityService : AccessibilityService() {
         val comDescricoes: List<Leitura>
     )
 
+    /**
+     * Até quando a coleta atual pode rodar (relógio de [SystemClock.uptimeMillis]).
+     * Só a thread de [trabalho] mexe nele.
+     *
+     * Cada nó lido é uma chamada entre processos, e o Android espera até 5 s
+     * por cada uma quando o app de corrida está ocupado (mapa redesenhando,
+     * app travado). Sem prazo, uma coleta podia levar minutos: nesse tempo
+     * nenhuma oferta nova era lida e o leitor parecia ter fechado.
+     */
+    private var prazoColeta = 0L
+
     /** Só leitura da árvore: nada de estado do leitor aqui (roda fora da thread principal). */
     private fun coletar(): Coleta {
+        prazoColeta = SystemClock.uptimeMillis() + ORCAMENTO_COLETA_MS
         val foto = runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
             ?.takeIf { it in PACOTES_FOTO }
         if (foto != null) return Coleta(foto, coletarTextosDaFrente(), emptyList(), emptyList())
@@ -855,11 +868,14 @@ class OfertaAccessibilityService : AccessibilityService() {
         incluirDescricoes: Boolean
     ) {
         if (profundidade > MAX_PROFUNDIDADE || saida.size >= MAX_TEXTOS) return
+        if (prazoColeta > 0L && SystemClock.uptimeMillis() > prazoColeta) return
 
-        val texto = no.text?.toString()?.trim()
+        // Texto gigante (descrição de um container inteiro, página web) não é
+        // oferta e só deixa a interpretação lenta na thread principal.
+        val texto = no.text?.toString()?.trim()?.take(MAX_CARACTERES_TEXTO)
         if (!texto.isNullOrEmpty()) saida += texto
 
-        val descricao = no.contentDescription?.toString()?.trim()
+        val descricao = no.contentDescription?.toString()?.trim()?.take(MAX_CARACTERES_TEXTO)
         if (!descricao.isNullOrEmpty() && descricao != texto) {
             // Sem incluirDescricoes, só folhas sem texto: a descrição de um container costuma
             // repetir o texto dos filhos (o parser também ignora trechos repetidos).
@@ -1026,6 +1042,12 @@ class OfertaAccessibilityService : AccessibilityService() {
         private const val JANELA_APPS_ATIVOS_MS = 15_000L
         private const val MAX_PROFUNDIDADE = 80
         private const val MAX_TEXTOS = 1500
+
+        /** Tempo máximo de uma coleta da árvore (as duas leituras juntas). */
+        private const val ORCAMENTO_COLETA_MS = 1_500L
+
+        /** Corte de cada texto lido: oferta nenhuma tem mais do que isto numa linha. */
+        private const val MAX_CARACTERES_TEXTO = 300
         // Conta a partir da última vez que a oferta foi VISTA, não da primeira:
         // a mesma oferta parada na tela não duplica, mas outra corrida igual
         // (mesmo valor, km e tempo) que chega um minuto depois é outra corrida.
