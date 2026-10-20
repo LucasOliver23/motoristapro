@@ -2,6 +2,7 @@ package com.motoristapro.jornada
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
@@ -376,14 +377,41 @@ class JornadaService : Service() {
         /** true enquanto o GPS do turno está medindo. */
         val rodando: StateFlow<Boolean> = _rodando.asStateFlow()
 
-        /** Liga o serviço (a jornada já deve existir no banco). Chame com o app em primeiro plano. */
-        fun iniciar(context: Context) {
+        /**
+         * Liga o serviço (a jornada já deve existir no banco). Devolve false quando
+         * NÃO é seguro ligar agora — aí o turno segue só com o cronômetro.
+         *
+         * Por que conferir antes: depois de startForegroundService() o Android
+         * EXIGE que o serviço entre em primeiro plano. Se ele não consegue (sem a
+         * localização precisa, ou com o app fora da tela no Android 14+, que só
+         * deixa ligar o GPS em primeiro plano com o app aberto), o sistema derruba
+         * o processo inteiro — e o leitor de ofertas, que mora no mesmo processo,
+         * caía junto. Era uma das formas de o leitor "fechar sozinho".
+         */
+        fun iniciar(context: Context): Boolean {
+            if (!podeLigar(context)) {
+                Log.w(TAG, "GPS do turno não ligado: sem localização precisa ou app fora da tela")
+                return false
+            }
             val i = Intent(context, JornadaService::class.java).setAction(ACAO_INICIAR)
-            try {
+            return try {
                 ContextCompat.startForegroundService(context, i)
+                true
             } catch (e: Exception) {
                 Log.e(TAG, "Não foi possível iniciar o GPS do turno", e)
+                false
             }
+        }
+
+        /** Localização precisa concedida E o app na frente agora. */
+        fun podeLigar(context: Context): Boolean {
+            val temLocal = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!temLocal) return false
+            val estado = ActivityManager.RunningAppProcessInfo()
+            ActivityManager.getMyMemoryState(estado)
+            return estado.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
         }
 
         /** Encerra o turno (grava km + fim) e desliga o serviço. */
