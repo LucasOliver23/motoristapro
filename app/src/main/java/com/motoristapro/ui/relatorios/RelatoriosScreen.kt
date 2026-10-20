@@ -464,6 +464,12 @@ fun RelatoriosRoute(
                 )
                 irPara(com.motoristapro.ui.Aba.MAIS)
             }
+            AtalhoAtividade("📡", "Radar de eventos", "jogos, shows e festas com a hora de saída") {
+                com.motoristapro.ui.NavegacaoRapida.pedirSubTela(
+                    com.motoristapro.ui.mais.SubTela.RADAR.name, com.motoristapro.ui.Aba.MAIS.ordinal
+                )
+                irPara(com.motoristapro.ui.Aba.MAIS)
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 NumeroCentral(
