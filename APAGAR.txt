@@ -15,7 +15,25 @@ Novidades:
   vencer, com "Fiz agora" e "Lembrar amanha". Confere quando o app abre e a
   cada km novo do painel. Cartao amarelo/vermelho no Inicio.
 
+- Radar de eventos (Menu > Radar de eventos, e atalho na Atividade): jogos,
+  shows, festas e aeroporto da cidade do perfil, com hora de inicio e de
+  SAIDA, nivel de movimento, "Avisar" 30 min antes da saida (WorkManager) e
+  "Ver no mapa". A lista vem do Firestore (colecao eventos); so quem tem
+  documento em admins/{uid} publica e apaga. O motorista pode anotar
+  eventos que ficam so no celular.
+  PRECISA publicar as regras novas (servidor/firestore.rules) e criar o
+  documento admins/{seu uid} no console do Firebase.
+
+Correcao de build: AppNavegacaoScreen saiu para o arquivo proprio (estava
+dentro da tela antiga de melhores horarios).
+
 Arquivos novos:
+  app/src/main/java/com/motoristapro/radar/Evento.kt
+  app/src/main/java/com/motoristapro/radar/RadarEventos.kt
+  app/src/main/java/com/motoristapro/radar/AvisoEvento.kt
+  app/src/main/java/com/motoristapro/ui/mais/RadarScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/AppNavegacaoScreen.kt
+  app/src/test/java/com/motoristapro/radar/CalculoRadarTest.kt
   app/src/main/java/com/motoristapro/horarios/MelhoresHorarios.kt
   app/src/main/java/com/motoristapro/veiculo/LembreteManutencao.kt
   app/src/main/java/com/motoristapro/veiculo/AvisoManutencao.kt
@@ -37,3 +55,4 @@ Arquivos alterados (so sobrescrever):
   app/src/main/java/com/motoristapro/ui/mais/SubTela.kt
   app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt
   app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt
+  servidor/firestore.rules

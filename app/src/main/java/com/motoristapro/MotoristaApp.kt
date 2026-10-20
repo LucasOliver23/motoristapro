@@ -11,6 +11,7 @@ import com.motoristapro.data.prefs.PreferenciasApp
 import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.nuvem.SincronizacaoNuvem
+import com.motoristapro.radar.RadarEventos
 import com.motoristapro.resumo.ResumoDiarioWorker
 import com.motoristapro.service.AvisoLeitor
 import com.motoristapro.service.OfertaAccessibilityService
@@ -31,6 +32,7 @@ class MotoristaApp : Application() {
     val repository: FinanceiroRepository by lazy { FinanceiroRepository(database) { preferencias.pacote.value } }
     val preferencias: PreferenciasApp by lazy { PreferenciasApp(this) }
     val odometro: OdometroVeiculo by lazy { OdometroVeiculo(this, repository) }
+    val radar: RadarEventos by lazy { RadarEventos(this, autenticacao) }
     val autenticacao: AutenticacaoManager by lazy { AutenticacaoManager(this) }
     val nuvem: SincronizacaoNuvem by lazy { SincronizacaoNuvem(this, database, autenticacao) }
     val atualizacao: AtualizacaoManager by lazy { AtualizacaoManager(this) }
