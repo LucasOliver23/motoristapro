@@ -2,7 +2,7 @@
 
 App Android para **motorista e entregador de aplicativo** (Uber, 99, iFood e inDrive) que lê a oferta de corrida na tela, mostra na hora se ela compensa — com o custo real do veículo — e controla o dia de trabalho: lucro, jornada, metas, km, manutenção e relatórios.
 
-Versão atual: **4.14.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
+Versão atual: **4.14.2** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
 
 ---
 
@@ -28,7 +28,7 @@ Versão atual: **4.14.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targe
 
 | Área | Recursos |
 |---|---|
-| **Leitor de ofertas** | Lê a oferta na tela da Uber, 99, iFood e inDrive (texto e, quando o app esconde o texto, **imagem/OCR**). Cartão flutuante com R$/km, R$/h, lucro e a etiqueta **ACEITAR / ATENÇÃO / RECUSAR**. Também lê **foto de oferta** aberta no WhatsApp, Facebook, Instagram, Telegram e Galeria. |
+| **Leitor de ofertas** | Lê a oferta na tela da Uber, 99, iFood e inDrive (texto e, quando o app esconde o texto, **imagem/OCR**). Cartão flutuante com R$/km, R$/h, lucro e a etiqueta **ACEITAR / ATENÇÃO / RECUSAR**. |
 | **Semáforo** | Faixas de R$/km, R$/hora e nota do passageiro, valor mínimo e lucro mínimo. A faixa de R$/hora pode vir da **meta por hora**. |
 | **Registro de corridas** | Botão "Registrar" no cartão e na notificação; leitura da tela **Detalhes da corrida** da 99 (valor final, já com o pacote 0%); registro manual. |
 | **Jornada** | Cronômetro do turno, km pelo GPS, pausas, tempo por estado e por app. Pergunta o **km do painel** ao iniciar e ao encerrar (pega o uso fora do app). |
@@ -64,9 +64,9 @@ OverlayOferta (cartão)  +  NotificacaoOferta  +  AvisoVoz  +  histórico (tabel
 ```
 
 - **Janela própria de acessibilidade** (`TYPE_ACCESSIBILITY_OVERLAY`): não precisa da permissão "sobrepor a outros apps".
-- **OCR econômico**: só quando o app não expõe texto; o "precisa de imagem" de cada app vale 10 min; sem oferta, a espera entre prints cresce de 1,2 s até 3 s e volta ao mínimo quando abre uma janela nova; falha de captura tenta no máximo 4 vezes. A cópia da imagem roda fora da thread principal.
+- **OCR automático e econômico** (sem chave para o motorista): liga sozinho só quando o app não expõe texto; o "precisa de imagem" de cada app vale 10 min; sem oferta, a espera entre prints cresce de 1,2 s até 3 s e volta ao mínimo quando abre uma janela nova; falha de captura tenta no máximo 4 vezes. A cópia da imagem roda fora da thread principal.
 - **Vários apps abertos**: vale o app que mexeu por último; duas ofertas iguais seguidas não viram uma só (janela de 60 s pela última vez vista).
-- **Apps de foto** (WhatsApp, Instagram, Galeria…): só leitura por imagem e só com a foto em tela cheia — texto de conversa nunca vira oferta. Bancos e outros apps **não** são lidos.
+- **Só apps de corrida**: o leitor ouve apenas Uber, 99, iFood e inDrive. A leitura de foto de oferta no WhatsApp, Instagram e galeria saiu na 4.14.2 (pesava no leitor e a Play Store reprova). Bancos e outros apps **não** são lidos.
 - **Robustez**: toda leitura é protegida; os escopos de coroutine do leitor, da jornada e da assinatura têm `CoroutineExceptionHandler`; o último erro fica em **Menu ▸ Checkup do app** (`RegistroErros`). Se o leitor parar, o app avisa na barra de notificações.
 
 Pacotes lidos (`OfertaAccessibilityService.PACOTES_ALVO`): `com.ubercab.driver`, `com.app99.driver`, `br.com.ifood.driver.app`, `sinet.startup.inDriver`. Ao incluir um app, atualize também `res/xml/accessibility_service_config.xml`.
@@ -81,7 +81,7 @@ Pacotes lidos (`OfertaAccessibilityService.PACOTES_ALVO`): `com.ubercab.driver`,
 | **Corridas** | Histórico de ofertas lidas e corridas registradas por dia/semana/mês, filtro por app, aceitas × recusadas, endereços com "ver no mapa". |
 | **Finanças** | Mês com entradas e saídas, despesas por categoria, extrato, uso do pacote de ganhos da 99 e **Relatório do mês (PDF)**. |
 | **Atividade** | Resumo do período, R$ por hora conectada, mapa de calor, gráficos e atalhos para **Melhores horários** e **Comparar apps**. |
-| **Menu** | Perfil, leitor de ofertas, pacote 0%, aparência do cartão, notificação, voz, bolha, endereços de risco, app de navegação, **Suas metas**, **Melhores horários**, **Comparar apps**, **Relatório do mês**, **Meus veículos**, **Manutenção**, resumo das 22h, assinatura, conta e nuvem, backup, versão, tema. |
+| **Menu** | Perfil, pacote 0%, aparência do cartão, notificação, voz, bolha, endereços de risco, app de navegação, **Suas metas**, **Melhores horários**, **Comparar apps**, **Relatório do mês**, **Meus veículos**, **Manutenção**, resumo das 22h, assinatura, conta e nuvem, backup, versão, tema. |
 
 Os desenhos aprovados de cada recurso ficam em `mockups/` (HTML + PNG).
 
@@ -230,7 +230,7 @@ Segredos do GitHub usados pelo `apk.yml`: `GOOGLE_SERVICES_JSON`, `KEYSTORE_BASE
 ## Privacidade e segurança
 
 - A leitura de texto e o OCR acontecem **só no aparelho** (ML Kit); nenhuma imagem da tela é enviada ou guardada.
-- O leitor só olha os apps de corrida e os apps de foto listados — **não lê bancos nem outros apps**.
+- O leitor só olha os apps de corrida listados — **não lê bancos nem outros apps**.
 - O texto da tela só vai para o log na versão de depuração (`LOG_TEXTOS = BuildConfig.DEBUG`).
 - Backup na nuvem só da própria conta (regras do Firestore); o histórico de ofertas não sobe.
 - Assinatura confirmada pelo servidor consultando o Mercado Pago (o app não decide se pagou).

@@ -14,7 +14,6 @@ enum class SubTela(val titulo: String) {
     SEMAFORO("Semáforo de valores"),
     CHECKUP("Checkup do app"),
     RISCO("Endereços de risco"),
-    LEITOR("Leitor de ofertas"),
     NUVEM("Conta e nuvem"),
     BACKUP("Backup e exportação"),
     VERSAO("Versão do app"),

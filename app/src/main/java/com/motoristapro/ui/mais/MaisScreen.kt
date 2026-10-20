@@ -84,7 +84,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     var confirmarSair by remember { mutableStateOf(false) }
     var confirmarZerar by remember { mutableStateOf(false) }
     LaunchedEffect(usuario?.uid) { if (usuario != null) vm.consultarNuvem() }
-    val ocr by vm.ocrAtivo.collectAsStateWithLifecycle()
     val appPrefs = (LocalContext.current.applicationContext as com.motoristapro.MotoristaApp).preferencias
     val pacote99 by appPrefs.pacote.collectAsStateWithLifecycle()
     val notificacaoOferta by appPrefs.notificacaoOferta.collectAsStateWithLifecycle()
@@ -232,14 +231,17 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
             ListaFerramentas(
                 titulo = "LEITOR DE OFERTAS",
                 itens = listOf(
-                    Ferramenta(
-                        titulo = "Ler ofertas na tela",
-                        icone = "👁",
-                        estado = if (leitorOk) "lendo Uber · 99 · iFood · inDrive" else "desconectado — religue",
-                        aceso = leitorOk,
-                        alerta = !leitorOk,
-                        onClick = { sub = SubTela.LEITOR }
-                    ),
+                    // O leitor não tem tela própria: liga uma vez na preparação e pronto.
+                    // Só aparece aqui quando cai, com o atalho direto para religar.
+                    *(if (leitorOk) emptyArray<Ferramenta>() else arrayOf(
+                        Ferramenta(
+                            titulo = "Leitor de ofertas desligado",
+                            icone = "👁",
+                            estado = "toque para religar na Acessibilidade",
+                            alerta = true,
+                            onClick = { context.abrirConfigAcessibilidade() }
+                        )
+                    )),
                     Ferramenta(
                         titulo = "Pacote 0% de taxa",
                         icone = "%",
@@ -525,7 +527,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     }
                     SubTela.CHECKUP -> CheckupConteudo(
                         leitorOk = leitorOk,
-                        ocrLigado = ocr,
                         notificacoesOk = notificacoesOk,
                         bateriaOk = bateriaOk,
                         diagnostico = diagnostico,
@@ -533,7 +534,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onBateria = { context.pedirBateriaLivre() },
                         onNotificacoes = { context.abrirDetalhesDoApp() },
                         onInicializacao = { context.abrirInicializacaoAutomatica() },
-                        onOcr = { vm.definirOcr(!ocr) },
                         onTestar = vm::testarLeitor
                     )
                     SubTela.RISCO ->
@@ -545,17 +545,6 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onMercados = vm::definirRiscoMercados,
                         onAdicionar = vm::adicionarPalavraRisco,
                         onRemover = vm::removerPalavraRisco
-                    )
-                    SubTela.LEITOR -> LeitorConteudo(
-                        leitorOk = leitorOk,
-                        bolha = bolha,
-                        ocr = ocr,
-                        diagnostico = diagnostico,
-                        onTestar = vm::testarLeitor,
-                        onAcessibilidade = { context.abrirConfigAcessibilidade() },
-                        onBolha = vm::definirBolha,
-                        onOcr = vm::definirOcr,
-                        onDetalhesDoApp = { context.abrirDetalhesDoApp() }
                     )
                     SubTela.NUVEM -> {
                     if (vm.loginDisponivel && usuario != null) {

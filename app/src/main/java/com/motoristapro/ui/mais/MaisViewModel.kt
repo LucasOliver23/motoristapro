@@ -255,9 +255,6 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
     private val _bolha = MutableStateFlow(prefs.bolhaAtiva)
     val bolhaAtiva: StateFlow<Boolean> = _bolha.asStateFlow()
 
-    private val _ocr = MutableStateFlow(prefs.ocrAtivo)
-    val ocrAtivo: StateFlow<Boolean> = _ocr.asStateFlow()
-
     private val _resumo = MutableStateFlow(prefs.resumoDiarioAtivo)
     val resumoAtivo: StateFlow<Boolean> = _resumo.asStateFlow()
 
@@ -410,11 +407,6 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
         prefs.definirBolha(ativa)
         _bolha.value = ativa
         OfertaAccessibilityService.instancia?.aplicarPreferencias()
-    }
-
-    fun definirOcr(ativo: Boolean) {
-        prefs.ocrAtivo = ativo
-        _ocr.value = ativo
     }
 
     // ------------------------------------------------------------ faixas

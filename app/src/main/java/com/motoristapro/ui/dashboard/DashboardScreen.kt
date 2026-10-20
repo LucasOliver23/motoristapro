@@ -1,5 +1,6 @@
 package com.motoristapro.ui.dashboard
 
+import com.motoristapro.ui.abrirConfigAcessibilidade
 import com.motoristapro.ui.manutencao.DadosKm
 import com.motoristapro.ui.manutencao.KmDoPainelDialog
 import androidx.compose.runtime.rememberCoroutineScope
@@ -199,7 +200,13 @@ fun DashboardRoute(
         titulo = if (primeiroNome != null) "Olá, $primeiroNome" else "Olá, motorista",
         subtitulo = estado.dia.format(FORMATO_DIA).replaceFirstChar { it.uppercase() },
         snackbar = snackbar,
-        acoes = { PastilhaLeitor(leitorOk, onTestar = vm::testarLeitor) }
+        // Ligado: toque testa a janela. Desligado: toque leva direto para religar.
+        acoes = {
+            PastilhaLeitor(
+                leitorOk,
+                onTocar = { if (leitorOk) vm.testarLeitor() else contexto.abrirConfigAcessibilidade() }
+            )
+        }
     ) { padding ->
         when {
             estado.carregando -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
@@ -519,12 +526,12 @@ private fun QuatroNumeros(e: DashboardUiState) {
 }
 
 @Composable
-private fun PastilhaLeitor(conectado: Boolean, onTestar: () -> Unit) {
+private fun PastilhaLeitor(conectado: Boolean, onTocar: () -> Unit) {
     val cor = if (conectado) Lima else AmareloAlerta
     Surface(
         shape = RoundedCornerShape(99.dp),
         color = cor.copy(alpha = 0.16f),
-        modifier = Modifier.padding(end = 10.dp).clickable { onTestar() }
+        modifier = Modifier.padding(end = 10.dp).clickable { onTocar() }
     ) {
         Row(
             Modifier.padding(horizontal = 10.dp, vertical = 6.dp),

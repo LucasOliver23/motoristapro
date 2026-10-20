@@ -1,7 +1,5 @@
 package com.motoristapro.ui.mais
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -12,11 +10,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.motoristapro.service.Diagnostico
 import com.motoristapro.ui.componentes.CardSecao
-import com.motoristapro.ui.componentes.LinhaSwitch
 import com.motoristapro.ui.componentes.LinhaValor
 import com.motoristapro.ui.componentes.TextoAjuda
 import com.motoristapro.ui.theme.AmareloAlerta
@@ -27,59 +23,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/** Sub-tela "Leitor de ofertas": estado do leitor, bolha, OCR, diagnóstico e permissões. */
-@Composable
-internal fun LeitorConteudo(
-    leitorOk: Boolean,
-    bolha: Boolean,
-    ocr: Boolean,
-    diagnostico: Diagnostico?,
-    onTestar: () -> Unit,
-    onAcessibilidade: () -> Unit,
-    onBolha: (Boolean) -> Unit,
-    onOcr: (Boolean) -> Unit,
-    onDetalhesDoApp: () -> Unit
-) {
-    CardSecao(titulo = "Leitor de ofertas") {
-        Text(
-            if (leitorOk) "Conectado e lendo Uber, 99 e iFood" else "Desconectado",
-            color = if (leitorOk) Lima else VermelhoPrejuizo,
-            fontWeight = FontWeight.SemiBold
-        )
-        if (!leitorOk) {
-            TextoAjuda(
-                "O Android desligou o leitor (acontece ao fechar o app pela tela de recentes ou por economia " +
-                    "de bateria). Toque em Acessibilidade, DESLIGUE e LIGUE de novo o \"MotoristaPro – Leitor de ofertas\". " +
-                    "Para não repetir: libere \"Início automático\" e deixe a bateria \"Sem restrições\" em Informações do app."
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onTestar, modifier = Modifier.weight(1f)) { Text("Testar janela") }
-            OutlinedButton(onClick = onAcessibilidade, modifier = Modifier.weight(1f)) {
-                Text("Acessibilidade")
-            }
-        }
-        LinhaSwitch(
-            "Bolha flutuante",
-            "Lucro do dia e cronômetro do turno por cima da Uber/99. Toque na bolha para abrir o app.",
-            bolha, onBolha
-        )
-        LinhaSwitch(
-            "Ler oferta pela imagem (OCR)",
-            "Para apps que escondem o texto do card (como a 99). Lê a tela no próprio celular, " +
-                "sem internet. Gasta um pouco mais de bateria. Android 11 ou mais novo.",
-            ocr, onOcr
-        )
-    }
-    DiagnosticoCard(diagnostico, leitorOk, ocr)
-    CardSecao(titulo = "Permissões") {
-        OutlinedButton(onClick = onDetalhesDoApp, modifier = Modifier.fillMaxWidth()) {
-            Text("Informações do app (localização, bateria)")
-        }
-        TextoAjuda("Dica: tire o MotoristaPro da otimização de bateria para o leitor e o GPS não serem desligados.")
-    }
-}
-
 private val FORMATO_HORA_DIAG = DateTimeFormatter.ofPattern("HH:mm:ss")
 
 /**
@@ -87,7 +30,7 @@ private val FORMATO_HORA_DIAG = DateTimeFormatter.ofPattern("HH:mm:ss")
  * "Copiar" permite mandar os textos para ajustar o reconhecimento sem precisar de computador.
  */
 @Composable
-internal fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean, ocrLigado: Boolean) {
+internal fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean) {
     val clipboard = LocalClipboardManager.current
     CardSecao(titulo = "Diagnóstico do leitor") {
         if (!leitorOk) {
@@ -105,7 +48,7 @@ internal fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean, ocrLigado: Bool
         LinhaValor("Leitura por", d.origem)
         Text(
             d.reconhecida?.let { "Reconhecida: $it" }
-                ?: if (d.textos.isEmpty()) "O app não expôs nenhum texto. Ligue \"Ler oferta pela imagem (OCR)\" acima."
+                ?: if (d.textos.isEmpty()) "O app não expôs nenhum texto: a oferta é lida pela imagem da tela."
                 else "Oferta NÃO reconhecida nesta leitura.",
             color = if (d.reconhecida != null) Lima else AmareloAlerta,
             style = MaterialTheme.typography.bodyMedium,
@@ -131,8 +74,7 @@ internal fun DiagnosticoCard(d: Diagnostico?, leitorOk: Boolean, ocrLigado: Bool
                     appendLine("Apps: ${d.pacotes.joinToString()}  Janelas: ${d.janelas}  Leitura: ${d.origem}")
                     appendLine("Reconhecida: ${d.reconhecida ?: "não"}")
                     appendLine(
-                        "Leitura por imagem: " + (if (ocrLigado) "ligada" else "DESLIGADA") +
-                            "  Android: ${android.os.Build.VERSION.SDK_INT}  Aparelho: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+                        "Android: ${android.os.Build.VERSION.SDK_INT}  Aparelho: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
                     )
                     d.motivo?.let { appendLine("Por quê: $it") }
                     appendLine("Textos:")

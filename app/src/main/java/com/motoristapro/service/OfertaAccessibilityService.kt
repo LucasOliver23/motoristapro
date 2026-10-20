@@ -234,7 +234,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         // mais curto para o sistema matar o leitor no meio do turno.
         try {
             val pacote = event?.packageName?.toString() ?: return
-            if (pacote !in PACOTES_ALVO && pacote !in PACOTES_FOTO) return
+            if (pacote !in PACOTES_ALVO) return
 
             when (event.eventType) {
                 AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
@@ -347,8 +347,6 @@ class OfertaAccessibilityService : AccessibilityService() {
 
     /** O que a thread de [trabalho] leu da tela. */
     private class Coleta(
-        val foto: String?,
-        val textosFrente: List<String>,
         val semDescricoes: List<Leitura>,
         val comDescricoes: List<Leitura>
     )
@@ -367,27 +365,13 @@ class OfertaAccessibilityService : AccessibilityService() {
     /** Só leitura da árvore: nada de estado do leitor aqui (roda fora da thread principal). */
     private fun coletar(): Coleta {
         prazoColeta = SystemClock.uptimeMillis() + ORCAMENTO_COLETA_MS
-        val foto = runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
-            ?.takeIf { it in PACOTES_FOTO }
-        if (foto != null) return Coleta(foto, coletarTextosDaFrente(), emptyList(), emptyList())
         // As duas leituras de uma vez: a com descrições só era feita quando a
         // primeira não achava oferta — que é quase sempre (mapa sem oferta).
-        return Coleta(null, emptyList(), coletarLeituras(incluirDescricoes = false), coletarLeituras(incluirDescricoes = true))
+        return Coleta(coletarLeituras(incluirDescricoes = false), coletarLeituras(incluirDescricoes = true))
     }
 
     private fun continuarVarredura(c: Coleta) {
         if (overlay == null || limites == null) return
-
-        // Foto de uma oferta aberta no WhatsApp, Facebook, Instagram, Telegram
-        // ou na Galeria: lê só pela IMAGEM, e só com a foto em tela cheia (poucos
-        // textos na tela). O texto da conversa nunca vira oferta — "R$ 20" e
-        // "5 km" numa mensagem não são corrida.
-        val foto = c.foto
-        if (foto != null) {
-            if (c.textosFrente.size <= MAX_TEXTOS_FOTO && ocrDisponivel()) solicitarOcr(foto)
-            else processarResultado(null, foto)
-            return
-        }
 
         // 1ª tentativa: só textos visíveis. 2ª: inclui descrições de acessibilidade de todos os nós
         // (alguns apps colocam o texto do card só na descrição do container).
@@ -432,18 +416,9 @@ class OfertaAccessibilityService : AccessibilityService() {
             OfertaInDrive.ehTelaDeDetalhe(leituras.flatMap { it.textos })
 
         // Janela de app-alvo SEM UMA LINHA DE TEXTO é a assinatura de tela que a
-        // acessibilidade não enxerga (a 99 desenha o card por cima do mapa). Aí
-        // a leitura por imagem não é preferência, é o único caminho: se estiver
-        // desligada, liga sozinha — senão o leitor fica aberto sem ler nada, que
-        // é pior do que gastar um pouco mais de bateria.
+        // acessibilidade não enxerga (a 99 desenha o card por cima do mapa): aí
+        // só a leitura por imagem resolve.
         val telaMuda = leituras.isNotEmpty() && leituras.all { it.textos.isEmpty() }
-        if (telaMuda && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val prefs = (application as MotoristaApp).preferencias
-            if (!prefs.ocrAtivo) {
-                prefs.ocrAtivo = true
-                Log.i(TAG, "Leitura por imagem ligada sozinha: app-alvo sem texto nenhum")
-            }
-        }
 
         // Com vários apps abertos, o texto de UM (a lista do inDrive, cheia de
         // R$) escondia que o OUTRO (o card da 99, que não tem texto) precisava
@@ -467,10 +442,8 @@ class OfertaAccessibilityService : AccessibilityService() {
             registrarDiagnostico(
                 emptyList(), leituras.map { it.pacote }, leituras.size, null,
                 origem = "texto",
-                motivo = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R)
-                    "este app não mostra o texto da oferta e o Android deste aparelho é " +
-                        "anterior ao 11, que é onde a leitura por imagem funciona"
-                else "este app não mostra o texto da oferta e a leitura por imagem está desligada"
+                motivo = "este app não mostra o texto da oferta e o Android deste aparelho é " +
+                    "anterior ao 11, que é onde a leitura por imagem funciona"
             )
             return
         }
@@ -533,9 +506,6 @@ class OfertaAccessibilityService : AccessibilityService() {
             sugestao = sugestao
         )
         voz?.falar(oferta, classe, alertaRisco)
-        // Oferta lida de uma FOTO (WhatsApp, Galeria...) é só para avaliar: não
-        // entra no histórico nem na notificação, que são das ofertas de verdade.
-        if (pacote in PACOTES_FOTO) return
         salvarNoHistorico(oferta, classe)
         ofertaDaNotificacao = oferta to pacote
         if ((application as MotoristaApp).preferencias.notificacaoOferta.value) {
@@ -575,8 +545,12 @@ class OfertaAccessibilityService : AccessibilityService() {
 
     // ================================================================== leitura pela imagem (OCR)
 
-    private fun ocrDisponivel(): Boolean =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && (application as MotoristaApp).preferencias.ocrAtivo
+    /**
+     * A leitura por imagem não tem mais chave: liga sozinha quando o app de
+     * corrida esconde o texto (é o único jeito de ler a 99). Só depende do
+     * Android 11+, onde existe a captura de tela da acessibilidade.
+     */
+    private fun ocrDisponivel(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
 
     /**
      * A captura pegou a NOSSA tela, não a do aplicativo de corrida.
@@ -614,10 +588,10 @@ class OfertaAccessibilityService : AccessibilityService() {
         // esta conferência o leitor capturava a tela do próprio MotoristaPro e
         // gastava o intervalo de captura à toa.
         val emFrente = runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
-        if (emFrente != null && emFrente !in PACOTES_ALVO && emFrente !in PACOTES_FOTO) return
+        if (emFrente != null && emFrente !in PACOTES_ALVO) return
         // Quem manda é quem está na frente AGORA: o pacote que veio do pedido
         // pode ser de uma leitura de alguns décimos atrás, de outro aplicativo.
-        val alvo = emFrente?.takeIf { it in PACOTES_ALVO || it in PACOTES_FOTO } ?: pacote
+        val alvo = emFrente?.takeIf { it in PACOTES_ALVO } ?: pacote
         val espera = intervaloOcr() - (System.currentTimeMillis() - ultimoOcrEm)
         if (espera > 0) {
             handler.removeCallbacks(varrerRunnable)
@@ -814,20 +788,6 @@ class OfertaAccessibilityService : AccessibilityService() {
             motivo = if (oferta == null) motivo else null
         )
         if (LOG_TEXTOS && todos.isNotEmpty()) Log.d(TAG, "Textos ($origem): ${todos.joinToString(" | ")}")
-    }
-
-    /** Quantos textos a janela da frente tem (só conta; para na marca do limite da foto). */
-    private fun coletarTextosDaFrente(): List<String> {
-        val raiz = runCatching { rootInActiveWindow }.getOrNull() ?: return emptyList()
-        return try {
-            val saida = ArrayList<String>(MAX_TEXTOS_FOTO + 2)
-            percorrer(raiz, saida, 0, incluirDescricoes = false)
-            saida
-        } catch (e: Exception) {
-            emptyList()
-        } finally {
-            reciclar(raiz)
-        }
     }
 
     /** Textos de uma janela de um app-alvo. */
@@ -1082,25 +1042,6 @@ class OfertaAccessibilityService : AccessibilityService() {
         const val PACOTE_IFOOD = "br.com.ifood.driver.app"
 
         /** Mantenha em sincronia com android:packageNames em accessibility_service_config.xml. */
-        /**
-         * Apps onde chega FOTO de oferta (print mandado no grupo, salvo na
-         * galeria). Lidos só pela imagem e só com a foto aberta. De propósito
-         * NÃO é "todos os apps": ler a tela de qualquer app inclui o banco.
-         * Mantenha em sincronia com accessibility_service_config.xml.
-         */
-        val PACOTES_FOTO = setOf(
-            "com.whatsapp", "com.whatsapp.w4b",
-            "com.facebook.katana", "com.facebook.lite",
-            "com.instagram.android",
-            "org.telegram.messenger",
-            "com.miui.gallery", "com.google.android.apps.photos",
-            "com.sec.android.gallery3d", "com.android.gallery3d", "com.coloros.gallery3d",
-            "com.oneplus.gallery", "com.motorola.gallery"
-        )
-
-        /** Tela de foto aberta tem poucos textos (botões); conversa ou feed tem muitos. */
-        private const val MAX_TEXTOS_FOTO = 25
-
         val PACOTES_ALVO = setOf(
             "com.ubercab.driver",   // Uber Driver
             "com.app99.driver",     // 99 Motorista

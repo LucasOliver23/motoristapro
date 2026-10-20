@@ -61,7 +61,6 @@ import com.motoristapro.ui.theme.VermelhoPrejuizo
 @Composable
 fun CheckupConteudo(
     leitorOk: Boolean,
-    ocrLigado: Boolean,
     notificacoesOk: Boolean,
     bateriaOk: Boolean,
     diagnostico: Diagnostico?,
@@ -69,7 +68,6 @@ fun CheckupConteudo(
     onBateria: () -> Unit,
     onNotificacoes: () -> Unit,
     onInicializacao: () -> Unit,
-    onOcr: () -> Unit,
     onTestar: () -> Unit
 ) {
     val itens = listOf(
@@ -101,14 +99,6 @@ fun CheckupConteudo(
             situacao = if (notificacoesOk) Situacao.OK else Situacao.ATENCAO,
             porque = "É por aqui que o app avisa na hora em que o leitor cai.",
             acao = "Abrir informações do app" to onNotificacoes
-        ),
-        ItemCheckup(
-            titulo = "Leitura por imagem",
-            estado = if (ocrLigado) "ligada" else "desligada — a 99 não é lida",
-            situacao = if (ocrLigado) Situacao.OK else Situacao.ATENCAO,
-            porque = "A 99 desenha o card por cima do mapa e não expõe o texto. " +
-                "Sem a leitura por imagem, a oferta dela não aparece.",
-            acao = (if (ocrLigado) "Desligar" else "Ligar") to onOcr
         )
     )
 
@@ -149,7 +139,7 @@ fun CheckupConteudo(
 
     itens.forEach { LinhaCheckup(it) }
 
-    DiagnosticoCard(diagnostico, leitorOk, ocrLigado)
+    DiagnosticoCard(diagnostico, leitorOk)
 
     UltimoErroCard()
 }
