@@ -1,242 +1,249 @@
-# MotoristaPro — camada de dados (Room/SQLite)
+# MotoristaPro
 
-Projeto Android (Kotlin) pronto para abrir no Android Studio: **File > Open > pasta MotoristaPro**.
-Dependências: Room 2.6.1 (via KSP), Jetpack Compose (BOM 2024.12.01, Material 3), lifecycle 2.8.7. Sem Hilt, sem Navigation, sem version catalog.
+App Android para **motorista e entregador de aplicativo** (Uber, 99, iFood e inDrive) que lê a oferta de corrida na tela, mostra na hora se ela compensa — com o custo real do veículo — e controla o dia de trabalho: lucro, jornada, metas, km, manutenção e relatórios.
 
-| Ferramenta | Versão |
+Versão atual: **4.14.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
+
+---
+
+## Sumário
+
+- [O que o app faz](#o-que-o-app-faz)
+- [Como o leitor de ofertas funciona](#como-o-leitor-de-ofertas-funciona)
+- [Telas](#telas)
+- [Tecnologia](#tecnologia)
+- [Estrutura do código](#estrutura-do-código)
+- [Banco de dados](#banco-de-dados)
+- [Compilar e testar](#compilar-e-testar)
+- [Publicar uma versão (CI/CD)](#publicar-uma-versão-cicd)
+- [Firebase: login, nuvem, assinatura e radar](#firebase-login-nuvem-assinatura-e-radar)
+- [Instalar e configurar no celular](#instalar-e-configurar-no-celular)
+- [Problemas comuns](#problemas-comuns)
+- [Privacidade e segurança](#privacidade-e-segurança)
+- [Próximos passos](#próximos-passos)
+
+---
+
+## O que o app faz
+
+| Área | Recursos |
 |---|---|
-| Gradle (wrapper) | 8.9 |
-| Android Gradle Plugin | 8.7.3 |
+| **Leitor de ofertas** | Lê a oferta na tela da Uber, 99, iFood e inDrive (texto e, quando o app esconde o texto, **imagem/OCR**). Cartão flutuante com R$/km, R$/h, lucro e a etiqueta **ACEITAR / ATENÇÃO / RECUSAR**. Também lê **foto de oferta** aberta no WhatsApp, Facebook, Instagram, Telegram e Galeria. |
+| **Semáforo** | Faixas de R$/km, R$/hora e nota do passageiro, valor mínimo e lucro mínimo. A faixa de R$/hora pode vir da **meta por hora**. |
+| **Registro de corridas** | Botão "Registrar" no cartão e na notificação; leitura da tela **Detalhes da corrida** da 99 (valor final, já com o pacote 0%); registro manual. |
+| **Jornada** | Cronômetro do turno, km pelo GPS, pausas, tempo por estado e por app. Pergunta o **km do painel** ao iniciar e ao encerrar (pega o uso fora do app). |
+| **Lucro e metas** | Lucro líquido do dia (corridas − despesas − custos fixos), meta diária/semanal/mensal, **meta por hora** com a conta aberta, previsão de horário em que a meta bate. |
+| **Custo real do veículo** | Assistente de custo (financiamento/aluguel, IPVA, seguro, depreciação, combustível, manutenção) → custo por km usado em tudo. |
+| **Pacote 0% de taxa da 99** | Lança o preço do pacote como despesa e mostra se valeu a pena no dia. |
+| **Vários veículos** | Moto e carro, cada um com km, foto, custo por km, manutenção e lucro do mês. O veículo **ativo** recebe o que for lançado. |
+| **Manutenção** | Itens por km (óleo, relação, pneu, freio…), anel de progresso, **EM DIA / ATENÇÃO / ATRASADA**, lembrete na barra do celular com "Fiz agora" / "Lembrar amanhã". |
+| **Análises** | Melhores horários (dia × faixa de 2 h), **Comparar apps** (R$/h, R$/km, lucro, % de aceite), mapa de calor, gráficos por período. |
+| **Radar de eventos** | Jogos, shows, festas e picos do aeroporto com a **hora de saída** e aviso 30 min antes. |
+| **Relatório do mês em PDF** | Ganhos por app, despesas, custos fixos, lucro, km e horas, com a lista do mês — para imposto, banco ou financiamento. |
+| **Conta e nuvem** | Login (e-mail/senha e Google), backup automático no Firestore, backup em arquivo e exportação CSV. |
+| **Assinatura** | Teste grátis + planos mensal/trimestral pagos no Mercado Pago, liberados por função no servidor. |
+| **Outros** | Bolha flutuante com o lucro do dia, widget na tela inicial, resumo às 22h, aviso por voz, endereços de risco, atualização automática do APK, checkup do app com o último erro registrado. |
+
+---
+
+## Como o leitor de ofertas funciona
+
+```
+App de corrida mostra a oferta
+        │  (evento de acessibilidade)
+        ▼
+OfertaAccessibilityService ── debounce (120 ms, no máximo 400 ms) ──► lê os textos da tela
+        │                                                         │
+        │  app esconde o texto (ex.: card da 99)                  ▼
+        ├──► LeitorOcr: print da tela (takeScreenshot) ──► ML Kit (no aparelho) ──► textos
+        ▼
+OfertaParser / OfertaInDrive / ResumoCorrida99  ──►  Oferta(valor, km, minutos, nota, endereços)
+        ▼
+LimitesOferta.classificar(custo/km, faixas)  ──►  BOA / MÉDIA / RUIM
+        ▼
+OverlayOferta (cartão)  +  NotificacaoOferta  +  AvisoVoz  +  histórico (tabela ofertas)
+```
+
+- **Janela própria de acessibilidade** (`TYPE_ACCESSIBILITY_OVERLAY`): não precisa da permissão "sobrepor a outros apps".
+- **OCR econômico**: só quando o app não expõe texto; o "precisa de imagem" de cada app vale 10 min; sem oferta, a espera entre prints cresce de 1,2 s até 3 s e volta ao mínimo quando abre uma janela nova; falha de captura tenta no máximo 4 vezes. A cópia da imagem roda fora da thread principal.
+- **Vários apps abertos**: vale o app que mexeu por último; duas ofertas iguais seguidas não viram uma só (janela de 60 s pela última vez vista).
+- **Apps de foto** (WhatsApp, Instagram, Galeria…): só leitura por imagem e só com a foto em tela cheia — texto de conversa nunca vira oferta. Bancos e outros apps **não** são lidos.
+- **Robustez**: toda leitura é protegida; os escopos de coroutine do leitor, da jornada e da assinatura têm `CoroutineExceptionHandler`; o último erro fica em **Menu ▸ Checkup do app** (`RegistroErros`). Se o leitor parar, o app avisa na barra de notificações.
+
+Pacotes lidos (`OfertaAccessibilityService.PACOTES_ALVO`): `com.ubercab.driver`, `com.app99.driver`, `br.com.ifood.driver.app`, `sinet.startup.inDriver`. Ao incluir um app, atualize também `res/xml/accessibility_service_config.xml`.
+
+---
+
+## Telas
+
+| Aba | Conteúdo |
+|---|---|
+| **Início** | Lucro líquido de hoje com a meta e o ritmo (R$/h vs meta por hora), cartão do pacote da 99, alerta de manutenção chegando, números do dia, atalhos (Semáforo, Veículo, Checkup) e o cartão da jornada. |
+| **Corridas** | Histórico de ofertas lidas e corridas registradas por dia/semana/mês, filtro por app, aceitas × recusadas, endereços com "ver no mapa". |
+| **Finanças** | Mês com entradas e saídas, despesas por categoria, extrato, uso do pacote de ganhos da 99 e **Relatório do mês (PDF)**. |
+| **Atividade** | Resumo do período, R$ por hora conectada, mapa de calor, gráficos e atalhos para **Melhores horários**, **Comparar apps** e **Radar de eventos**. |
+| **Menu** | Perfil, leitor de ofertas, pacote 0%, aparência do cartão, notificação, voz, bolha, endereços de risco, app de navegação, **Suas metas**, **Melhores horários**, **Radar**, **Comparar apps**, **Relatório do mês**, **Meus veículos**, **Manutenção**, resumo das 22h, assinatura, conta e nuvem, backup, versão, tema. |
+
+Os desenhos aprovados de cada recurso ficam em `mockups/` (HTML + PNG).
+
+---
+
+## Tecnologia
+
+| Item | Versão |
+|---|---|
 | Kotlin / KSP / plugin Compose | 2.0.21 / 2.0.21-1.0.28 / 2.0.21 |
-| JDK | 17 (o JBR que vem no Android Studio serve) |
-| minSdk / compileSdk | 26 / 35 |
+| Android Gradle Plugin / Gradle | 8.7.3 / 8.9 |
+| JDK | 17 |
+| Jetpack Compose (BOM) + Material 3 | 2024.12.01 |
+| Room (KSP) | 2.6.1 |
+| Lifecycle / Coroutines | 2.8.7 / 1.8.1 |
+| WorkManager | 2.9.1 |
+| ML Kit Text Recognition (no aparelho) | 16.0.1 |
+| Firebase (Auth, Firestore, Functions) | BoM 33.7.0 |
 
-## Esquema relacional
+Sem Hilt, sem Navigation e sem version catalog: injeção manual em `MotoristaApp` e navegação por estado (`Aba`, `SubTela`).
 
-```mermaid
-erDiagram
-    PLATAFORMAS ||--o{ CORRIDAS : "1:N"
-    PLATAFORMAS {
-        INTEGER id PK
-        TEXT nome UK
-        TEXT cor_hex
-        INTEGER ativa
-    }
-    CORRIDAS {
-        INTEGER id PK
-        INTEGER plataforma_id FK
-        TEXT origem
-        TEXT destino
-        INTEGER valor_centavos
-        INTEGER gorjeta_centavos
-        INTEGER distancia_m
-        INTEGER deslocamento_m
-        INTEGER duracao_seg
-        INTEGER inicio_em
-        TEXT observacao
-        INTEGER criado_em
-    }
-    DESPESAS {
-        INTEGER id PK
-        TEXT categoria
-        INTEGER valor_centavos
-        INTEGER data_em
-        TEXT descricao
-        INTEGER litros_ml
-        INTEGER odometro_km
-        INTEGER criado_em
-    }
-    CONFIGURACOES {
-        INTEGER id PK "sempre 1"
-        INTEGER meta_lucro_diario_centavos
-        INTEGER meta_lucro_mensal_centavos
-        INTEGER custo_km_centavos
-        INTEGER dias_trabalho_mes
-    }
+---
+
+## Estrutura do código
+
+```
+app/src/main/java/com/motoristapro/
+  MotoristaApp.kt        injeção manual (repositório, preferências, odômetro, radar, veículos…)
+  service/               leitor de ofertas: serviço de acessibilidade, parsers, OCR, cartão,
+                         bolha, notificação, voz, limites do semáforo, aviso de leitor caído
+  jornada/               serviço do turno (GPS em primeiro plano) e canais de notificação
+  data/
+    local/               Room: AppDatabase (migrações 1→14), entidades e DAOs
+    repository/          FinanceiroRepository (regras de negócio) e Periodo
+    prefs/               PreferenciasApp (liga/desliga, metas por hora, veículo ativo…)
+    backup/              backup em arquivo e exportação CSV
+  custo/                 calculadora de custo por km e meta por hora (Kotlin puro)
+  veiculo/               odômetro, foto, lembrete de manutenção, troca de veículo
+  horarios/ comparar/    melhores horários e comparação entre apps (Kotlin puro)
+  radar/                 eventos, filtro por cidade/janela, aviso 30 min antes
+  relatorio/             relatório do mês em PDF
+  pacote/                pacote 0% de taxa da 99
+  nuvem/ auth/           backup no Firestore (JSON gzip) e login
+  assinatura/ atualizacao/   assinatura (Mercado Pago) e atualização do APK
+  diagnostico/           registro do último erro do app
+  resumo/ widget/        resumo das 22h e widget da tela inicial
+  ui/                    telas Compose (dashboard, corridas, financas, relatorios, mais, manutencao…)
+servidor/                Cloud Functions + regras do Firestore
+docs/                    passo a passo do Firebase, assinatura, atualização e schema
+mockups/                 desenhos aprovados das telas
+APAGAR.txt               o que mudou em cada versão e o que (não) apagar
 ```
 
-DDL completo em `docs/schema.sql`.
+**Regra da casa:** tudo que é conta fica em Kotlin puro (sem Android) e tem teste em `app/src/test` — parsers das ofertas, custo, metas, odômetro, lembrete, horários, comparação, radar, backup JSON.
 
-### Decisões de modelagem
-- **Dinheiro em centavos (Long)**, distância em **metros**, duração em **segundos**, datas em **epoch millis** — tudo inteiro, sem erro de ponto flutuante nas somas.
-- **Plataforma é tabela** (FK com `RESTRICT`): renomear "99Pop" → "99" não quebra o histórico; desative em vez de apagar.
-- **`deslocamento_m`**: km até buscar o passageiro. Não é pago, mas gasta — sem ele o custo/km real sai subestimado.
-- **Categoria de despesa = enum salvo como TEXT**: adicionar categoria não exige migration.
-- **`litros_ml` + `odometro_km`** (opcionais) na despesa de combustível: permitem calcular km/L real.
-- **Configuração = tabela de linha única** (id = 1), para o custo/km entrar direto no SQL.
-- **Índices** em `inicio_em` / `data_em`: todo relatório filtra por período.
+---
 
-## Métricas (em `RelatorioDao`)
+## Banco de dados
 
-| Método | Fórmula |
+Room/SQLite, **versão 14**. Dinheiro em **centavos** (Long), distância em **metros**, duração em **segundos**, datas em **epoch millis**.
+
+| Tabela | Para quê |
 |---|---|
-| `observarLucroDiario` | por dia local: **lucro líquido** = receita − despesas lançadas no dia; **lucro estimado** = receita − km × custo/km da configuração |
-| `observarCustoPorKm` | total de despesas ÷ km total rodado (passageiro + deslocamento) |
-| `observarCustoKmPorCategoria` | o mesmo, separado por categoria |
-| `observarResumoPorPlataforma` | receita, km e R$/km por plataforma |
-| `consumoCombustivel` | km/L pelo método tanque cheio |
+| `plataformas` | Uber, 99, iFood, inDrive, Particular |
+| `corridas` | valor, gorjeta, km, deslocamento, duração, endereços, `veiculo_id` |
+| `despesas` | categoria, valor, litros, hodômetro, `veiculo_id` |
+| `jornadas` | turno, GPS, tempo por estado/app, pausas, `veiculo_id` |
+| `ofertas` | histórico do leitor (180 dias) |
+| `custos_fixos` | custos mensais (manuais e do assistente) |
+| `configuracoes` | linha única: metas, custo/km, veículo ativo em uso, perfil |
+| `perfil_custo` | respostas do assistente de custo |
+| `manutencoes` | itens por km, `veiculo_id` |
+| `veiculos` | veículos do motorista (v14) |
 
-Por que dois lucros: o seguro pago num único dia derruba o "lucro líquido" daquele dia (é o que saiu do bolso). O "lucro estimado" dilui os custos pelo km rodado e mostra se o dia de trabalho em si valeu a pena. Use o `observarCustoPorKm` do mês para calibrar o `custo_km_centavos` da configuração.
+**Migrações** em `AppDatabase` (nunca usar `fallbackToDestructiveMigration`). Ao mudar uma entidade: suba `VERSAO_BANCO`, escreva a `Migration(n, n+1)`, registre em `addMigrations`, atualize `SincronizacaoDao`/`DadosJson` (backup) e o `DadosJsonTest`. Coluna nova com padrão: `@ColumnInfo(defaultValue = "…")` igual ao `DEFAULT` do `ALTER TABLE`.
 
-Todas as queries retornam `Flow`: a UI se atualiza sozinha quando uma corrida, despesa ou configuração muda.
-
-## Uso rápido
-
-```kotlin
-val repo = (application as MotoristaApp).repository
-
-repo.registrarCorrida(Corrida(
-    plataformaId = 1, origem = "Centro", destino = "Aeroporto",
-    valorCentavos = 4550, distanciaMetros = 18_300, deslocamentoMetros = 1_200,
-    duracaoSegundos = 32 * 60, inicioEm = System.currentTimeMillis()
-))
-repo.registrarDespesa(Despesa(
-    categoria = CategoriaDespesa.COMBUSTIVEL, valorCentavos = 20_000,
-    dataEm = System.currentTimeMillis(), litrosMl = 34_500, odometroKm = 48_210
-))
-
-val (ini, fim) = Periodo.mes()
-repo.lucroDiario(ini, fim).collect { dias -> /* lista para a tela */ }
-```
-
-## Integrar num projeto existente
-1. Copie `app/src/main/java/com/motoristapro/data/` (ajuste o `package` se precisar).
-2. No `build.gradle.kts` raiz, adicione o plugin KSP **com o mesmo prefixo da sua versão do Kotlin**.
-3. No `app/build.gradle.kts`, copie o bloco `ksp { ... }` e as 3 linhas do Room.
-
-## Migrations futuras
-Ao alterar uma entidade: suba `version` em `AppDatabase`, crie `Migration(1, 2)` e registre em `.addMigrations(...)`. O JSON do schema de cada versão fica em `app/schemas/` (versione no git).
+Preferências simples (faixas do semáforo, km do painel, horas por dia, veículo ativo, eventos anotados) ficam em SharedPreferences para não exigir migração.
 
 ---
 
-# Leitor de ofertas (AccessibilityService + janela flutuante)
+## Compilar e testar
 
-```
-service/
-  OfertaAccessibilityService.kt  eventos da Uber/99 -> debounce -> varredura dos nós -> overlay
-  OfertaParser.kt                Regex de R$, km, m, h/min + plausibilidade (Kotlin puro, testado)
-  OverlayOferta.kt               janela no topo (TYPE_ACCESSIBILITY_OVERLAY), arrastável, toque fecha
-  LimitesOferta.kt               mínimos de R$/km e R$/h -> BOA / MÉDIA / RUIM
-res/xml/accessibility_service_config.xml
+```bash
+./gradlew assembleDebug          # APK de depuração em app/build/outputs/apk/debug/
+./gradlew testDebugUnitTest      # testes de unidade (Kotlin puro)
 ```
 
-## Ativar no celular
-1. Instale e abra o app → **Ativar leitor de ofertas** → *Apps instalados* → **MotoristaPro – Leitor de ofertas** → ligar.
-2. **Android 13+ com APK instalado fora da Play Store**: o sistema bloqueia com "Configuração restrita".
-   Botão **Liberar configurações restritas** → menu ⋮ → *Permitir configurações restritas* → volte ao passo 1.
-3. Toque em **Testar janela flutuante** para conferir o overlay.
-4. Xiaomi/Samsung/Motorola: tire o app da otimização de bateria, senão o sistema desliga o serviço.
+Android Studio: **File ▸ Open** na pasta do projeto, JDK 17.
 
-## Sem SYSTEM_ALERT_WINDOW
-O overlay usa `TYPE_ACCESSIBILITY_OVERLAY`, janela exclusiva de serviços de acessibilidade:
-não pede a permissão "Sobrepor a outros apps" e fica acima dos pop-ups de oferta.
-
-## Calibrar as Regex
-Com `LOG_TEXTOS = true`, o Logcat (filtro `MotoristaPro`) mostra todo texto lido em cada oferta:
-```
-D/MotoristaPro: Textos: UberX | R$ 18,40 | 4 min (1,2 km) de distância | Viagem de 22 min (9,8 km)
-D/MotoristaPro: Oferta: Oferta(valor=18.4, km=11.0, minutos=26)  R$/km=1.67  R$/h=42.46
-```
-Se a Uber/99 mudar o layout, cole a linha "Textos" num novo caso em `OfertaParserTest` e ajuste a Regex.
-Pacote da 99 configurado: `com.app99.driver` — confirme no seu aparelho com
-`adb shell dumpsys window | grep mCurrentFocus` e ajuste em `PACOTES_ALVO` **e** no XML.
-
-## Play Store
-Uso de Acessibilidade para ler outros apps exige: declaração no Play Console (formulário de API de Acessibilidade),
-divulgação em destaque dentro do app antes de ativar e política de privacidade. Em uso próprio via APK, nada disso é necessário.
+Sem `app/google-services.json` o app compila e roda **sem login e sem nuvem** (dados só no celular). Veja `docs/firebase.md`.
 
 ---
 
-# Dashboard (Jetpack Compose)
+## Publicar uma versão (CI/CD)
 
 ```
-ui/
-  MainActivity.kt               setContent { MotoristaTema { DashboardRoute() } }
-  Formatos.kt                   "45,90" -> centavos, litros -> ml, formatação pt-BR (testado)
-  theme/Tema.kt                 Material 3 claro/escuro com verde/vermelho fixos para lucro
-  dashboard/
-    DashboardViewModel.kt       combina lucro de hoje + custo/km do mês + configuração num único StateFlow
-    DashboardScreen.kt          Route (com estado) + Content (sem estado, com @Preview)
-    Dialogos.kt                 Novo abastecimento (FAB) e Configurações
+branch de trabalho ──push──► "Verificar build" (compila + testes)
+        │
+        └── PR para main ──merge──► "Gerar APK": APK assinado + Release v<versão> + versao.json
+                                             │
+                                             └── o app vê a versão nova e se atualiza sozinho
 ```
 
-- **Card "Hoje"**: faturamento, despesas, lucro (verde/vermelho), barra de progresso da meta, corridas e km.
-- **Ganho por hora**: receita ÷ tempo *em corrida* (soma das durações). Não inclui tempo online esperando chamada.
-- **Custo por km**: real do mês corrente (despesas ÷ km). Botão "Usar valor real" grava esse número na configuração,
-  que alimenta o lucro estimado e a janela flutuante do leitor de ofertas.
-- **FAB "Abastecer"**: só o valor é obrigatório; litros + hodômetro opcionais habilitam o km/L real. Mostra o preço por litro ao digitar.
-- **Engrenagem**: meta diária, custo/km e mínimos R$/km e R$/h do leitor de ofertas.
-- A tela é reativa (Room `Flow` → `StateFlow`): salvar um abastecimento atualiza os cards na hora, e o "Hoje" vira sozinho à meia-noite.
+Passos de cada versão:
 
-## Gerar o APK
-Android Studio: **Build > Build App Bundle(s) / APK(s) > Build APK(s)** → `app/build/outputs/apk/debug/app-debug.apk`.
-Pela linha de comando: `./gradlew assembleDebug` (Windows: `gradlew.bat assembleDebug`). Testes: `./gradlew test`.
+1. Suba `versionCode` e `versionName` em `app/build.gradle.kts`.
+2. Atualize `APAGAR.txt` (o que mudou, arquivos novos/alterados, se o banco mudou).
+3. Envie para a branch de trabalho e espere o **Verificar build** ficar verde.
+4. Abra o PR e faça o merge na `main`: o **Gerar APK** publica a Release.
+5. No celular: **Menu ▸ Versão do app ▸ Procurar atualização**.
 
-## Fluxo de permissões (MainActivity)
-Ao abrir, o app mostra a tela de boas-vindas até as duas permissões estarem liberadas:
-1. **Aparecer sobre outros apps** (`ACTION_MANAGE_OVERLAY_PERMISSION`, já apontando para o app);
-2. **Leitor de ofertas** em Acessibilidade (com o texto de divulgação exigido pela Play Store).
-Ao voltar das Configurações o estado é rechecado e o Dashboard abre sozinho.
-O card "Leitor de ofertas" do Dashboard mostra se o serviço está **conectado de fato** (StateFlow `OfertaAccessibilityService.conectado`).
+Segredos do GitHub usados pelo `apk.yml`: `GOOGLE_SERVICES_JSON`, `KEYSTORE_BASE64` e as senhas da chave. Guarde o `motoristapro.jks`: sem ele não dá para atualizar o app instalado. Detalhes em `docs/atualizacao.md`.
 
 ---
 
-# Versão 1.1 — estilo Rydex (5 abas)
+## Firebase: login, nuvem, assinatura e radar
 
-| Aba | O que tem |
+- **Login e backup na nuvem**: `docs/firebase.md`. Backup em `usuarios/{uid}` (JSON gzip). Celular vazio nunca sobe por cima de um backup com dados; trocar de conta guarda uma cópia local antes de zerar.
+- **Assinatura (Mercado Pago)**: `docs/assinatura.md` e `servidor/functions`.
+- **Regras do Firestore**: `servidor/firestore.rules` — publique sempre que mudar.
+- **Radar de eventos**: a coleção `eventos` é lida por todo motorista logado; só quem tem um documento em `admins/{uid}` (criado à mão no console) publica e apaga. Com a conta admin, o botão **+ Adicionar evento** ganha "Publicar para todos os motoristas". A cidade de cada motorista vem do **Meu perfil**.
+
+---
+
+## Instalar e configurar no celular
+
+1. Instale o APK da última Release e abra o app.
+2. **Leitor de ofertas**: Configurações ▸ Acessibilidade ▸ Apps baixados ▸ **MotoristaPro – Leitor de ofertas** ▸ ligar. No Android 13+, se aparecer "configuração restrita": Informações do app ▸ ⋮ ▸ **Permitir configurações restritas**.
+3. **Bateria sem restrições** e **inicialização automática** (Xiaomi, Samsung, Motorola) — o **Checkup do app** tem atalho para cada uma.
+4. **Notificações** liberadas (aviso de leitor caído, lembretes, radar, resumo).
+5. Rode o **assistente de custo** (Menu ▸ Meu veículo e custos) e defina a **meta** e as **horas por dia** (Menu ▸ Suas metas).
+6. Em **Manutenção**, informe o km do painel e cadastre os itens.
+
+---
+
+## Problemas comuns
+
+| Sintoma | O que fazer |
 |---|---|
-| **Início** | Status do leitor, **Jornada** (cronômetro, km pelo GPS, gasto de combustível), lucro do dia com meta, R$/hora trabalhada, R$/km, custo/km, atalhos Abastecer / Corrida / Despesa |
-| **Corridas** | Lista por Hoje / Semana / Mês / 30 dias, editar (toque) e excluir, nova corrida manual |
-| **Finanças** | Resultado do mês (setas para meses anteriores), metas diária/semanal/mensal, despesas por categoria, lançamentos |
-| **Relatórios** | Lucro por dia (gráfico), Uber x 99, melhores horários, custo/km por categoria, km/L real |
-| **Mais** | Veículo (consumo e preço do litro → combustível/km), metas, tarifa mínima e critérios da oferta, bolha flutuante, resumo diário |
-
-Leitor turbinado: botões **Registrar corrida** e **Ver embarque** (Street View) na janela da oferta + **bolha flutuante** com lucro do dia e tempo de turno.
-
-Banco na **versão 3** (migração 2→3 preserva os dados): meta semanal, veículo e tabela `jornadas`.
-Novas permissões: localização (GPS do turno) e notificações (turno + resumo às 22h), pedidas só quando usadas.
+| "MotoristaPro – Leitor de ofertas: Não está funcionando" | Desligar e ligar o leitor em Acessibilidade; se repetir, reiniciar o celular. Depois de **toda atualização** o Android costuma derrubar o leitor uma vez. Conferir bateria sem restrições e inicialização automática. Se cair sozinho, copiar o **Último erro do app** no Checkup. |
+| Cartão não aparece na 99 | Ligar a **leitura por imagem** (Checkup) — a 99 não expõe o texto da oferta. |
+| Oferta lida errada | Menu ▸ Leitor de ofertas mostra o diagnóstico da última leitura (textos e motivo). |
+| Km da manutenção errado | Manutenção ▸ **Corrigir** o odômetro; o app também pergunta o km ao iniciar/encerrar a jornada. |
+| Atualização não chega | Menu ▸ Versão do app ▸ Procurar atualização; conferir se o **Gerar APK** da `main` terminou. |
 
 ---
 
-# Login e backup na nuvem (Firebase)
+## Privacidade e segurança
 
-O app funciona **sem** Firebase: enquanto `app/google-services.json` não existir, não há tela de
-login e os dados ficam só no celular. Com o arquivo no lugar, ligam o login (email/senha e Google)
-e o backup automático em `usuarios/{uid}` no Firestore.
-
-Passo a passo completo: **`docs/firebase.md`**.
-
-### Teste grátis e assinatura
-
-14 dias de teste a partir do primeiro login; depois, R$ 14,90/mês ou R$ 39,90/trimestre.
-Como o app é instalado por APK (e não pela Play Store), a cobrança do Google não se
-aplica: o pagamento é feito no Mercado Pago e liberado por uma função do Firebase.
-
-O código do servidor fica em `servidor/` (funções + regras do Firestore) e o passo a
-passo para ligar tudo está em **`docs/assinatura.md`**.
-
-```
-auth/
-  AutenticacaoManager.kt   email/senha, Google (Credential Manager), mensagens de erro em português
-  LoginScreen.kt           entrar / criar conta / esqueci a senha / entrar com o Google
-  Tarefas.kt               espera Task do Firebase dentro de coroutine (sem biblioteca extra)
-nuvem/
-  SincronizacaoNuvem.kt    envia/baixa o backup (JSON compactado em gzip) no Firestore
-  DadosJson.kt             converte as tabelas para JSON e de volta (org.json, sem dependência)
-data/local/dao/SincronizacaoDao.kt   exporta e importa tudo numa transação só
-```
-
-**Atenção:** o `applicationIdSuffix = ".debug"` foi removido — o pacote agora é sempre
-`com.motoristapro`. Faça **backup** antes de instalar esta versão e **restaure** depois
-(veja o aviso no início de `docs/firebase.md`).
+- A leitura de texto e o OCR acontecem **só no aparelho** (ML Kit); nenhuma imagem da tela é enviada ou guardada.
+- O leitor só olha os apps de corrida e os apps de foto listados — **não lê bancos nem outros apps**.
+- O texto da tela só vai para o log na versão de depuração (`LOG_TEXTOS = BuildConfig.DEBUG`).
+- Backup na nuvem só da própria conta (regras do Firestore); o histórico de ofertas não sobe.
+- Assinatura confirmada pelo servidor consultando o Mercado Pago (o app não decide se pagou).
+- **Play Store**: o uso de Acessibilidade exige a declaração no Play Console, divulgação em destaque no app antes de ativar e política de privacidade.
 
 ---
 
-# Perfil, ícone e atualização automática (1.7.0)
+## Próximos passos
 
-- **Meu perfil** (topo da aba Mais): nome, telefone, cidade e a conta usada para entrar.
-  Vai junto para a nuvem. Banco na **versão 6** (migração 5→6 adiciona as três colunas).
-- **Ícone**: volante verde-limão desenhado em vetor (`res/drawable/ic_launcher_foreground.xml`
-  + `res/mipmap-anydpi-v26/ic_launcher.xml`). Sem PNG: minSdk 26 já usa ícone adaptativo.
-- **Atualização sem Android Studio**: `atualizacao/AtualizacaoManager.kt` lê `app/versao`
-  no Firestore, baixa o APK e abre o instalador. Passo a passo em **`docs/atualizacao.md`**.
+- Radar automático: buscar jogos de futebol (ex.: API-Football) e picos do aeroporto por uma função agendada no servidor.
+- Tirar a varredura da árvore de acessibilidade da thread principal.
+- Testes de migração do Room (`MigrationTestHelper`) e exportação do schema em `app/schemas/`.
+- Publicação na Play Store.
