@@ -33,7 +33,11 @@ data class ItemManutencao(
 
     /** Quando foi lançado (epoch millis), só para o histórico. */
     @ColumnInfo(name = "atualizado_em")
-    val atualizadoEm: Long = System.currentTimeMillis()
+    val atualizadoEm: Long = System.currentTimeMillis(),
+
+    /** Veículo do item (v14). 1 = o que já existia antes de ter vários. */
+    @ColumnInfo(name = "veiculo_id", defaultValue = "1")
+    val veiculoId: Long = 1
 ) {
     /** O hodômetro em que vence. */
     val odometroDoVencimento: Long get() = odometroUltimaKm + intervaloKm

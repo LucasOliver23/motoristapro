@@ -70,6 +70,17 @@ interface DespesaDao {
     )
     suspend fun ultimoAbastecimentoComOdometro(): Despesa?
 
+    /** O mesmo, só de um veículo: o km de um não serve para o outro. */
+    @Query(
+        """
+        SELECT * FROM despesas
+        WHERE categoria = 'COMBUSTIVEL' AND odometro_km IS NOT NULL AND veiculo_id = :veiculoId
+        ORDER BY data_em DESC
+        LIMIT 1
+        """
+    )
+    suspend fun ultimoAbastecimentoComOdometroDo(veiculoId: Long): Despesa?
+
     /** A última despesa da categoria cuja descrição começa com [prefixo] (a última compra do pacote). */
     @Query(
         """

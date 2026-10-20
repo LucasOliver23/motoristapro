@@ -16,18 +16,19 @@ import java.io.File
  */
 object FotoVeiculo {
 
-    private const val ARQUIVO = "veiculo_foto.jpg"
     private const val LADO_MAXIMO = 800
 
-    private fun arquivo(context: Context) = File(context.filesDir, ARQUIVO)
+    /** O veículo 1 fica com o nome de antes da v14; os outros ganham o id no nome. */
+    private fun arquivo(context: Context, veiculoId: Long) =
+        File(context.filesDir, if (veiculoId == 1L) "veiculo_foto.jpg" else "veiculo_foto_$veiculoId.jpg")
 
-    fun existe(context: Context): Boolean = arquivo(context).exists()
+    fun existe(context: Context, veiculoId: Long = 1L): Boolean = arquivo(context, veiculoId).exists()
 
-    fun carregar(context: Context): Bitmap? =
-        arquivo(context).takeIf { it.exists() }?.let { runCatching { BitmapFactory.decodeFile(it.path) }.getOrNull() }
+    fun carregar(context: Context, veiculoId: Long = 1L): Bitmap? =
+        arquivo(context, veiculoId).takeIf { it.exists() }?.let { runCatching { BitmapFactory.decodeFile(it.path) }.getOrNull() }
 
     /** Copia a foto escolhida, reduzida. false se não deu para ler. */
-    fun salvar(context: Context, uri: Uri): Boolean = runCatching {
+    fun salvar(context: Context, uri: Uri, veiculoId: Long = 1L): Boolean = runCatching {
         val r = context.contentResolver
         val limites = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         r.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, limites) }
@@ -40,11 +41,11 @@ object FotoVeiculo {
         val final = if (escala < 1f)
             Bitmap.createScaledBitmap(bruto, (bruto.width * escala).toInt(), (bruto.height * escala).toInt(), true)
         else bruto
-        arquivo(context).outputStream().use { final.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+        arquivo(context, veiculoId).outputStream().use { final.compress(Bitmap.CompressFormat.JPEG, 85, it) }
         true
     }.getOrElse { Log.w("MotoristaPro", "Falha ao salvar foto do veículo", it); false }
 
-    fun remover(context: Context) {
-        arquivo(context).delete()
+    fun remover(context: Context, veiculoId: Long = 1L) {
+        arquivo(context, veiculoId).delete()
     }
 }

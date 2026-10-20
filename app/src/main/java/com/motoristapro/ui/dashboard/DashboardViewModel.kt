@@ -207,15 +207,24 @@ class DashboardViewModel(private val app: MotoristaApp) : ViewModel() {
     suspend fun dadosKm(encerrando: Boolean): DadosKm {
         val perfil = runCatching { repo.obterPerfilCusto() }.getOrNull()?.paraDados()
         val cfg = runCatching { repo.obterConfiguracao() }.getOrNull()
+        val veiculos = runCatching { repo.veiculos().first() }.getOrDefault(emptyList())
+        val ativo = veiculos.firstOrNull { it.id == app.preferencias.veiculoAtivo.value }
         return DadosKm(
+            // Com mais de um veículo, a pergunta do início também escolhe com qual rodar.
+            veiculos = if (encerrando) emptyList() else veiculos,
+            veiculoAtivo = ativo?.id ?: app.preferencias.veiculoAtivo.value,
             atual = app.odometro.atual(),
             inicio = if (encerrando) app.odometro.leituraDoInicio() else null,
             urgente = maisUrgente(runCatching { repo.manutencoes().first() }.getOrDefault(emptyList())),
             custoKmCentavos = cfg?.custoKmCentavos ?: 0,
-            tipo = perfil?.tipoVeiculo ?: TipoVeiculo.MOTO,
-            nomeVeiculo = cfg?.veiculoNome?.takeIf { it.isNotBlank() } ?: perfil?.veiculoNome?.takeIf { it.isNotBlank() }
+            tipo = ativo?.tipo?.let { t -> runCatching { TipoVeiculo.valueOf(t) }.getOrNull() }
+                ?: perfil?.tipoVeiculo ?: TipoVeiculo.MOTO,
+            nomeVeiculo = ativo?.nome ?: cfg?.veiculoNome?.takeIf { it.isNotBlank() } ?: perfil?.veiculoNome?.takeIf { it.isNotBlank() }
         )
     }
+
+    /** Escolheu outro veículo na pergunta do início. */
+    suspend fun trocarVeiculo(id: Long) = app.veiculos.ativar(id)
 
     fun registrarKm(km: Long, encerrando: Boolean) =
         app.odometro.registrar(km, if (encerrando) OrigemOdometro.FIM else OrigemOdometro.INICIO)

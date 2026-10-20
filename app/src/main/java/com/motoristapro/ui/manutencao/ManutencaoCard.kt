@@ -103,7 +103,7 @@ fun textoDaManutencao(item: ItemManutencao, odometroAtual: Long): String {
 fun maisUrgente(itens: List<ItemManutencao>): ItemManutencao? = itens.minByOrNull { it.odometroDoVencimento }
 
 /** O veículo no alto da tela: o tipo decide o desenho, o resto é o texto. */
-data class VeiculoResumo(val tipo: TipoVeiculo, val nome: String?, val detalhe: String)
+data class VeiculoResumo(val tipo: TipoVeiculo, val nome: String?, val detalhe: String, val id: Long = 1L)
 
 /**
  * A tela de manutenção: o veículo, o odômetro, o que venceu e a lista.
@@ -286,9 +286,9 @@ fun ManutencaoConteudo(
 @Composable
 private fun CartaoVeiculo(v: VeiculoResumo, onEditar: () -> Unit) {
     val context = LocalContext.current
-    var foto by remember { mutableStateOf(FotoVeiculo.carregar(context)?.asImageBitmap()) }
+    var foto by remember(v.id) { mutableStateOf(FotoVeiculo.carregar(context, v.id)?.asImageBitmap()) }
     val escolher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null && FotoVeiculo.salvar(context, uri)) foto = FotoVeiculo.carregar(context)?.asImageBitmap()
+        if (uri != null && FotoVeiculo.salvar(context, uri, v.id)) foto = FotoVeiculo.carregar(context, v.id)?.asImageBitmap()
     }
     Cartao(espaco = 10) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -325,7 +325,7 @@ private fun CartaoVeiculo(v: VeiculoResumo, onEditar: () -> Unit) {
             if (foto != null) {
                 Text(
                     "Tirar foto", color = TextoSecundario, style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.clickable { FotoVeiculo.remover(context); foto = null }
+                    modifier = Modifier.clickable { FotoVeiculo.remover(context, v.id); foto = null }
                 )
             }
             Box(Modifier.weight(1f))

@@ -103,8 +103,15 @@ const val ORIGEM_LEITOR = "Leitor de ofertas"
 class FinanceiroRepository(
     private val db: AppDatabase,
     /** O pacote 0% de taxa escolhido (vem das preferências). */
-    private val pacote: () -> ConfigPacote = { ConfigPacote() }
+    private val pacote: () -> ConfigPacote = { ConfigPacote() },
+    /** O veículo ativo (v14): o que for lançado agora vai para ele. */
+    val veiculoAtivo: kotlinx.coroutines.flow.StateFlow<Long> =
+        kotlinx.coroutines.flow.MutableStateFlow(com.motoristapro.data.local.entity.Veiculo.PRIMEIRO)
 ) {
+    private val veiculoDao = db.veiculoDao()
+
+    /** Lançamento novo vai para o veículo ativo; editar um antigo não muda o veículo dele. */
+    private fun ativo(): Long = veiculoAtivo.value
 
     private val corridaDao = db.corridaDao()
     private val despesaDao = db.despesaDao()
@@ -126,7 +133,7 @@ class FinanceiroRepository(
         // Falhar aqui não pode impedir a corrida de ser salva.
         runCatching { lancarPacoteSePrecisar(corrida) }
             .onFailure { Log.w("MotoristaPro", "Falha ao lançar o pacote da 99", it) }
-        return corridaDao.inserir(corrida)
+        return corridaDao.inserir(if (corrida.id == 0L) corrida.copy(veiculoId = ativo()) else corrida)
     }
 
     /**
@@ -153,6 +160,7 @@ class FinanceiroRepository(
         if (!precisa) return
         despesaDao.inserir(
             Despesa(
+                veiculoId = corrida.veiculoId.takeIf { corrida.id != 0L } ?: ativo(),
                 categoria = CategoriaDespesa.TAXA_APP,
                 valorCentavos = cfg.plano.precoCentavos,
                 dataEm = corrida.inicioEm,
@@ -265,7 +273,7 @@ class FinanceiroRepository(
 
     suspend fun registrarDespesa(despesa: Despesa): Long {
         require(despesa.valorCentavos > 0) { "Valor da despesa deve ser maior que zero" }
-        return despesaDao.inserir(despesa)
+        return despesaDao.inserir(if (despesa.id == 0L) despesa.copy(veiculoId = ativo()) else despesa)
     }
 
     /** Atalho do botão "Abastecer". */
@@ -298,15 +306,16 @@ class FinanceiroRepository(
     suspend fun ultimoOdometro(): Long? = despesaDao.ultimoAbastecimentoComOdometro()?.odometroKm
 
     /** O último abastecimento com km do painel (km e quando), para o hodômetro do app. */
-    suspend fun ultimoAbastecimentoComOdometro(): Despesa? = despesaDao.ultimoAbastecimentoComOdometro()
+    suspend fun ultimoAbastecimentoComOdometro(veiculoId: Long = ativo()): Despesa? =
+        despesaDao.ultimoAbastecimentoComOdometroDo(veiculoId)
 
     /**
      * Metros que o GPS mediu em jornadas que COMEÇARAM a partir de [desde],
      * contando a aberta. É o que soma ao último km lido no painel.
      */
-    suspend fun metrosGpsDesde(desde: Long): Long {
-        val encerradas = jornadaDao.observarTotaisEncerradas(desde, Long.MAX_VALUE).first().metros
-        val aberta = jornadaDao.ativa()?.takeIf { it.inicioEm >= desde }?.metrosGps ?: 0
+    suspend fun metrosGpsDesde(desde: Long, veiculoId: Long = ativo()): Long {
+        val encerradas = jornadaDao.metrosEncerradosDesde(desde, veiculoId)
+        val aberta = jornadaDao.ativa()?.takeIf { it.inicioEm >= desde && it.veiculoId == veiculoId }?.metrosGps ?: 0
         return encerradas + aberta
     }
 
@@ -373,7 +382,7 @@ class FinanceiroRepository(
     /** Abre um turno (ou devolve o que já está aberto). */
     suspend fun iniciarJornada(): Jornada {
         jornadaDao.ativa()?.let { return it }
-        val nova = Jornada(inicioEm = System.currentTimeMillis())
+        val nova = Jornada(inicioEm = System.currentTimeMillis(), veiculoId = ativo())
         return nova.copy(id = jornadaDao.inserir(nova))
     }
 
@@ -494,16 +503,45 @@ class FinanceiroRepository(
 
     // ================================================================== manutencao
 
-    fun manutencoes(): Flow<List<ItemManutencao>> = manutencaoDao.observarTodos()
+    /** Os itens do veículo ATIVO: cada veículo tem a sua manutenção. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun manutencoes(): Flow<List<ItemManutencao>> =
+        veiculoAtivo.flatMapLatest { manutencaoDao.observarDoVeiculo(it) }
 
     suspend fun salvarManutencao(item: ItemManutencao) {
         require(item.nome.isNotBlank()) { "Informe o que é" }
         require(item.intervaloKm > 0) { "Informe de quantos em quantos km" }
         require(item.odometroUltimaKm >= 0) { "Hodômetro inválido" }
-        if (item.id == 0L) manutencaoDao.inserir(item) else manutencaoDao.atualizar(item)
+        if (item.id == 0L) manutencaoDao.inserir(item.copy(veiculoId = ativo())) else manutencaoDao.atualizar(item)
     }
 
     suspend fun excluirManutencao(id: Long) = manutencaoDao.excluirPorId(id)
+
+    // ================================================================== veiculos (v14)
+
+    fun veiculos(): Flow<List<com.motoristapro.data.local.entity.Veiculo>> = veiculoDao.observarTodos()
+
+    suspend fun obterVeiculo(id: Long) = veiculoDao.buscar(id)
+
+    suspend fun salvarVeiculo(v: com.motoristapro.data.local.entity.Veiculo): Long {
+        require(v.nome.isNotBlank()) { "Dê um nome ao veículo" }
+        return if (v.id == 0L) veiculoDao.inserir(v) else v.id.also { veiculoDao.atualizar(v) }
+    }
+
+    /** Só apaga veículo sem nada lançado: corrida e manutenção não podem ficar sem dono. */
+    suspend fun excluirVeiculo(id: Long) {
+        require(id != com.motoristapro.data.local.entity.Veiculo.PRIMEIRO) { "O primeiro veículo não pode ser apagado" }
+        require(id != ativo()) { "Troque de veículo antes de apagar este" }
+        require(veiculoDao.lancamentos(id) == 0) { "Este veículo já tem corridas ou despesas lançadas" }
+        manutencaoDao.observarDoVeiculo(id).first().forEach { manutencaoDao.excluirPorId(it.id) }
+        veiculoDao.excluir(id)
+    }
+
+    fun lucrosPorVeiculo(inicio: Long, fim: Long) = veiculoDao.observarLucros(inicio, fim)
+
+    fun manutencoesDo(veiculoId: Long): Flow<List<ItemManutencao>> = manutencaoDao.observarDoVeiculo(veiculoId)
+
+    suspend fun quantosVeiculos(): Int = veiculoDao.todos().size
 
     // ================================================================== custos fixos
 

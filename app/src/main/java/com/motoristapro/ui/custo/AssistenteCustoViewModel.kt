@@ -55,7 +55,9 @@ data class EstadoAssistente(
  */
 class AssistenteCustoViewModel(
     private val repo: FinanceiroRepository,
-    private val prefs: PreferenciasApp? = null
+    private val prefs: PreferenciasApp? = null,
+    /** Depois de aplicar: o veículo ativo guarda o custo novo (v14). */
+    private val aoAplicar: suspend () -> Unit = {}
 ) : ViewModel() {
 
     private val _estado = MutableStateFlow(EstadoAssistente())
@@ -165,6 +167,7 @@ class AssistenteCustoViewModel(
                 repo.substituirCustosFixosDoAssistente(d.custosFixosDoMes())
                 // As horas do assistente passam a valer na meta por hora.
                 prefs?.definirHorasPorDia(d.horasPorDia)
+                aoAplicar()
             }
             _estado.value = _estado.value.copy(aplicado = true)
         }
@@ -180,7 +183,7 @@ class AssistenteCustoViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as MotoristaApp
-                AssistenteCustoViewModel(app.repository, app.preferencias)
+                AssistenteCustoViewModel(app.repository, app.preferencias) { app.veiculos.sincronizarAtivo() }
             }
         }
     }

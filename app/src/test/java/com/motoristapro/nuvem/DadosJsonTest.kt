@@ -10,6 +10,7 @@ import com.motoristapro.data.local.entity.ItemManutencao
 import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.local.entity.Plataforma
+import com.motoristapro.data.local.entity.Veiculo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -23,7 +24,8 @@ class DadosJsonTest {
             Corrida(
                 id = 7, plataformaId = 1, origem = "Rua A, 10", destino = "", valorCentavos = 1_240,
                 gorjetaCentavos = 100, distanciaMetros = 4_200, deslocamentoMetros = 800,
-                duracaoSegundos = 900, inicioEm = 1_700_000_000_000, observacao = "Resumo 99", criadoEm = 1_700_000_100_000
+                duracaoSegundos = 900, inicioEm = 1_700_000_000_000, observacao = "Resumo 99", criadoEm = 1_700_000_100_000,
+                veiculoId = 2
             )
         ),
         despesas = listOf(
@@ -42,7 +44,11 @@ class DadosJsonTest {
         custosFixos = listOf(CustoFixo(id = 4, nome = "IPVA", valorMensalCentavos = 3_000, ativo = true, origem = CustoFixo.ASSISTENTE)),
         configuracao = Configuracao(metaLucroMensalCentavos = 200_000, metaLucroDiarioCentavos = 9_200, custoKmCentavos = 43),
         manutencoes = listOf(ItemManutencao(id = 5, nome = "Óleo", intervaloKm = 2_000, odometroUltimaKm = 82_000, atualizadoEm = 9)),
-        perfilCusto = PerfilCusto(tipoVeiculo = "MOTO", veiculoNome = "FAN 160 2021", kmPorDia = 120, horasPorDia = 5)
+        perfilCusto = PerfilCusto(tipoVeiculo = "MOTO", veiculoNome = "FAN 160 2021", kmPorDia = 120, horasPorDia = 5),
+        veiculos = listOf(
+            Veiculo(id = 1, nome = "FAN 160 2021", custoKmCentavos = 43, consumoKmLx100 = 3_500, criadoEm = 5),
+            Veiculo(id = 2, nome = "Onix", tipo = "CARRO", custoKmCentavos = 78, criadoEm = 6)
+        )
     )
 
     @Test
@@ -52,9 +58,10 @@ class DadosJsonTest {
 
     @Test
     fun backupAntigoSemManutencaoNaoApagaAsDoCelular() {
-        val antigo = pacote.copy(manutencoes = null, perfilCusto = null)
+        val antigo = pacote.copy(manutencoes = null, perfilCusto = null, veiculos = null)
         val volta = DadosJson.deJson(DadosJson.paraJson(antigo))
         assertNull(volta.manutencoes)
         assertNull(volta.perfilCusto)
+        assertNull(volta.veiculos)
     }
 }

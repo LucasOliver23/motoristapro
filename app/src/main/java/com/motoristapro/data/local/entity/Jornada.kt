@@ -79,7 +79,11 @@ data class Jornada(
      * ou quatro pausas no mesmo turno.
      */
     @ColumnInfo(name = "seg_pausados", defaultValue = "0")
-    val segPausados: Long = 0
+    val segPausados: Long = 0,
+
+    /** Veículo da jornada (v14). 1 = o que já existia antes de ter vários. */
+    @ColumnInfo(name = "veiculo_id", defaultValue = "1")
+    val veiculoId: Long = 1
 ) {
     val ativa: Boolean get() = fimEm == null
     val pausada: Boolean get() = pausadaEm > 0

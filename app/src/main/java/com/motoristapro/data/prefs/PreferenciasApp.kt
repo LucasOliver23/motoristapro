@@ -83,6 +83,18 @@ class PreferenciasApp(context: Context) {
         _horasPorDia.value = v
     }
 
+    // ------------------------------------------------------- veículo ativo (v14)
+
+    private val _veiculoAtivo = MutableStateFlow(prefs.getLong(KEY_VEICULO_ATIVO, 1L))
+
+    /** O veículo que recebe corridas, despesas, jornadas e manutenção novas. */
+    val veiculoAtivo: StateFlow<Long> = _veiculoAtivo
+
+    fun definirVeiculoAtivo(id: Long) {
+        prefs.edit().putLong(KEY_VEICULO_ATIVO, id).apply()
+        _veiculoAtivo.value = id
+    }
+
     // ------------------------------------------------- lembrete de manutenção
 
     private val _avisoManutencaoKm = MutableStateFlow(
@@ -98,6 +110,7 @@ class PreferenciasApp(context: Context) {
     }
 
     private companion object {
+        const val KEY_VEICULO_ATIVO = "veiculo_ativo"
         const val KEY_AVISO_MANUTENCAO = "aviso_manutencao_km"
         const val KEY_HORAS_DIA = "horas_por_dia"
         const val KEY_PACOTE_PLANO = "pacote99_plano"

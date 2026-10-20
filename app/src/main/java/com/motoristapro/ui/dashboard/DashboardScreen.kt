@@ -283,7 +283,13 @@ fun DashboardRoute(
             dados = dados,
             onConfirmar = { km -> vm.registrarKm(km, encerrando); seguir() },
             onPular = { seguir() },
-            onDismiss = { perguntaKm = null }
+            onDismiss = { perguntaKm = null },
+            onTrocarVeiculo = { id ->
+                escopo.launch {
+                    vm.trocarVeiculo(id)
+                    perguntaKm = false to vm.dadosKm(false)
+                }
+            }
         )
     }
 }

@@ -17,6 +17,7 @@ import com.motoristapro.service.AvisoLeitor
 import com.motoristapro.service.OfertaAccessibilityService
 import kotlinx.coroutines.delay
 import com.motoristapro.veiculo.AvisoManutencao
+import com.motoristapro.veiculo.GerenciadorVeiculos
 import com.motoristapro.veiculo.OdometroVeiculo
 import com.motoristapro.widget.WidgetLucro
 import kotlinx.coroutines.CoroutineScope
@@ -29,10 +30,13 @@ import kotlinx.coroutines.launch
 /** Injeção de dependência manual: sem Hilt/Koin para manter o build simples. */
 class MotoristaApp : Application() {
     val database: AppDatabase by lazy { AppDatabase.get(this) }
-    val repository: FinanceiroRepository by lazy { FinanceiroRepository(database) { preferencias.pacote.value } }
+    val repository: FinanceiroRepository by lazy {
+        FinanceiroRepository(database, { preferencias.pacote.value }, preferencias.veiculoAtivo)
+    }
     val preferencias: PreferenciasApp by lazy { PreferenciasApp(this) }
     val odometro: OdometroVeiculo by lazy { OdometroVeiculo(this, repository) }
     val radar: RadarEventos by lazy { RadarEventos(this, autenticacao) }
+    val veiculos: GerenciadorVeiculos by lazy { GerenciadorVeiculos(this) }
     val autenticacao: AutenticacaoManager by lazy { AutenticacaoManager(this) }
     val nuvem: SincronizacaoNuvem by lazy { SincronizacaoNuvem(this, database, autenticacao) }
     val atualizacao: AtualizacaoManager by lazy { AtualizacaoManager(this) }
@@ -57,6 +61,7 @@ class MotoristaApp : Application() {
                 .onFailure { Log.w("MotoristaPro", "Falha ao limpar ofertas antigas", it) }
         }
         escopoApp.launch { adotarNomeDaConta() }
+        escopoApp.launch { runCatching { veiculos.garantirAtivoValido() } }
         // Lembrete de manutenção: confere quando o app sobe e a cada km novo do painel.
         escopoApp.launch {
             odometro.mudou.collect {
