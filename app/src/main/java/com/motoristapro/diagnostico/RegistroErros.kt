@@ -21,40 +21,59 @@ import java.util.Locale
  */
 object RegistroErros {
 
+    /** Quebra do processo: é o que derruba o leitor, e nunca é sobrescrita por erro tratado. */
     private const val ARQUIVO = "ultimo_erro.txt"
+
+    /** Erros pegos e contornados: úteis, mas em arquivo separado para não apagar a quebra. */
+    private const val ARQUIVO_TRATADO = "ultimo_erro_tratado.txt"
+
     private const val MAXIMO = 6_000
+
+    /** O mesmo erro tratado se repetindo a cada leitura grava no máximo uma vez por minuto. */
+    private const val INTERVALO_MS = 60_000L
+
     private var pasta: File? = null
+    private val ultimaGravacao = HashMap<String, Long>()
 
     /** Primeira coisa do Application.onCreate. Anota e deixa o Android seguir como sempre. */
     fun instalar(context: Context) {
         pasta = context.filesDir
         val anterior = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, erro ->
-            runCatching { salvar("QUEBROU (${thread.name})", erro) }
+            runCatching { salvar(ARQUIVO, "QUEBROU (${thread.name})", erro) }
             anterior?.uncaughtException(thread, erro)
         }
     }
 
     /** Para os escopos dos serviços: o erro de uma tarefa fica anotado e o serviço segue vivo. */
     fun handler(onde: String) = CoroutineExceptionHandler { _, erro ->
-        Log.e("MotoristaPro", "Erro em $onde", erro)
-        runCatching { salvar("Erro tratado em $onde", erro) }
+        anotar(onde, erro)
     }
 
     /** Erro pego num try/catch que não devia acontecer: anota sem derrubar nada. */
     fun anotar(onde: String, erro: Throwable) {
         Log.e("MotoristaPro", "Erro em $onde", erro)
-        runCatching { salvar("Erro tratado em $onde", erro) }
+        val agora = System.currentTimeMillis()
+        synchronized(ultimaGravacao) {
+            if (agora - (ultimaGravacao[onde] ?: 0L) < INTERVALO_MS) return
+            ultimaGravacao[onde] = agora
+        }
+        runCatching { salvar(ARQUIVO_TRATADO, "Erro tratado em $onde", erro) }
     }
 
+    /** A quebra (se houver) primeiro, depois o último erro tratado. */
     fun ler(context: Context): String? =
-        File(context.filesDir, ARQUIVO).takeIf { it.exists() }?.readText()?.takeIf { it.isNotBlank() }
+        listOf(ARQUIVO, ARQUIVO_TRATADO)
+            .mapNotNull { File(context.filesDir, it).takeIf { f -> f.exists() }?.readText()?.takeIf { t -> t.isNotBlank() } }
+            .joinToString("\n\n----------\n\n")
+            .takeIf { it.isNotBlank() }
 
     fun apagar(context: Context) {
         File(context.filesDir, ARQUIVO).delete()
+        File(context.filesDir, ARQUIVO_TRATADO).delete()
     }
 
-    private fun salvar(titulo: String, erro: Throwable) {
+    private fun salvar(arquivo: String, titulo: String, erro: Throwable) {
         val dir = pasta ?: return
         val pilha = StringWriter().also { erro.printStackTrace(PrintWriter(it)) }.toString()
         val quando = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale("pt", "BR")).format(Date())
@@ -62,6 +81,6 @@ object RegistroErros {
             "$quando · $titulo\n" +
             "Android ${android.os.Build.VERSION.RELEASE} · ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n\n" +
             pilha
-        File(dir, ARQUIVO).writeText(texto.take(MAXIMO))
+        File(dir, arquivo).writeText(texto.take(MAXIMO))
     }
 }

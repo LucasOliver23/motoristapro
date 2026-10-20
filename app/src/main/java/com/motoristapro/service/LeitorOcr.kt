@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.util.Log
 import android.view.Display
+import java.util.concurrent.Executors
 import androidx.annotation.RequiresApi
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -22,6 +23,13 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 class LeitorOcr(private val servico: AccessibilityService) {
 
     private val reconhecedor = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+    /**
+     * A cópia da imagem (~10 MB numa tela cheia) acontece aqui, fora da thread
+     * principal: na principal ela travava o cartão e a bolha, e trava longa é
+     * o que faz o Android derrubar o leitor.
+     */
+    private val trabalho = Executors.newSingleThreadExecutor()
 
     @Volatile
     var ocupado = false
@@ -43,7 +51,7 @@ class LeitorOcr(private val servico: AccessibilityService) {
         try {
             servico.takeScreenshot(
                 Display.DEFAULT_DISPLAY,
-                servico.mainExecutor,
+                trabalho,
                 object : AccessibilityService.TakeScreenshotCallback {
                     override fun onSuccess(resultado: AccessibilityService.ScreenshotResult) {
                         val recorte = try {
@@ -77,21 +85,26 @@ class LeitorOcr(private val servico: AccessibilityService) {
     @RequiresApi(Build.VERSION_CODES.R)
     private fun prepararImagem(resultado: AccessibilityService.ScreenshotResult): Bitmap? {
         val buffer = resultado.hardwareBuffer
-        val hardware = Bitmap.wrapHardwareBuffer(buffer, resultado.colorSpace)
-        if (hardware == null) {
-            buffer.close()
-            return null
-        }
-        // ML Kit precisa de bitmap em memória comum (não "hardware").
-        val completo = hardware.copy(Bitmap.Config.ARGB_8888, false)
-        hardware.recycle()
-        buffer.close()
-        if (completo == null) return null
+        // finally: com falta de memória na cópia, o buffer da captura ficava aberto.
+        try {
+            val hardware = Bitmap.wrapHardwareBuffer(buffer, resultado.colorSpace) ?: return null
+            // ML Kit precisa de bitmap em memória comum (não "hardware").
+            val completo = hardware.copy(Bitmap.Config.ARGB_8888, false)
+            hardware.recycle()
+            if (completo == null) return null
 
-        val topo = (completo.height * FRACAO_TOPO_IGNORADA).toInt()
-        val recorte = Bitmap.createBitmap(completo, 0, topo, completo.width, completo.height - topo)
-        if (recorte != completo) completo.recycle()
-        return recorte
+            val topo = (completo.height * FRACAO_TOPO_IGNORADA).toInt()
+            val recorte = Bitmap.createBitmap(completo, 0, topo, completo.width, completo.height - topo)
+            if (recorte != completo) completo.recycle()
+            // 720 px de largura sobram para ler "R$ 12,40" e é metade do trabalho do ML Kit.
+            if (recorte.width <= LARGURA_MAXIMA) return recorte
+            val escala = LARGURA_MAXIMA.toFloat() / recorte.width
+            val menor = Bitmap.createScaledBitmap(recorte, LARGURA_MAXIMA, (recorte.height * escala).toInt(), true)
+            if (menor != recorte) recorte.recycle()
+            return menor
+        } finally {
+            buffer.close()
+        }
     }
 
     private fun reconhecer(imagem: Bitmap, aoTerminar: (List<String>?) -> Unit) {
@@ -117,17 +130,21 @@ class LeitorOcr(private val servico: AccessibilityService) {
         }
     }
 
+    /** O resultado sempre volta na thread principal: é lá que mora o estado do leitor. */
     private fun finalizar(aoTerminar: (List<String>?) -> Unit, linhas: List<String>?) {
-        ocupado = false
-        try {
-            aoTerminar(linhas)
-        } catch (e: Throwable) {
-            com.motoristapro.diagnostico.RegistroErros.anotar("processar leitura OCR", e)
+        servico.mainExecutor.execute {
+            ocupado = false
+            try {
+                aoTerminar(linhas)
+            } catch (e: Throwable) {
+                com.motoristapro.diagnostico.RegistroErros.anotar("processar leitura OCR", e)
+            }
         }
     }
 
     fun fechar() {
         runCatching { reconhecedor.close() }
+        runCatching { trabalho.shutdown() }
     }
 
     private companion object {
@@ -135,5 +152,7 @@ class LeitorOcr(private val servico: AccessibilityService) {
 
         /** Ignora os 30% de cima da tela (mapa + nossa janela flutuante); os cards ficam embaixo. */
         const val FRACAO_TOPO_IGNORADA = 0.30f
+
+        const val LARGURA_MAXIMA = 720
     }
 }

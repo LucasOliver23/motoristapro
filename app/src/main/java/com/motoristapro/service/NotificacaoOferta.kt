@@ -23,7 +23,7 @@ import java.util.Locale
 object NotificacaoOferta {
 
     private val PT = Locale("pt", "BR")
-    private const val ID = 1003
+    private const val ID = 1006
     const val ACAO_REGISTRAR = "com.motoristapro.REGISTRAR_OFERTA"
 
     @SuppressLint("MissingPermission")   // conferida em podeNotificar()
