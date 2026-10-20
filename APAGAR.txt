@@ -1,58 +1,33 @@
-NADA PARA APAGAR NESTA VERSAO (4.12.0)
+NADA PARA APAGAR NESTA VERSAO (4.13.0)
 ======================================
 
-Nenhum arquivo removido. Banco continua na versao 13 (consulta nova, sem
-tabela nova). A tela antiga de "Melhores horarios" (que nao estava ligada a
-nada) foi reescrita no mesmo arquivo.
+Nenhum arquivo removido. Banco continua na versao 13 (so consultas novas).
 
-Novidades:
-- Melhores horarios (Menu > Melhores horarios, e atalho na Atividade): com
-  as corridas registradas, os 3 melhores horarios (dia x faixa de 2 h, pelo
-  menos 3 corridas) em R$/h de corrida e R$/km, mapa da semana e quanto cada
-  app pagou no melhor horario. Semana / Mes / 90 dias.
-- Lembrete de manutencao: aviso na barra quando faltar 100/300/500 km
-  (escolha em Menu > Manutencao > "Me avisar antes", padrao 300) e quando
-  vencer, com "Fiz agora" e "Lembrar amanha". Confere quando o app abre e a
-  cada km novo do painel. Cartao amarelo/vermelho no Inicio.
-
-- Radar de eventos (Menu > Radar de eventos, e atalho na Atividade): jogos,
-  shows, festas e aeroporto da cidade do perfil, com hora de inicio e de
-  SAIDA, nivel de movimento, "Avisar" 30 min antes da saida (WorkManager) e
-  "Ver no mapa". A lista vem do Firestore (colecao eventos); so quem tem
-  documento em admins/{uid} publica e apaga. O motorista pode anotar
-  eventos que ficam so no celular.
-  PRECISA publicar as regras novas (servidor/firestore.rules) e criar o
-  documento admins/{seu uid} no console do Firebase.
-
-Correcao de build: AppNavegacaoScreen saiu para o arquivo proprio (estava
-dentro da tela antiga de melhores horarios).
+Melhorias:
+- Comparar apps (Menu > Comparar apps, atalho na Atividade): por app, R$/h
+  de corrida, R$/km, lucro (valor - custo do veiculo nos km), corridas e %
+  de ofertas aceitas. Selo "MELHOR R$/h" so para app com 5+ corridas.
+  Semana / Mes / 90 dias.
+- Relatorio do mes em PDF (Financas > Relatorio do mes, ou Menu): ganhos
+  por app, combustivel, outras despesas, custos fixos, lucro, km, horas,
+  R$/km e R$/h, e a lista das corridas e despesas. Compartilhar (WhatsApp,
+  e-mail) ou Salvar. Ultimos 3 meses.
 
 Arquivos novos:
-  app/src/main/java/com/motoristapro/radar/Evento.kt
-  app/src/main/java/com/motoristapro/radar/RadarEventos.kt
-  app/src/main/java/com/motoristapro/radar/AvisoEvento.kt
-  app/src/main/java/com/motoristapro/ui/mais/RadarScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/AppNavegacaoScreen.kt
-  app/src/test/java/com/motoristapro/radar/CalculoRadarTest.kt
-  app/src/main/java/com/motoristapro/horarios/MelhoresHorarios.kt
-  app/src/main/java/com/motoristapro/veiculo/LembreteManutencao.kt
-  app/src/main/java/com/motoristapro/veiculo/AvisoManutencao.kt
-  app/src/test/java/com/motoristapro/horarios/MelhoresHorariosTest.kt
-  app/src/test/java/com/motoristapro/veiculo/CalculoLembreteTest.kt
+  app/src/main/java/com/motoristapro/comparar/ComparacaoApps.kt
+  app/src/main/java/com/motoristapro/relatorio/RelatorioPdf.kt
+  app/src/main/java/com/motoristapro/ui/mais/CompararAppsScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/RelatorioMesScreen.kt
+  app/src/test/java/com/motoristapro/comparar/ComparacaoAppsTest.kt
 
 Arquivos alterados (so sobrescrever):
   app/build.gradle.kts
-  app/src/main/AndroidManifest.xml
-  app/src/main/java/com/motoristapro/MotoristaApp.kt
+  app/src/main/res/xml/file_paths.xml
   app/src/main/java/com/motoristapro/data/local/dao/CorridaDao.kt
-  app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
+  app/src/main/java/com/motoristapro/data/local/dao/OfertaDao.kt
   app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
   app/src/main/java/com/motoristapro/ui/AppRaiz.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardViewModel.kt
+  app/src/main/java/com/motoristapro/ui/financas/FinancasScreen.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/MelhoresHorariosScreen.kt
   app/src/main/java/com/motoristapro/ui/mais/SubTela.kt
-  app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt
   app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt
-  servidor/firestore.rules

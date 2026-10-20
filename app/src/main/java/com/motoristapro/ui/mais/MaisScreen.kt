@@ -314,6 +314,18 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.RADAR }
                     ),
                     Ferramenta(
+                        titulo = "Comparar apps",
+                        icone = "⚖",
+                        estado = "qual plataforma paga mais para você",
+                        onClick = { sub = SubTela.COMPARAR }
+                    ),
+                    Ferramenta(
+                        titulo = "Relatório do mês",
+                        icone = "📄",
+                        estado = "PDF para imposto, banco ou financiamento",
+                        onClick = { sub = SubTela.RELATORIO }
+                    ),
+                    Ferramenta(
                         titulo = "Manutenção",
                         icone = "🔧",
                         estado = when {
@@ -564,6 +576,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     SubTela.PACOTE -> PacoteTaxaScreen(onSalvo = { sub = null })
                     SubTela.HORARIOS -> MelhoresHorariosScreen()
                     SubTela.RADAR -> RadarScreen(cidade = cfg.cidade)
+                    SubTela.COMPARAR -> CompararAppsScreen()
+                    SubTela.RELATORIO -> RelatorioMesScreen()
                     SubTela.METAS -> MetaPorHoraConteudo(
                         cfg = cfg,
                         horasPorDia = horasPorDia,

@@ -108,7 +108,10 @@ private val FORMATO_SO_MES = DateTimeFormatter.ofPattern("MMMM", PT)
 private val FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM HH:mm", PT)
 
 @Composable
-fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.Factory)) {
+fun FinancasRoute(
+    irPara: (com.motoristapro.ui.Aba) -> Unit = {},
+    vm: FinancasViewModel = viewModel(factory = FinancasViewModel.Factory)
+) {
     val mes by vm.mesState.collectAsStateWithLifecycle()
     val metas by vm.metasState.collectAsStateWithLifecycle()
     val usoPacote by vm.usoPacote.collectAsStateWithLifecycle()
@@ -140,6 +143,29 @@ fun FinancasRoute(vm: FinancasViewModel = viewModel(factory = FinancasViewModel.
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { CartaoDoMes(mes) }
+
+            // Relatório do mês em PDF: imposto, banco, financiamento.
+            item {
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Superficie)
+                        .clickable {
+                            com.motoristapro.ui.NavegacaoRapida.pedirSubTela(
+                                com.motoristapro.ui.mais.SubTela.RELATORIO.name, com.motoristapro.ui.Aba.MAIS.ordinal
+                            )
+                            irPara(com.motoristapro.ui.Aba.MAIS)
+                        }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("📄", fontSize = 20.sp)
+                    Column(Modifier.weight(1f)) {
+                        Text("Relatório do mês", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text("PDF para imposto, banco ou financiamento", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                    }
+                    Text("›", style = MaterialTheme.typography.titleMedium, color = TextoSecundario)
+                }
+            }
 
             usoPacote?.let { uso -> item { CartaoPacoteGanhos(uso) } }
 
