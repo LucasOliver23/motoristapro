@@ -1,6 +1,7 @@
 package com.motoristapro
 
 import android.app.Application
+import androidx.core.app.NotificationManagerCompat
 import android.util.Log
 import com.motoristapro.assinatura.AssinaturaManager
 import com.motoristapro.atualizacao.AtualizacaoManager
@@ -11,7 +12,6 @@ import com.motoristapro.data.prefs.PreferenciasApp
 import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.jornada.Notificacoes
 import com.motoristapro.nuvem.SincronizacaoNuvem
-import com.motoristapro.radar.RadarEventos
 import com.motoristapro.resumo.ResumoDiarioWorker
 import com.motoristapro.service.AvisoLeitor
 import com.motoristapro.service.OfertaAccessibilityService
@@ -35,7 +35,6 @@ class MotoristaApp : Application() {
     }
     val preferencias: PreferenciasApp by lazy { PreferenciasApp(this) }
     val odometro: OdometroVeiculo by lazy { OdometroVeiculo(this, repository) }
-    val radar: RadarEventos by lazy { RadarEventos(this, autenticacao) }
     val veiculos: GerenciadorVeiculos by lazy { GerenciadorVeiculos(this) }
     val autenticacao: AutenticacaoManager by lazy { AutenticacaoManager(this) }
     val nuvem: SincronizacaoNuvem by lazy { SincronizacaoNuvem(this, database, autenticacao) }
@@ -50,6 +49,9 @@ class MotoristaApp : Application() {
         RegistroErros.instalar(this)
         Notificacoes.criarCanais(this)
         runCatching { AvisoLeitor.criarCanal(this) }
+        // O Radar de eventos saiu do app (4.14.2): some com o canal de aviso dele
+        // nas configurações de notificação de quem já tinha instalado.
+        runCatching { NotificationManagerCompat.from(this).deleteNotificationChannel("radar_eventos") }
         try {
             ResumoDiarioWorker.agendar(this)
         } catch (e: Exception) {
