@@ -26,7 +26,9 @@ import com.motoristapro.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +55,10 @@ class JornadaService : Service() {
     private var ultimoPersistido: Double = 0.0
     private var ultimaGravacaoEm: Long = 0
     private var ultimaNotificacaoEm: Long = 0
+
+    // Parado há 30 min com o turno correndo: avisa (gasta bateria e conta hora à toa).
+    private var vigia = VigiaParado(System.currentTimeMillis())
+    private var vigiaJob: Job? = null
 
     // Objeto completo, e não lambda: antes do Android 11 os outros métodos do
     // LocationListener não têm corpo padrão, e desligar o GPS no meio da
@@ -81,6 +87,10 @@ class JornadaService : Service() {
             encerrarTurno()
             return START_NOT_STICKY
         }
+        if (intent?.action == ACAO_PAUSAR_PARADO) {
+            pausarDesdeQueParou()
+            return START_NOT_STICKY
+        }
 
         // Obrigatório entrar em primeiro plano logo após startForegroundService().
         if (!entrarEmPrimeiroPlano()) {
@@ -102,6 +112,7 @@ class JornadaService : Service() {
             _rodando.value = true
             atualizarNotificacao(forcar = true)
             iniciarGps()
+            vigiarParado()
         }
         // Não pedimos reinício automático: Android 12+ bloqueia serviço em 1º plano iniciado do fundo.
         return START_NOT_STICKY
@@ -109,6 +120,8 @@ class JornadaService : Service() {
 
     override fun onDestroy() {
         pararGps()
+        vigiaJob?.cancel()
+        tirarAvisoParado()
         _rodando.value = false
         escopo.cancel()
         super.onDestroy()
@@ -150,6 +163,12 @@ class JornadaService : Service() {
     /** Soma a distância filtrando leituras imprecisas e saltos impossíveis. */
     private fun processarLocalizacao(loc: Location) {
         if (loc.hasAccuracy() && loc.accuracy > PRECISAO_MAX_M) return
+        val andou = vigia.posicao(loc.latitude, loc.longitude, System.currentTimeMillis()) { lat, lon ->
+            val r = FloatArray(1)
+            Location.distanceBetween(lat, lon, loc.latitude, loc.longitude, r)
+            r[0].toDouble()
+        }
+        if (andou) tirarAvisoParado()
         val anterior = ancora
         if (anterior == null) {
             ancora = loc
@@ -177,6 +196,88 @@ class JornadaService : Service() {
         escopo.launch {
             runCatching { repo.atualizarMetrosJornada(id, valor) }
                 .onFailure { Log.e(TAG, "Falha ao gravar km", it) }
+        }
+    }
+
+    // ================================================================== parado
+
+    /**
+     * Confere de minuto em minuto. Só com GPS: sem permissão de localização
+     * não dá para saber se está parado. Uma vez por parada.
+     */
+    private fun vigiarParado() {
+        if (!temPermissaoLocalizacao() || vigiaJob?.isActive == true) return
+        vigia = VigiaParado(System.currentTimeMillis())
+        val repo = (application as MotoristaApp).repository
+        vigiaJob = escopo.launch {
+            while (true) {
+                delay(60_000)
+                val jornada = runCatching { repo.obterJornadaAtiva() }.getOrNull() ?: continue
+                val agora = System.currentTimeMillis()
+                if (jornada.pausada) {
+                    vigia.reiniciar(agora)
+                    tirarAvisoParado()
+                    continue
+                }
+                if (vigia.deveAvisar(agora, pausada = false)) avisarParado(agora - vigia.paradoDesde)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission") // checado em Notificacoes.podeNotificar()
+    private fun avisarParado(paradoMs: Long) {
+        if (!Notificacoes.podeNotificar(this)) return
+        val abrirApp = PendingIntent.getActivity(
+            this, 2,
+            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val pausar = PendingIntent.getService(
+            this, 3,
+            Intent(this, JornadaService::class.java).setAction(ACAO_PAUSAR_PARADO),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val encerrar = PendingIntent.getService(
+            this, 4,
+            Intent(this, JornadaService::class.java).setAction(ACAO_PARAR),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val minutos = paradoMs / 60_000
+        val aviso = NotificationCompat.Builder(this, Notificacoes.CANAL_RESUMO)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setContentTitle("Parado há $minutos min com a jornada rodando")
+            .setContentText("Pausar não conta esse tempo como hora rodada.")
+            .setStyle(
+                NotificationCompat.BigTextStyle().bigText(
+                    "Você está no mesmo lugar há $minutos minutos e o cronômetro segue contando. " +
+                        "Pausar desconta o tempo parado; se acabou o dia, encerre e economize bateria."
+                )
+            )
+            .setContentIntent(abrirApp)
+            .setAutoCancel(true)
+            .addAction(0, "Pausar", pausar)
+            .addAction(0, "Encerrar turno", encerrar)
+            .build()
+        runCatching { androidx.core.app.NotificationManagerCompat.from(this).notify(Notificacoes.ID_PARADO, aviso) }
+    }
+
+    private fun tirarAvisoParado() {
+        runCatching { androidx.core.app.NotificationManagerCompat.from(this).cancel(Notificacoes.ID_PARADO) }
+    }
+
+    /** "Pausar" do aviso: a pausa começa de quando parou, não de agora. */
+    private fun pausarDesdeQueParou() {
+        tirarAvisoParado()
+        val desde = vigia.paradoDesde
+        val repo = (application as MotoristaApp).repository
+        escopo.launch {
+            runCatching {
+                val j = repo.obterJornadaAtiva() ?: return@runCatching
+                if (!j.pausada) repo.pausarJornada(j.id, maxOf(desde, j.inicioEm))
+            }.onFailure { RegistroErros.anotar("pausar pelo aviso", it) }
+            vigia.reiniciar(System.currentTimeMillis())
+            // Serviço já tinha sido fechado pelo sistema: só veio pausar, não fica de pé.
+            if (!_rodando.value) stopSelf()
         }
     }
 
@@ -262,6 +363,7 @@ class JornadaService : Service() {
         private const val TAG = "MotoristaPro"
         const val ACAO_INICIAR = "com.motoristapro.jornada.INICIAR"
         const val ACAO_PARAR = "com.motoristapro.jornada.PARAR"
+        private const val ACAO_PAUSAR_PARADO = "com.motoristapro.jornada.PAUSAR_PARADO"
 
         private const val INTERVALO_MS = 3_000L
         private const val DISTANCIA_MIN_M = 10f

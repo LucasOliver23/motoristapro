@@ -15,6 +15,7 @@ object Notificacoes {
 
     const val ID_JORNADA = 1001
     const val ID_RESUMO = 1002
+    const val ID_PARADO = 1007
 
     /** Cria os canais (idempotente — pode chamar a cada abertura do app). */
     fun criarCanais(context: Context) {
