@@ -25,6 +25,5 @@ enum class SubTela(val titulo: String) {
     ESTILO("Aparência do cartão"),
     METAS("Suas metas"),
     HORARIOS("Melhores horários"),
-    RADAR("Radar de eventos"),
     MANUTENCAO("Manutenção")
 }
