@@ -448,6 +448,20 @@ class FinanceiroRepository(
     suspend fun salvarPerfilCusto(perfil: PerfilCusto) = perfilCustoDao.salvar(perfil)
 
     /** Faixas de 2 h do dia com o R$/km médio das ofertas — os "melhores horários". */
+    /** Corridas e ofertas de cada app no período, já na comparação (Comparar apps). */
+    fun comparacaoApps(inicio: Long, fim: Long): Flow<List<com.motoristapro.comparar.ResultadoApp>> =
+        kotlinx.coroutines.flow.combine(
+            corridaDao.observarPorApp(inicio, fim),
+            ofertaDao.observarPorApp(inicio, fim),
+            configuracao()
+        ) { corridas, ofertas, cfg ->
+            com.motoristapro.comparar.ComparacaoApps.montar(
+                corridas.map { com.motoristapro.comparar.CorridasDoApp(it.plataforma, it.corridas, it.valorCentavos, it.metros, it.segundos) },
+                ofertas.map { com.motoristapro.comparar.OfertasDoApp(it.plataforma, it.total, it.aceitas) },
+                cfg.custoKmCentavos
+            )
+        }
+
     /** As corridas registradas somadas por dia × faixa de 2 h × app (Melhores horários). */
     fun fatiasHorariasDasCorridas(inicio: Long, fim: Long): Flow<List<com.motoristapro.horarios.FatiaCorridas>> =
         corridaDao.observarFatiasHorarias(inicio, fim).map { lista ->

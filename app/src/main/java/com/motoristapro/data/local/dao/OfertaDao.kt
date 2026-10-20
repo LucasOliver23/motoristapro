@@ -63,8 +63,25 @@ data class FaixaHoraria(
     val rotulo: String get() = "%02dh–%02dh".format(faixa * 2, (faixa * 2 + 2) % 24)
 }
 
+/** Ofertas lidas de um app no período e quantas viraram corrida (Comparar apps). */
+data class OfertasPorApp(
+    @ColumnInfo(name = "plataforma") val plataforma: String,
+    @ColumnInfo(name = "total") val total: Int,
+    @ColumnInfo(name = "aceitas") val aceitas: Int
+)
+
 @Dao
 interface OfertaDao {
+
+    @Query(
+        """
+        SELECT plataforma, COUNT(*) AS total, COALESCE(SUM(registrada), 0) AS aceitas
+        FROM ofertas
+        WHERE recebida_em >= :inicio AND recebida_em < :fim
+        GROUP BY plataforma
+        """
+    )
+    fun observarPorApp(inicio: Long, fim: Long): Flow<List<OfertasPorApp>>
 
     @Insert
     suspend fun inserir(oferta: OfertaRecebida): Long

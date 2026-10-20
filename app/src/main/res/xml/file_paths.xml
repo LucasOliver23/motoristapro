@@ -2,4 +2,6 @@
 <!-- Pasta de onde o APK baixado é entregue ao instalador do Android. -->
 <paths>
     <external-files-path name="atualizacoes" path="atualizacoes/" />
+    <!-- Relatório do mês em PDF, para compartilhar. -->
+    <cache-path name="relatorios" path="relatorios/" />
 </paths>

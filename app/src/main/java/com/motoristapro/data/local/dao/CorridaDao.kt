@@ -11,6 +11,15 @@ import com.motoristapro.data.local.entity.Corrida
 import com.motoristapro.data.local.model.CorridaComPlataforma
 import kotlinx.coroutines.flow.Flow
 
+/** Uma linha de [CorridaDao.observarPorApp]. */
+data class CorridasPorApp(
+    @ColumnInfo(name = "plataforma") val plataforma: String,
+    @ColumnInfo(name = "corridas") val corridas: Int,
+    @ColumnInfo(name = "valor_centavos") val valorCentavos: Long,
+    @ColumnInfo(name = "metros") val metros: Long,
+    @ColumnInfo(name = "segundos") val segundos: Long
+)
+
 /** Uma linha de [CorridaDao.observarFatiasHorarias]. */
 data class FatiaHoraria(
     @ColumnInfo(name = "dia_semana") val diaSemana: Int,
@@ -163,6 +172,22 @@ interface CorridaDao {
         """
     )
     fun observarFatiasHorarias(inicio: Long, fim: Long): Flow<List<FatiaHoraria>>
+
+    /** Corridas do período somadas por app, com o tempo (Comparar apps). */
+    @Query(
+        """
+        SELECT p.nome AS plataforma,
+            COUNT(*) AS corridas,
+            COALESCE(SUM(c.valor_centavos + c.gorjeta_centavos), 0) AS valor_centavos,
+            COALESCE(SUM(c.distancia_m + c.deslocamento_m), 0) AS metros,
+            COALESCE(SUM(c.duracao_seg), 0) AS segundos
+        FROM corridas c
+        INNER JOIN plataformas p ON p.id = c.plataforma_id
+        WHERE c.inicio_em >= :inicio AND c.inicio_em < :fim
+        GROUP BY p.nome
+        """
+    )
+    fun observarPorApp(inicio: Long, fim: Long): Flow<List<CorridasPorApp>>
 
     /** Todas as corridas (exportação CSV). */
     @Query(

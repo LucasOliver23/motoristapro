@@ -26,5 +26,7 @@ enum class SubTela(val titulo: String) {
     METAS("Suas metas"),
     HORARIOS("Melhores horários"),
     RADAR("Radar de eventos"),
+    COMPARAR("Comparar apps"),
+    RELATORIO("Relatório do mês"),
     MANUTENCAO("Manutenção")
 }
