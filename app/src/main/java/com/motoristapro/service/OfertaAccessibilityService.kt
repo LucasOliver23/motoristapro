@@ -8,6 +8,7 @@ import com.motoristapro.data.repository.PACOTE_99
 import android.accessibilityservice.AccessibilityService
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.util.Log
 import com.motoristapro.diagnostico.RegistroErros
@@ -122,6 +123,17 @@ class OfertaAccessibilityService : AccessibilityService() {
         }
         return true
     }
+
+    /** Thread só para percorrer a árvore de acessibilidade (ver [varrerTela]). */
+    private val threadTrabalho = HandlerThread("leitor-varredura").apply { start() }
+    private val trabalho = Handler(threadTrabalho.looper)
+
+    /** Uma coleta em andamento; evento novo no meio só marca [varrerDeNovo]. */
+    private var varrendo = false
+    private var varrerDeNovo = false
+
+    /** "Ler agora" (bolha): se o texto não achar oferta, tenta pela imagem no fim da varredura. */
+    private var ocrSeNaoAchar = false
 
     /** Leituras por imagem seguidas sem oferta (ou com falha): cada uma alonga a espera da próxima. */
     private var ocrVaziosSeguidos = 0
@@ -259,6 +271,8 @@ class OfertaAccessibilityService : AccessibilityService() {
         // nenhuma — que é exatamente o que vinha acontecendo.
         runCatching { AvisoLeitor.aoCair(this) }
         handler.removeCallbacksAndMessages(null)
+        trabalho.removeCallbacksAndMessages(null)
+        runCatching { threadTrabalho.quitSafely() }
         overlay?.liberar()
         overlay = null
         cartaoResumo?.liberar()
@@ -289,28 +303,85 @@ class OfertaAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * A varredura em duas partes. A COLETA (percorrer a árvore de acessibilidade
+     * de todas as janelas — até 1500 nós, cada um uma chamada entre processos)
+     * roda na thread [trabalho]; o resto (interpretar, cartão, histórico) volta
+     * para a principal, onde mora o estado do leitor. Na principal, a coleta
+     * travava o cartão e a bolha a cada 0,4 s com o mapa mexendo.
+     */
     private fun varrerTela() {
+        if (overlay == null || limites == null) return
+        if (varrendo) {
+            varrerDeNovo = true
+            return
+        }
+        varrendo = true
+        trabalho.post {
+            val coleta = try {
+                coletar()
+            } catch (e: Throwable) {
+                RegistroErros.anotar("coletar a tela", e)
+                null
+            }
+            handler.post {
+                varrendo = false
+                try {
+                    if (coleta != null) continuarVarredura(coleta)
+                    if (ocrSeNaoAchar) {
+                        ocrSeNaoAchar = false
+                        if (overlay?.visivel != true && ocrDisponivel()) solicitarOcr(ultimoPacote ?: OfertaInDrive.PACOTE)
+                    }
+                } catch (e: Throwable) {
+                    RegistroErros.anotar("varrer a tela", e)
+                }
+                // Chegou evento novo durante a coleta: lê mais uma vez, já com a tela nova.
+                if (varrerDeNovo) {
+                    varrerDeNovo = false
+                    varrerTelaComSeguranca()
+                }
+            }
+        }
+    }
+
+    /** O que a thread de [trabalho] leu da tela. */
+    private class Coleta(
+        val foto: String?,
+        val textosFrente: List<String>,
+        val semDescricoes: List<Leitura>,
+        val comDescricoes: List<Leitura>
+    )
+
+    /** Só leitura da árvore: nada de estado do leitor aqui (roda fora da thread principal). */
+    private fun coletar(): Coleta {
+        val foto = runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
+            ?.takeIf { it in PACOTES_FOTO }
+        if (foto != null) return Coleta(foto, coletarTextosDaFrente(), emptyList(), emptyList())
+        // As duas leituras de uma vez: a com descrições só era feita quando a
+        // primeira não achava oferta — que é quase sempre (mapa sem oferta).
+        return Coleta(null, emptyList(), coletarLeituras(incluirDescricoes = false), coletarLeituras(incluirDescricoes = true))
+    }
+
+    private fun continuarVarredura(c: Coleta) {
         if (overlay == null || limites == null) return
 
         // Foto de uma oferta aberta no WhatsApp, Facebook, Instagram, Telegram
         // ou na Galeria: lê só pela IMAGEM, e só com a foto em tela cheia (poucos
         // textos na tela). O texto da conversa nunca vira oferta — "R$ 20" e
         // "5 km" numa mensagem não são corrida.
-        val foto = runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
-            ?.takeIf { it in PACOTES_FOTO }
+        val foto = c.foto
         if (foto != null) {
-            val textos = coletarTextosDaFrente()
-            if (textos.size <= MAX_TEXTOS_FOTO && ocrDisponivel()) solicitarOcr(foto)
+            if (c.textosFrente.size <= MAX_TEXTOS_FOTO && ocrDisponivel()) solicitarOcr(foto)
             else processarResultado(null, foto)
             return
         }
 
         // 1ª tentativa: só textos visíveis. 2ª: inclui descrições de acessibilidade de todos os nós
         // (alguns apps colocam o texto do card só na descrição do container).
-        var leituras = coletarLeituras(incluirDescricoes = false)
+        var leituras = c.semDescricoes
         var resultado = interpretar(leituras)
         if (resultado == null) {
-            val comDescricoes = coletarLeituras(incluirDescricoes = true)
+            val comDescricoes = c.comDescricoes
             resultado = interpretar(comDescricoes)
             if (resultado != null || leituras.all { it.textos.isEmpty() }) leituras = comDescricoes
         }
@@ -920,15 +991,10 @@ class OfertaAccessibilityService : AccessibilityService() {
         ultimaAssinatura = null
         varredurasVazias = 0
         ocrVaziosSeguidos = 0
-        // Vem de um toque na bolha: fora do try, um erro aqui derrubava o leitor.
+        // A leitura agora termina depois (a coleta roda fora da thread principal):
+        // a leitura por imagem, se o texto não achar oferta, vem no fim dela.
+        ocrSeNaoAchar = true
         varrerTelaComSeguranca()
-        try {
-            if (overlay?.visivel != true && ocrDisponivel()) {
-                solicitarOcr(ultimoPacote ?: OfertaInDrive.PACOTE)
-            }
-        } catch (e: Throwable) {
-            RegistroErros.anotar("ler agora", e)
-        }
     }
 
     /** Usado pelo botão "Testar" do Dashboard: mostra uma oferta fictícia por 6 segundos. */

@@ -1,57 +1,28 @@
-NADA PARA APAGAR NESTA VERSAO (4.14.0)
+NADA PARA APAGAR NESTA VERSAO (4.14.1)
 ======================================
 
-Nenhum arquivo removido.
+Nenhum arquivo removido. O banco continua na versao 14 (sem migracao nova).
 
-ATENCAO: o banco sobe da versao 13 para a 14 (migracao automatica ao abrir
-o app). Tabela nova `veiculos` e coluna `veiculo_id` em corridas, despesas,
-jornadas e manutencoes. Tudo o que ja estava no celular vai para o veiculo
-1, criado com o nome/custo da configuracao. Faca um backup antes por
-garantia (Menu > Backup).
+Leitor mais leve:
+- A leitura da arvore de acessibilidade (todas as janelas, ate 1500 nos)
+  saiu da thread principal: roda numa thread propria ("leitor-varredura").
+  So o resultado volta para a principal (cartao, historico). Com o mapa
+  mexendo, a bolha e o cartao nao travam mais a cada leitura. Eventos que
+  chegam durante uma leitura viram uma leitura so, logo em seguida.
 
-Mais de um veiculo:
-- Menu > Meus veiculos: lista com foto (ou desenho), km, custo por km,
-  manutencao mais urgente e lucro do mes de cada um; "Usar" troca o ativo;
-  "+ Adicionar veiculo" (nome, moto/carro, custo/km, consumo). Apagar so
-  veiculo sem corridas/despesas (o 1 e o ativo nao).
-- O ativo recebe corridas, despesas, jornadas e manutencao novas. Ao trocar,
-  o custo por km, consumo e nome do veiculo vao para a configuracao (o
-  semaforo e o lucro passam a usar os dele). O assistente de custo atualiza
-  o veiculo ativo.
-- Km (painel, abastecimento e GPS) e foto separados por veiculo; Manutencao
-  mostra so os itens do ativo; o lembrete e o cartao do Inicio tambem.
-- Ao iniciar a jornada, com 2+ veiculos, a pergunta do km tambem escolhe
-  com qual rodar.
-- Backup na nuvem leva os veiculos e o veiculo de cada lancamento.
+Teste da migracao do banco:
+- MigracaoBancoTest (Robolectric): monta um banco v13 de verdade, abre com a
+  MIGRATION_13_14 e deixa o Room conferir tabela por tabela. Se uma migracao
+  futura esquecer coluna, DEFAULT ou chave, o "Verificar build" fica
+  vermelho antes do APK chegar no celular.
+
+Aviso "parado ha 30 min":
+- Com a jornada rodando (nao pausada) e o GPS sem sair de um raio de 100 m
+  por 30 min, chega uma notificacao com "Pausar" e "Encerrar turno". Uma vez
+  por parada; some sozinha ao andar. "Pausar" comeca a pausa de quando
+  parou, entao o tempo parado nao conta como hora rodada.
 
 Arquivos novos:
-  app/src/main/java/com/motoristapro/data/local/entity/Veiculo.kt
-  app/src/main/java/com/motoristapro/data/local/dao/VeiculoDao.kt
-  app/src/main/java/com/motoristapro/veiculo/GerenciadorVeiculos.kt
-  app/src/main/java/com/motoristapro/ui/mais/VeiculosScreen.kt
-
-Arquivos alterados (so sobrescrever):
-  app/build.gradle.kts
-  app/src/main/java/com/motoristapro/MotoristaApp.kt
-  app/src/main/java/com/motoristapro/data/local/AppDatabase.kt
-  app/src/main/java/com/motoristapro/data/local/entity/Corrida.kt
-  app/src/main/java/com/motoristapro/data/local/entity/Despesa.kt
-  app/src/main/java/com/motoristapro/data/local/entity/Jornada.kt
-  app/src/main/java/com/motoristapro/data/local/entity/ItemManutencao.kt
-  app/src/main/java/com/motoristapro/data/local/dao/DespesaDao.kt
-  app/src/main/java/com/motoristapro/data/local/dao/JornadaDao.kt
-  app/src/main/java/com/motoristapro/data/local/dao/ManutencaoDao.kt
-  app/src/main/java/com/motoristapro/data/local/dao/SincronizacaoDao.kt
-  app/src/main/java/com/motoristapro/data/prefs/PreferenciasApp.kt
-  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
-  app/src/main/java/com/motoristapro/nuvem/DadosJson.kt
-  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoViewModel.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardViewModel.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/SubTela.kt
-  app/src/main/java/com/motoristapro/ui/manutencao/KmDoPainelDialog.kt
-  app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt
-  app/src/main/java/com/motoristapro/veiculo/FotoVeiculo.kt
-  app/src/main/java/com/motoristapro/veiculo/OdometroVeiculo.kt
-  app/src/test/java/com/motoristapro/nuvem/DadosJsonTest.kt
+  app/src/main/java/com/motoristapro/jornada/VigiaParado.kt
+  app/src/test/java/com/motoristapro/jornada/VigiaParadoTest.kt
+  app/src/test/java/com/motoristapro/data/MigracaoBancoTest.kt

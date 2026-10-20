@@ -26,8 +26,8 @@ android {
         applicationId = "com.motoristapro"
         minSdk = 26                              // java.time nativo, sem desugaring
         targetSdk = 35
-        versionCode = 92
-        versionName = "4.14.0"
+        versionCode = 93
+        versionName = "4.14.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -79,6 +79,10 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true      // expõe VERSION_CODE/VERSION_NAME para o app se autoatualizar
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true   // o Robolectric lê o manifest e os recursos
     }
 
     packaging {
@@ -158,6 +162,9 @@ dependencies {
     testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
     testImplementation("androidx.room:room-testing:$roomVersion")
+    // Android de mentira na JVM: MigracaoBancoTest abre o banco de verdade (SQLite)
+    testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation("androidx.test:core:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation(platform("androidx.compose:compose-bom:$composeBom"))
