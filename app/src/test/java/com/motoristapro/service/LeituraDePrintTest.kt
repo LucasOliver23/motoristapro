@@ -96,6 +96,17 @@ class LeituraDePrintTest {
         assertEquals("Rua Exemplo 1, 100", saida[0])
     }
 
+    /** Como o OCR leu o print da 99: endereço quebrado em pedaços sem "Rua". */
+    @Test
+    fun anonimizar_pedacosDeEnderecoDoOcr() {
+        val saida = LeituraDePrint.anonimizar(
+            listOf("R$16,69", "It. 07, St. Bueno", "* R.104, 116, St.Sul", "- Núcleo Anhanguera, Trindade -", "Aceitar (2)")
+        )
+        assertEquals("R$16,69", saida[0])
+        assertFalse(saida.any { it.contains("Bueno") || it.contains("104") || it.contains("Anhanguera") })
+        assertEquals("Aceitar (2)", saida.last())
+    }
+
     @Test
     fun textoParaEnviar_naoLevaEndereco() {
         val r = LeituraDePrint.interpretar(uber, uber, AppDoPrint.UBER)

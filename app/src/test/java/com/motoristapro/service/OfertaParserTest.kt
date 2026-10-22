@@ -282,6 +282,8 @@ class OfertaParserTest {
         assertEquals(7.0, o.valor, 0.001)
         assertEquals(2.26, o.km, 0.001)
         assertEquals(17, o.minutos)
+        // Coleta + uma entrega é UMA parada (antes contava 2 e dividia o valor por 2).
+        assertEquals(1, o.paradas)
     }
 
     @Test
@@ -362,5 +364,40 @@ class OfertaParserTest {
         assertEquals(21.98, o.reaisPorHora, 0.01)
         assertTrue(o.devolucao)
         assertEquals(1, e.total)
+        // "Fntrena 2" é a "Entrega 2" meio escondida no mapa: duas entregas.
+        assertEquals(2, o.paradas)
+    }
+
+    /** Print real da 99 Entrega Food com 2 pedidos (Testar com print, Xiaomi). Sem minutos na tela. */
+    @Test
+    fun noventaENove_entregaFoodDoisPedidos_printReal() {
+        val textos = listOf(
+            "VILA", "NAT", "Entrega Food (2)", "R$16,69", "S Distância total 8,7 km",
+            "* Restaurante Exemplo", "Açaí Exemplo", "A", "Escola Exemplo",
+            "Rua Exemplo 1, 100", "Rua Exemplo 2, 100", "A", "Rua Exemplo 3, 100", "Aceitar (2)"
+        )
+        val e = EscolhaOferta.escolher(textos, "com.app99.driver")!!
+        val o = e.oferta
+        assertEquals(16.69, o.valor, 0.001)
+        assertEquals(8.7, o.km, 0.001)
+        assertEquals(0, o.minutos)
+        assertEquals(1.92, o.reaisPorKm, 0.01)
+        assertEquals(2, o.paradas)
+        assertEquals(1, e.total)
+    }
+
+    @Test
+    fun paradas_numeroEscritoNoMapa() {
+        val o = OfertaParser.extrair(
+            listOf("2 Paradas", "Entrega 1", "R$ 20,00", "Distância total", "9,0 km"),
+            exigirTempo = false
+        )!!
+        assertEquals(2, o.paradas)
+    }
+
+    @Test
+    fun paradas_soAEntrega2Visivel_contaDuas() {
+        val o = OfertaParser.extrair(listOf("Entrega 2", "R$ 20,00", "Distância total", "9,0 km"), exigirTempo = false)!!
+        assertEquals(2, o.paradas)
     }
 }

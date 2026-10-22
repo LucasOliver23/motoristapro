@@ -16,7 +16,7 @@ enum class CampoCartao(val chave: String, val rotulo: String, val explicacao: St
     DISTANCIA("dist", "Distância total", "Até o passageiro mais a viagem"),
     TEMPO("tempo", "Tempo total", "Minutos previstos pelo app"),
     REAIS_MIN("rmin", "R$/min", "Para quem prefere pensar por minuto"),
-    PARADAS("paradas", "Paradas", "iFood: quantas entregas tem na rota");
+    PARADAS("paradas", "Paradas", "iFood e 99 Entrega: quantas entregas tem na rota");
 
     companion object {
         fun porChave(c: String): CampoCartao? = entries.firstOrNull { it.chave == c }

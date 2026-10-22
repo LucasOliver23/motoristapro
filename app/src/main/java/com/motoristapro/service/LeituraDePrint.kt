@@ -81,8 +81,17 @@ object LeituraDePrint {
         RegexOption.IGNORE_CASE
     )
 
+    // O que o OCR deixa de endereço quando o card quebra a linha: "R.104, 116"
+    // (sem espaço), quadra e lote ("qd. 24", "lt. 07" — que o OCR lê "It. 07"),
+    // setor e bairro ("St. Bueno", "Núcleo Anhanguera", "Vila Nova").
+    private val RE_PEDACO_ENDERECO = Regex(
+        """\bR\.\s*\d|\b(qd|quadra|[li]t|lote)\.?\s*\d|\bSt\.\s*\S|\b(setor|bairro|n[úu]cleo|jardim|jd\.|vila|residencial|parque|conjunto)\s+\S""",
+        RegexOption.IGNORE_CASE
+    )
+
     /**
-     * Troca os endereços por "Rua Exemplo N, 100" antes de o motorista copiar
+     * Troca os endereços (e pedaços deles: quadra, lote, setor, bairro) por
+     * "Rua Exemplo N, 100" antes de o motorista copiar
      * os textos: o print vira teste no projeto e não pode levar a casa de
      * ninguém junto. A troca mantém a cara de endereço, então o leitor trata a
      * linha igual. Nome de passageiro não dá para achar com segurança — a
@@ -93,7 +102,8 @@ object LeituraDePrint {
         val trocas = mutableMapOf<String, String>()
         return linhas.map { linha ->
             val l = linha.trim()
-            if (l in doParser || (!l.contains("R$") && RE_ENDERECO.containsMatchIn(l))) {
+            val pareceEndereco = RE_ENDERECO.containsMatchIn(l) || RE_PEDACO_ENDERECO.containsMatchIn(l)
+            if (l in doParser || (!l.contains("R$") && pareceEndereco)) {
                 trocas.getOrPut(l) { "Rua Exemplo ${trocas.size + 1}, 100" }
             } else {
                 linha
