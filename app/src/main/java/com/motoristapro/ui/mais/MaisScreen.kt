@@ -467,7 +467,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onAdicionar = vm::adicionarPalavraRisco,
                         onRemover = vm::removerPalavraRisco
                     )
-                    SubTela.LEITOR -> LeitorConteudo(
+                    SubTela.LEITOR -> {
+                    LeitorConteudo(
                         leitorOk = leitorOk,
                         bolha = bolha,
                         ocr = ocr,
@@ -533,6 +534,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             ).takeIf { usa99 || pacote99.ativo }
                         )
                     )
+                    }
                     SubTela.TESTE_PRINT -> TestarPrintScreen(
                         custoKmCentavos = cfg.custoKmCentavos,
                         tarifaMinimaCentavos = cfg.tarifaMinimaCentavos
