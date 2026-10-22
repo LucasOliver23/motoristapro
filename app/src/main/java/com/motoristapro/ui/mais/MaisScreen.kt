@@ -52,6 +52,7 @@ import com.motoristapro.ui.componentes.DialogoConfirmacao
 import com.motoristapro.ui.componentes.Liberacao
 import com.motoristapro.ui.componentes.SubTelaHost
 import com.motoristapro.ui.componentes.TelaAba
+import com.motoristapro.ui.componentes.TextoAjuda
 import com.motoristapro.ui.componentes.bateriaLiberada
 import com.motoristapro.ui.componentes.pedirBateriaLivre
 import com.motoristapro.ui.custo.AssistenteCustoScreen
@@ -87,6 +88,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
     val ocr by vm.ocrAtivo.collectAsStateWithLifecycle()
     val appPrefs = (LocalContext.current.applicationContext as com.motoristapro.MotoristaApp).preferencias
     val pacote99 by appPrefs.pacote.collectAsStateWithLifecycle()
+    val usa99 by vm.usa99.collectAsStateWithLifecycle()
     val notificacaoOferta by appPrefs.notificacaoOferta.collectAsStateWithLifecycle()
     val voz by vm.vozAtiva.collectAsStateWithLifecycle()
     val vozResumida by vm.vozResumida.collectAsStateWithLifecycle()
@@ -229,11 +231,14 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     acesso.situacao == SituacaoAcesso.TESTE_ATIVO
             ) { sub = SubTela.PERFIL }
 
+            // O Menu em 8 (4.18): o perfil acima e estas sete. O resto mora dentro delas.
+            val manutencaoUrgente = manutencoes.isNotEmpty() && odometro > 0 &&
+                maisUrgente(manutencoes)!!.faltamKm(odometro) <= 500
             ListaFerramentas(
-                titulo = "LEITOR DE OFERTAS",
+                titulo = "MENU",
                 itens = listOf(
                     Ferramenta(
-                        titulo = "Ler ofertas na tela",
+                        titulo = "Leitor de ofertas",
                         icone = "👁",
                         estado = if (leitorOk) "lendo Uber · 99 · iFood · inDrive" else "desconectado — religue",
                         aceso = leitorOk,
@@ -241,60 +246,20 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.LEITOR }
                     ),
                     Ferramenta(
-                        titulo = "Pacote 0% de taxa",
-                        icone = "%",
-                        estado = if (pacote99.ativo) "99 · ${pacote99.plano.rotulo} · ${pacote99.plano.precoCentavos.emReais()}"
-                        else "não uso pacote",
-                        aceso = pacote99.ativo,
-                        onClick = { sub = SubTela.PACOTE }
+                        titulo = "Meus veículos",
+                        icone = "🚗",
+                        estado = when {
+                            manutencaoUrgente -> maisUrgente(manutencoes)!!.let { item ->
+                                "${item.nome.lowercase(PT)} ${textoDaManutencao(item, odometro)}"
+                            }
+                            veiculoAtivoObj != null && listaVeiculos.size > 1 ->
+                                "${veiculoAtivoObj.nome} ativo · ${listaVeiculos.size} veículos"
+                            veiculoAtivoObj != null -> "${veiculoAtivoObj.nome} · custos e manutenção"
+                            else -> "custos e manutenção"
+                        },
+                        alerta = manutencaoUrgente,
+                        onClick = { sub = SubTela.VEICULOS }
                     ),
-                    Ferramenta(
-                        titulo = "Aparência do cartão",
-                        icone = "🎨",
-                        estado = "cores, números, tamanho e voz",
-                        onClick = { sub = SubTela.ESTILO }
-                    ),
-                    Ferramenta(
-                        titulo = "Notificação da corrida",
-                        icone = "🔔",
-                        estado = "endereços e atalhos do mapa na barra",
-                        ligado = notificacaoOferta,
-                        onClick = { appPrefs.definirNotificacaoOferta(!notificacaoOferta) }
-                    ),
-                    Ferramenta(
-                        titulo = "Aviso por voz",
-                        icone = "🔊",
-                        estado = "fala a decisão e o R$/km",
-                        ligado = voz,
-                        onClick = { vm.definirVoz(!voz) }
-                    ),
-                    Ferramenta(
-                        titulo = "Bolha flutuante",
-                        icone = "⚪",
-                        estado = "lucro do dia sempre à vista",
-                        ligado = bolha,
-                        onClick = { vm.definirBolha(!bolha) }
-                    ),
-                    Ferramenta(
-                        titulo = "Endereços de risco",
-                        icone = "⚠",
-                        estado = if (palavrasRisco.isEmpty()) "nenhuma palavra"
-                        else "${palavrasRisco.size} palavra(s)",
-                        aceso = palavrasRisco.isNotEmpty() && riscoLigado,
-                        onClick = { sub = SubTela.RISCO }
-                    ),
-                    Ferramenta(
-                        titulo = "App de navegação",
-                        icone = "🧭",
-                        estado = navegacao.rotulo.lowercase(PT),
-                        onClick = { sub = SubTela.NAVEGACAO }
-                    ),
-                )
-            )
-
-            ListaFerramentas(
-                titulo = "MEU TRABALHO",
-                itens = listOf(
                     Ferramenta(
                         titulo = "Suas metas",
                         icone = "🎯",
@@ -306,66 +271,22 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.METAS }
                     ),
                     Ferramenta(
-                        titulo = "Melhores horários",
-                        icone = "⏰",
-                        estado = "quando suas corridas pagam mais",
-                        onClick = { sub = SubTela.HORARIOS }
+                        titulo = "Checkup do app",
+                        icone = "🩺",
+                        estado = if (leitorOk && bateriaOk && notificacoesOk) "tudo liberado" else "algo para liberar",
+                        aceso = leitorOk && bateriaOk && notificacoesOk,
+                        alerta = !leitorOk,
+                        onClick = { sub = SubTela.CHECKUP }
                     ),
                     Ferramenta(
-                        titulo = "Radar de eventos",
-                        icone = "📡",
-                        estado = "jogos, shows e festas com a hora de saída",
-                        onClick = { sub = SubTela.RADAR }
-                    ),
-                    Ferramenta(
-                        titulo = "Comparar apps",
-                        icone = "⚖",
-                        estado = "qual plataforma paga mais para você",
-                        onClick = { sub = SubTela.COMPARAR }
-                    ),
-                    Ferramenta(
-                        titulo = "Relatório do mês",
-                        icone = "📄",
-                        estado = "PDF para imposto, banco ou financiamento",
-                        onClick = { sub = SubTela.RELATORIO }
-                    ),
-                    Ferramenta(
-                        titulo = "Meus veículos",
-                        icone = "🚗",
-                        estado = veiculoAtivoObj?.let { a ->
-                            if (listaVeiculos.size > 1) "${a.nome} ativo · ${listaVeiculos.size} veículos" else a.nome
-                        } ?: "moto e carro, cada um com seu km",
-                        onClick = { sub = SubTela.VEICULOS }
-                    ),
-                    Ferramenta(
-                        titulo = "Manutenção",
-                        icone = "🔧",
+                        titulo = "Conta e nuvem",
+                        icone = "☁",
                         estado = when {
-                            manutencoes.isEmpty() -> "óleo, pneus e revisão por km"
-                            odometro <= 0L -> "informe o km do painel"
-                            else -> maisUrgente(manutencoes)!!.let { item ->
-                                "${item.nome.lowercase(PT)} ${textoDaManutencao(item, odometro)}"
-                            }
+                            !vm.loginDisponivel -> "backup em arquivo e planilhas"
+                            else -> usuario?.email ?: "entrar para salvar"
                         },
-                        aceso = manutencoes.isNotEmpty() && odometro > 0 &&
-                            maisUrgente(manutencoes)!!.faltamKm(odometro) > 500,
-                        alerta = manutencoes.isNotEmpty() && odometro > 0 &&
-                            maisUrgente(manutencoes)!!.faltamKm(odometro) <= 500,
-                        onClick = { sub = SubTela.MANUTENCAO }
+                        onClick = { sub = SubTela.NUVEM }
                     ),
-                    Ferramenta(
-                        titulo = "Resumo do dia às 22h",
-                        icone = "🔔",
-                        estado = if (resumo) "notificação com o lucro do dia" else "desligado",
-                        ligado = resumo,
-                        onClick = { vm.definirResumo(!resumo) }
-                    ),
-                )
-            )
-
-            ListaFerramentas(
-                titulo = "O APP",
-                itens = listOf(
                     Ferramenta(
                         titulo = "Minha assinatura",
                         icone = "⭐",
@@ -383,29 +304,13 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.ASSINATURA }
                     ),
                     Ferramenta(
-                        titulo = "Conta e nuvem",
-                        icone = "☁",
-                        estado = if (!vm.loginDisponivel) "indisponível"
-                        else usuario?.email ?: "entrar para salvar",
-                        onClick = { if (vm.loginDisponivel) sub = SubTela.NUVEM }
-                    ),
-                    Ferramenta(
-                        titulo = "Backup e planilhas",
-                        icone = "📦",
-                        estado = "arquivo de backup e CSV",
-                        onClick = { sub = SubTela.BACKUP }
-                    ),
-                    Ferramenta(
-                        titulo = "Versão do app",
+                        titulo = "Ajustes",
                         icone = "⚙",
-                        estado = "${vm.versaoInstalada} (build ${vm.codigoInstalado})",
-                        onClick = { sub = SubTela.VERSAO }
+                        estado = "tema, resumo das 22h e versão ${vm.versaoInstalada}",
+                        onClick = { sub = SubTela.AJUSTES }
                     ),
                 )
             )
-
-            // Escuro / Claro / Do sistema direto aqui, sem entrar em tela nenhuma.
-            SeletorDeTema(context)
 
             Spacer(Modifier.height(8.dp))
         }
@@ -468,7 +373,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
         // Camada por cima da aba, e NAO uma Dialog: a janela da Dialog se estende
         // para fora da tela quando pede o inset do teclado, e era por isso que o
         // botao do rodape caia abaixo da borda do celular.
-        BackHandler { sub = null }
+        BackHandler { sub = aberta.pai }
 
         // A tela de assinatura rola sozinha e ocupa a tela inteira. Dentro do
         // SubTelaHost — que tambem rola — ela recebia altura infinita e o app
@@ -487,7 +392,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
         }
 
         CamadaTelaCheia {
-            SubTelaHost(titulo = aberta.titulo, onFechar = { sub = null }) {
+            SubTelaHost(titulo = aberta.titulo, onFechar = { sub = aberta.pai }) {
                 when (aberta) {
                     SubTela.PERFIL ->
                     PerfilCard(
@@ -562,7 +467,8 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onAdicionar = vm::adicionarPalavraRisco,
                         onRemover = vm::removerPalavraRisco
                     )
-                    SubTela.LEITOR -> LeitorConteudo(
+                    SubTela.LEITOR -> {
+                    LeitorConteudo(
                         leitorOk = leitorOk,
                         bolha = bolha,
                         ocr = ocr,
@@ -574,6 +480,61 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onOcr = vm::definirOcr,
                         onDetalhesDoApp = { context.abrirDetalhesDoApp() }
                     )
+                    ListaFerramentas(
+                        titulo = "O CARTÃO E OS AVISOS",
+                        itens = listOfNotNull(
+                            Ferramenta(
+                                titulo = "Semáforo",
+                                icone = "🚦",
+                                estado = "como o cartão decide: lucro por hora",
+                                onClick = { sub = SubTela.SEMAFORO }
+                            ),
+                            Ferramenta(
+                                titulo = "Aparência do cartão",
+                                icone = "🎨",
+                                estado = "números, tamanho e posição",
+                                onClick = { sub = SubTela.ESTILO }
+                            ),
+                            Ferramenta(
+                                titulo = "Notificação da corrida",
+                                icone = "🔔",
+                                estado = "endereços e atalhos do mapa na barra",
+                                ligado = notificacaoOferta,
+                                onClick = { appPrefs.definirNotificacaoOferta(!notificacaoOferta) }
+                            ),
+                            Ferramenta(
+                                titulo = "Aviso por voz",
+                                icone = "🔊",
+                                estado = "fala a decisão e o lucro",
+                                ligado = voz,
+                                onClick = { vm.definirVoz(!voz) }
+                            ),
+                            Ferramenta(
+                                titulo = "Endereços de risco",
+                                icone = "⚠",
+                                estado = if (palavrasRisco.isEmpty()) "nenhuma palavra"
+                                else "${palavrasRisco.size} palavra(s)",
+                                aceso = palavrasRisco.isNotEmpty() && riscoLigado,
+                                onClick = { sub = SubTela.RISCO }
+                            ),
+                            Ferramenta(
+                                titulo = "App de navegação",
+                                icone = "🧭",
+                                estado = navegacao.rotulo.lowercase(PT),
+                                onClick = { sub = SubTela.NAVEGACAO }
+                            ),
+                            // Só para quem roda 99 (ou já ligou o pacote).
+                            Ferramenta(
+                                titulo = "Pacote 0% de taxa",
+                                icone = "%",
+                                estado = if (pacote99.ativo) "99 · ${pacote99.plano.rotulo} · ${pacote99.plano.precoCentavos.emReais()}"
+                                else "não uso pacote",
+                                aceso = pacote99.ativo,
+                                onClick = { sub = SubTela.PACOTE }
+                            ).takeIf { usa99 || pacote99.ativo }
+                        )
+                    )
+                    }
                     SubTela.TESTE_PRINT -> TestarPrintScreen(
                         custoKmCentavos = cfg.custoKmCentavos,
                         tarifaMinimaCentavos = cfg.tarifaMinimaCentavos
@@ -587,7 +548,20 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             onSair = { confirmarSair = true },
                             onZerar = { confirmarZerar = true }
                         )
+                    } else {
+                        TextoAjuda("Sem conta neste aparelho: os dados ficam só no celular. Use o backup em arquivo.")
                     }
+                    ListaFerramentas(
+                        titulo = "NO CELULAR",
+                        itens = listOf(
+                            Ferramenta(
+                                titulo = "Backup e planilhas",
+                                icone = "📦",
+                                estado = "arquivo de backup e CSV",
+                                onClick = { sub = SubTela.BACKUP }
+                            )
+                        )
+                    )
                     }
                     SubTela.BACKUP -> BackupConteudo(
                         ocupado = ocupado,
@@ -600,12 +574,41 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     // Tratada antes, fora desta moldura (ela rola por conta propria).
                     SubTela.ASSINATURA -> Unit
                     SubTela.NAVEGACAO -> AppNavegacaoScreen()
-                    SubTela.PACOTE -> PacoteTaxaScreen(onSalvo = { sub = null })
+                    SubTela.PACOTE -> PacoteTaxaScreen(onSalvo = { sub = aberta.pai })
                     SubTela.HORARIOS -> MelhoresHorariosScreen()
-                    SubTela.RADAR -> RadarScreen(cidade = cfg.cidade)
                     SubTela.COMPARAR -> CompararAppsScreen()
                     SubTela.RELATORIO -> RelatorioMesScreen()
-                    SubTela.VEICULOS -> VeiculosScreen()
+                    SubTela.VEICULOS -> {
+                        VeiculosScreen()
+                        ListaFerramentas(
+                            titulo = "DO VEÍCULO ATIVO",
+                            itens = listOf(
+                                Ferramenta(
+                                    titulo = "Custos e assistente",
+                                    icone = "💰",
+                                    estado = if (cfg.custoKmCentavos > 0) "${cfg.custoKmCentavos.emReais()}/km" else "fazer o assistente",
+                                    aceso = cfg.custoKmCentavos > 0,
+                                    onClick = { sub = SubTela.VEICULO }
+                                ),
+                                Ferramenta(
+                                    titulo = "Manutenção",
+                                    icone = "🔧",
+                                    estado = when {
+                                        manutencoes.isEmpty() -> "óleo, pneus e revisão por km"
+                                        odometro <= 0L -> "informe o km do painel"
+                                        else -> maisUrgente(manutencoes)!!.let { item ->
+                                            "${item.nome.lowercase(PT)} ${textoDaManutencao(item, odometro)}"
+                                        }
+                                    },
+                                    aceso = manutencoes.isNotEmpty() && odometro > 0 &&
+                                        maisUrgente(manutencoes)!!.faltamKm(odometro) > 500,
+                                    alerta = manutencoes.isNotEmpty() && odometro > 0 &&
+                                        maisUrgente(manutencoes)!!.faltamKm(odometro) <= 500,
+                                    onClick = { sub = SubTela.MANUTENCAO }
+                                )
+                            )
+                        )
+                    }
                     SubTela.METAS -> MetaPorHoraConteudo(
                         cfg = cfg,
                         horasPorDia = horasPorDia,
@@ -644,6 +647,28 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onAvisoKm = appPrefs::definirAvisoManutencaoKm
                     )
                     SubTela.APARENCIA -> AparenciaScreen()
+                    SubTela.AJUSTES -> {
+                        // Escuro / Claro / Do sistema direto aqui.
+                        SeletorDeTema(context)
+                        ListaFerramentas(
+                            titulo = "AJUSTES",
+                            itens = listOf(
+                                Ferramenta(
+                                    titulo = "Resumo do dia às 22h",
+                                    icone = "🔔",
+                                    estado = if (resumo) "notificação com o lucro do dia" else "desligado",
+                                    ligado = resumo,
+                                    onClick = { vm.definirResumo(!resumo) }
+                                ),
+                                Ferramenta(
+                                    titulo = "Versão do app",
+                                    icone = "⚙",
+                                    estado = "${vm.versaoInstalada} (build ${vm.codigoInstalado})",
+                                    onClick = { sub = SubTela.VERSAO }
+                                )
+                            )
+                        )
+                    }
                     SubTela.VERSAO ->
                     AtualizacaoCard(
                         estado = atualizacao,

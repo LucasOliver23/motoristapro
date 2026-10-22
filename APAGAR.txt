@@ -1,55 +1,44 @@
-NADA PARA APAGAR NESTA VERSAO (4.17.0)
-======================================
+APAGADO NESTA VERSAO (4.18.0)
+=============================
 
-Nenhum arquivo removido. O banco continua na versao 14 (sem migracao: a
-bike e guardada como "BIKE" no mesmo campo de texto do tipo do veiculo).
+Radar de eventos saiu do app (dependia de cadastrar a mao os eventos de
+cada cidade; sem isso a tela ficava vazia). Volta so com fonte automatica.
+Arquivos apagados (estao no historico do Git, ate a 4.17.0):
+  app/src/main/java/com/motoristapro/radar/  (RadarEventos, Evento, AvisoEvento)
+  app/src/main/java/com/motoristapro/ui/mais/RadarScreen.kt
+  app/src/test/java/com/motoristapro/radar/CalculoRadarTest.kt
+Avisos de evento que ja estavam marcados no celular nao chegam mais (o
+WorkManager so registra que nao achou o trabalho). A regra da colecao
+"eventos" no firestore.rules ficou, sem uso.
 
-Assistente rapido OBRIGATORIO (a porta de entrada do app)
-- Depois do login e das permissoes, quem nao tem o assistente de custo
-  feito OU nao tem meta de lucro cai numa tela so, de 1 minuto:
-    veiculo (carro / moto / bike) e o que faz (passageiro / entrega / os dois)
-    combustivel: tipo, preco e consumo (bike pula)
-    quanto paga pelo veiculo: quitado / parcela / aluguel do mes
-    rotina: km por dia, horas por dia, dias por semana
-    meta: quanto quer ganhar LIMPO POR HORA
-- "Pronto, comecar" so liga com tudo preenchido; a tela diz o que falta.
-  Avisa valor estranho (consumo, preco) sem travar.
-- A meta por hora vira a meta do mes (hora x horas x dias), entao o Inicio,
-  as metas e a regua do cartao continuam usando os mesmos numeros.
-- Quem ja tinha o assistente feito e meta passa direto, sem ver nada.
+O banco continua na versao 14 (sem migracao).
 
-Custo basico x completo
-- Sem nenhum desgaste informado (oleo, pneus, revisao, outra peca) o custo
-  e o BASICO: o cartao mostra "custo basico" na linha do lucro por hora e
-  o Semaforo explica. Completar o assistente (Menu > Meu veiculo e custos)
-  tira a etiqueta.
+Menu em 8 entradas
+- Perfil, Leitor de ofertas, Meus veiculos, Suas metas, Checkup do app,
+  Conta e nuvem, Minha assinatura e Ajustes (novo).
+- Leitor de ofertas: o estado do leitor e, embaixo, Semaforo, Aparencia
+  do cartao, Notificacao da corrida e Aviso por voz (chaves), Enderecos de
+  risco, App de navegacao e o Pacote 0% (so aparece para quem rodou 99 nos
+  ultimos 60 dias ou ja tem o pacote ligado). Bolha e leitura por imagem
+  continuam como chaves no topo.
+- Meus veiculos: a lista e, do veiculo ativo, Custos e assistente e
+  Manutencao. O aviso de manutencao chegando aparece na linha do Menu.
+- Conta e nuvem: nuvem e, embaixo, Backup e planilhas (sem login, so o
+  backup).
+- Ajustes: tema, Resumo do dia as 22h e Versao do app.
+- Voltar de uma tela de dentro leva para a de cima (ex.: Semaforo volta
+  para Leitor de ofertas), nao direto para o Menu.
 
-Bike
-- Novo tipo de veiculo: sem combustivel, sem IPVA, sem painel de km.
-- Escolher bike muda o trabalho para entregas.
-- A pergunta do km do painel ao iniciar/encerrar o turno nao aparece para
-  bike (com mais de um veiculo ela ainda aparece, para escolher qual).
-- Custo zero vale para a regua (bike quitada): o lucro e o valor inteiro.
-- Icone proprio em Meus veiculos, Manutencao, km do painel e no assistente.
-- Tirados os emojis de carro/moto da escolha de veiculo.
-
-Arquivos novos: nenhum (a tela rapida fica no AssistenteCustoScreen.kt).
+Aba Atividade
+- Melhores horarios, Comparar apps e Relatorio do mes (PDF) abrem ali
+  mesmo, por cima da aba, sem pular para o Menu. O atalho de Financas para
+  o Relatorio do mes continua funcionando.
 
 Arquivos alterados:
-  app/build.gradle.kts (4.17.0 / 98)
-  app/src/main/java/com/motoristapro/custo/CalculadoraCusto.kt
-  app/src/main/java/com/motoristapro/custo/FonteRegua.kt
-  app/src/main/java/com/motoristapro/service/ReguaLucroHora.kt
-  app/src/main/java/com/motoristapro/service/OverlayOferta.kt
-  app/src/main/java/com/motoristapro/ui/MainActivity.kt
-  app/src/main/java/com/motoristapro/ui/componentes/Icones.kt
-  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoScreen.kt
-  app/src/main/java/com/motoristapro/ui/custo/AssistenteCustoViewModel.kt
-  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/SemaforoScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/VeiculoCustosScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/VeiculosScreen.kt
-  app/src/main/java/com/motoristapro/ui/manutencao/KmDoPainelDialog.kt
-  app/src/main/java/com/motoristapro/ui/manutencao/ManutencaoCard.kt
-  app/src/test/java/com/motoristapro/custo/CalculadoraCustoTest.kt
-  app/src/test/java/com/motoristapro/service/ReguaLucroHoraTest.kt
+  README.md
+  app/build.gradle.kts (4.18.0 / 99)
+  app/src/main/java/com/motoristapro/MotoristaApp.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt
+  app/src/main/java/com/motoristapro/ui/mais/SubTela.kt
+  app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt

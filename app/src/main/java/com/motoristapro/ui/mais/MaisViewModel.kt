@@ -96,6 +96,14 @@ class MaisViewModel(private val app: MotoristaApp) : ViewModel() {
         .map { it?.paraDados() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /**
+     * Rodou 99 nos últimos 60 dias: só então o Pacote 0% aparece (4.18). Quem
+     * já tem o pacote ligado também vê, pela tela que lê [pacote99].
+     */
+    val usa99: StateFlow<Boolean> = Periodo.ultimosDias(60).let { (ini, fim) ->
+        repo.resumoPorPlataforma(ini, fim).map { lista -> lista.any { it.plataforma == "99" && it.qtdCorridas > 0 } }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     // ================================================================== meta por hora
 
     /** As horas por dia que valem: as escolhidas aqui, senão as do assistente, senão 8. */

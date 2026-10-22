@@ -3,8 +3,10 @@ package com.motoristapro.ui.mais
 /**
  * As telas que a lista do "Mais" abre.
  *
- * A regra do corte: o que o motorista mexe TODO DIA fica como interruptor na
- * lista; o que ele configura UMA VEZ some para dentro de uma destas.
+ * Desde a 4.18 o Menu mostra só 8 (perfil, leitor, veículos, metas, checkup,
+ * conta, assinatura e ajustes); as outras abrem de dentro delas ([pai]).
+ * Melhores horários, Comparar apps e Relatório do mês moram na aba Atividade
+ * (continuam aqui para os atalhos antigos funcionarem).
  */
 enum class SubTela(val titulo: String) {
     PERFIL("Meu perfil"),
@@ -26,9 +28,22 @@ enum class SubTela(val titulo: String) {
     ESTILO("Aparência do cartão"),
     METAS("Suas metas"),
     HORARIOS("Melhores horários"),
-    RADAR("Radar de eventos"),
     COMPARAR("Comparar apps"),
     RELATORIO("Relatório do mês"),
     VEICULOS("Meus veículos"),
-    MANUTENCAO("Manutenção")
+    MANUTENCAO("Manutenção"),
+    AJUSTES("Ajustes");
+
+    /**
+     * A tela de onde esta saiu (4.18): o Menu tem 8 linhas e as outras telas
+     * moram dentro delas. Voltar leva para a de cima, não direto para o Menu.
+     */
+    val pai: SubTela?
+        get() = when (this) {
+            SEMAFORO, ESTILO, RISCO, NAVEGACAO, TESTE_PRINT, PACOTE -> LEITOR
+            VEICULO, MANUTENCAO -> VEICULOS
+            BACKUP -> NUVEM
+            VERSAO, APARENCIA -> AJUSTES
+            else -> null
+        }
 }

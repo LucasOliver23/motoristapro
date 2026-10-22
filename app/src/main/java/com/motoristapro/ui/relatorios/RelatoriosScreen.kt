@@ -54,6 +54,16 @@ import com.motoristapro.ui.componentes.GraficoBarras
 import com.motoristapro.ui.componentes.LinhaValor
 import com.motoristapro.ui.componentes.Metrica
 import com.motoristapro.ui.componentes.TelaAba
+import com.motoristapro.ui.componentes.CamadaTelaCheia
+import com.motoristapro.ui.componentes.SubTelaHost
+import com.motoristapro.ui.mais.CompararAppsScreen
+import com.motoristapro.ui.mais.MelhoresHorariosScreen
+import com.motoristapro.ui.mais.RelatorioMesScreen
+import com.motoristapro.ui.mais.SubTela
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.motoristapro.ui.formatarDuracao
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.TextoSecundario
@@ -438,6 +448,9 @@ fun RelatoriosRoute(
     vm: RelatoriosViewModel = viewModel(factory = RelatoriosViewModel.Factory)
 ) {
     val e by vm.uiState.collectAsStateWithLifecycle()
+    // As análises abrem aqui mesmo, por cima da aba (4.18): antes elas moravam
+    // no Menu e este atalho pulava de aba.
+    var analise by rememberSaveable { mutableStateOf<String?>(null) }
 
     TelaAba(titulo = "Atividade", subtitulo = "Desempenho ${e.periodo.detalhe}") { padding ->
         Column(
@@ -457,24 +470,15 @@ fun RelatoriosRoute(
 
             MapaDeCalor(e)
 
-            // As telas que respondem "quando sair": ficam no Menu, mas a pergunta nasce aqui.
+            // As análises que respondem "quando e onde vale sair".
             AtalhoAtividade("⏰", "Melhores horários", "quando as suas corridas pagam mais") {
-                com.motoristapro.ui.NavegacaoRapida.pedirSubTela(
-                    com.motoristapro.ui.mais.SubTela.HORARIOS.name, com.motoristapro.ui.Aba.MAIS.ordinal
-                )
-                irPara(com.motoristapro.ui.Aba.MAIS)
+                analise = SubTela.HORARIOS.name
             }
             AtalhoAtividade("⚖", "Comparar apps", "qual plataforma paga mais para você") {
-                com.motoristapro.ui.NavegacaoRapida.pedirSubTela(
-                    com.motoristapro.ui.mais.SubTela.COMPARAR.name, com.motoristapro.ui.Aba.MAIS.ordinal
-                )
-                irPara(com.motoristapro.ui.Aba.MAIS)
+                analise = SubTela.COMPARAR.name
             }
-            AtalhoAtividade("📡", "Radar de eventos", "jogos, shows e festas com a hora de saída") {
-                com.motoristapro.ui.NavegacaoRapida.pedirSubTela(
-                    com.motoristapro.ui.mais.SubTela.RADAR.name, com.motoristapro.ui.Aba.MAIS.ordinal
-                )
-                irPara(com.motoristapro.ui.Aba.MAIS)
+            AtalhoAtividade("📄", "Relatório do mês", "PDF para imposto, banco ou financiamento") {
+                analise = SubTela.RELATORIO.name
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -591,6 +595,21 @@ fun RelatoriosRoute(
                 }
             }
             Spacer(Modifier.height(8.dp))
+        }
+    }
+
+    analise?.let { nome ->
+        val tela = runCatching { SubTela.valueOf(nome) }.getOrNull() ?: return@let
+        BackHandler { analise = null }
+        CamadaTelaCheia {
+            SubTelaHost(titulo = tela.titulo, onFechar = { analise = null }) {
+                when (tela) {
+                    SubTela.HORARIOS -> MelhoresHorariosScreen()
+                    SubTela.COMPARAR -> CompararAppsScreen()
+                    SubTela.RELATORIO -> RelatorioMesScreen()
+                    else -> Unit
+                }
+            }
         }
     }
 }

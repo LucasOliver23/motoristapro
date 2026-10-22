@@ -2,7 +2,7 @@
 
 App Android para **motorista e entregador de aplicativo** (Uber, 99, iFood e inDrive) que lê a oferta de corrida na tela, mostra na hora se ela compensa — com o custo real do veículo — e controla o dia de trabalho: lucro, jornada, metas, km, manutenção e relatórios.
 
-Versão atual: **4.17.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
+Versão atual: **4.18.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
 
 ---
 
@@ -16,7 +16,7 @@ Versão atual: **4.17.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targe
 - [Banco de dados](#banco-de-dados)
 - [Compilar e testar](#compilar-e-testar)
 - [Publicar uma versão (CI/CD)](#publicar-uma-versão-cicd)
-- [Firebase: login, nuvem, assinatura e radar](#firebase-login-nuvem-assinatura-e-radar)
+- [Firebase: login, nuvem e assinatura](#firebase-login-nuvem-e-assinatura)
 - [Instalar e configurar no celular](#instalar-e-configurar-no-celular)
 - [Problemas comuns](#problemas-comuns)
 - [Privacidade e segurança](#privacidade-e-segurança)
@@ -39,7 +39,6 @@ Versão atual: **4.17.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targe
 | **Vários veículos** | Moto e carro, cada um com km, foto, custo por km, manutenção e lucro do mês. O veículo **ativo** recebe o que for lançado. |
 | **Manutenção** | Itens por km (óleo, relação, pneu, freio…), anel de progresso, **EM DIA / ATENÇÃO / ATRASADA**, lembrete na barra do celular com "Fiz agora" / "Lembrar amanhã". |
 | **Análises** | Melhores horários (dia × faixa de 2 h), **Comparar apps** (R$/h, R$/km, lucro, % de aceite), mapa de calor, gráficos por período. |
-| **Radar de eventos** | Jogos, shows, festas e picos do aeroporto com a **hora de saída** e aviso 30 min antes. |
 | **Relatório do mês em PDF** | Ganhos por app, despesas, custos fixos, lucro, km e horas, com a lista do mês — para imposto, banco ou financiamento. |
 | **Conta e nuvem** | Login (e-mail/senha e Google), backup automático no Firestore, backup em arquivo e exportação CSV. |
 | **Assinatura** | Teste grátis + planos mensal/trimestral pagos no Mercado Pago, liberados por função no servidor. |
@@ -82,8 +81,8 @@ Pacotes lidos (`OfertaAccessibilityService.PACOTES_ALVO`): `com.ubercab.driver`,
 | **Início** | Lucro líquido de hoje com a meta e o ritmo (R$/h vs meta por hora), cartão do pacote da 99, alerta de manutenção chegando, números do dia, atalhos (Semáforo, Veículo, Checkup) e o cartão da jornada. |
 | **Corridas** | Histórico de ofertas lidas e corridas registradas por dia/semana/mês, filtro por app, aceitas × recusadas, endereços com "ver no mapa". |
 | **Finanças** | Mês com entradas e saídas, despesas por categoria, extrato, uso do pacote de ganhos da 99 e **Relatório do mês (PDF)**. |
-| **Atividade** | Resumo do período, R$ por hora conectada, mapa de calor, gráficos e atalhos para **Melhores horários**, **Comparar apps** e **Radar de eventos**. |
-| **Menu** | Perfil, leitor de ofertas, pacote 0%, aparência do cartão, notificação, voz, bolha, endereços de risco, app de navegação, **Suas metas**, **Melhores horários**, **Radar**, **Comparar apps**, **Relatório do mês**, **Meus veículos**, **Manutenção**, resumo das 22h, assinatura, conta e nuvem, backup, versão, tema. |
+| **Atividade** | Resumo do período, R$ por hora conectada, mapa de calor, gráficos e e as análises **Melhores horários**, **Comparar apps** e **Relatório do mês (PDF)**, abertas ali mesmo. |
+| **Menu** | 8 entradas (4.18): **Perfil**, **Leitor de ofertas** (semáforo, aparência do cartão, notificação, voz, bolha, endereços de risco, app de navegação, testar com print e — só para quem roda 99 — pacote 0%), **Meus veículos** (custos e manutenção), **Suas metas**, **Checkup**, **Conta e nuvem** (backup e planilhas), **Assinatura** e **Ajustes** (tema, resumo das 22h, versão). Voltar de uma tela de dentro leva para a de cima. |
 
 Os desenhos aprovados de cada recurso ficam em `mockups/` (HTML + PNG).
 
@@ -111,7 +110,7 @@ Sem Hilt, sem Navigation e sem version catalog: injeção manual em `MotoristaAp
 
 ```
 app/src/main/java/com/motoristapro/
-  MotoristaApp.kt        injeção manual (repositório, preferências, odômetro, radar, veículos…)
+  MotoristaApp.kt        injeção manual (repositório, preferências, odômetro, régua, veículos…)
   service/               leitor de ofertas: serviço de acessibilidade, parsers, OCR, cartão,
                          bolha, notificação, voz, limites do semáforo, aviso de leitor caído
   jornada/               serviço do turno (GPS em primeiro plano) e canais de notificação
@@ -123,7 +122,6 @@ app/src/main/java/com/motoristapro/
   custo/                 calculadora de custo por km e meta por hora (Kotlin puro)
   veiculo/               odômetro, foto, lembrete de manutenção, troca de veículo
   horarios/ comparar/    melhores horários e comparação entre apps (Kotlin puro)
-  radar/                 eventos, filtro por cidade/janela, aviso 30 min antes
   relatorio/             relatório do mês em PDF
   pacote/                pacote 0% de taxa da 99
   nuvem/ auth/           backup no Firestore (JSON gzip) e login
@@ -137,7 +135,7 @@ mockups/                 desenhos aprovados das telas
 APAGAR.txt               o que mudou em cada versão e o que (não) apagar
 ```
 
-**Regra da casa:** tudo que é conta fica em Kotlin puro (sem Android) e tem teste em `app/src/test` — parsers das ofertas, custo, metas, odômetro, lembrete, horários, comparação, radar, backup JSON.
+**Regra da casa:** tudo que é conta fica em Kotlin puro (sem Android) e tem teste em `app/src/test` — parsers das ofertas, custo, metas, odômetro, lembrete, horários, comparação, régua do lucro por hora, backup JSON.
 
 ---
 
@@ -199,12 +197,12 @@ Segredos do GitHub usados pelo `apk.yml`: `GOOGLE_SERVICES_JSON`, `KEYSTORE_BASE
 
 ---
 
-## Firebase: login, nuvem, assinatura e radar
+## Firebase: login, nuvem e assinatura
 
 - **Login e backup na nuvem**: `docs/firebase.md`. Backup em `usuarios/{uid}` (JSON gzip). Celular vazio nunca sobe por cima de um backup com dados; trocar de conta guarda uma cópia local antes de zerar.
 - **Assinatura (Mercado Pago)**: `docs/assinatura.md` e `servidor/functions`.
 - **Regras do Firestore**: `servidor/firestore.rules` — publique sempre que mudar.
-- **Radar de eventos**: a coleção `eventos` é lida por todo motorista logado; só quem tem um documento em `admins/{uid}` (criado à mão no console) publica e apaga. Com a conta admin, o botão **+ Adicionar evento** ganha "Publicar para todos os motoristas". A cidade de cada motorista vem do **Meu perfil**.
+- **Radar de eventos**: saiu do app na 4.18 (dependia de alguém cadastrar os eventos de cada cidade à mão). O código está no histórico do Git (até a 4.17.0) e a regra da coleção `eventos` continua no `firestore.rules`, sem uso.
 
 ---
 
@@ -213,7 +211,7 @@ Segredos do GitHub usados pelo `apk.yml`: `GOOGLE_SERVICES_JSON`, `KEYSTORE_BASE
 1. Instale o APK da última Release e abra o app.
 2. **Leitor de ofertas**: Configurações ▸ Acessibilidade ▸ Apps baixados ▸ **MotoristaPro – Leitor de ofertas** ▸ ligar. No Android 13+, se aparecer "configuração restrita": Informações do app ▸ ⋮ ▸ **Permitir configurações restritas**.
 3. **Bateria sem restrições** e **inicialização automática** (Xiaomi, Samsung, Motorola) — o **Checkup do app** tem atalho para cada uma.
-4. **Notificações** liberadas (aviso de leitor caído, lembretes, radar, resumo).
+4. **Notificações** liberadas (aviso de leitor caído, lembretes, resumo).
 5. Rode o **assistente de custo** (Menu ▸ Meu veículo e custos) e defina a **meta** e as **horas por dia** (Menu ▸ Suas metas).
 6. Em **Manutenção**, informe o km do painel e cadastre os itens.
 
@@ -244,7 +242,7 @@ Segredos do GitHub usados pelo `apk.yml`: `GOOGLE_SERVICES_JSON`, `KEYSTORE_BASE
 
 ## Próximos passos
 
-- Radar automático: buscar jogos de futebol (ex.: API-Football) e picos do aeroporto por uma função agendada no servidor.
+- Radar de eventos de volta só com fonte automática (ex.: API-Football e voos do aeroporto numa função agendada), nunca cadastro à mão.
 - Tirar a varredura da árvore de acessibilidade da thread principal.
 - Testes de migração do Room (`MigrationTestHelper`) e exportação do schema em `app/schemas/`.
 - Publicação na Play Store.
