@@ -558,10 +558,15 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         ocr = ocr,
                         diagnostico = diagnostico,
                         onTestar = vm::testarLeitor,
+                        onTestarPrint = { sub = SubTela.TESTE_PRINT },
                         onAcessibilidade = { context.abrirConfigAcessibilidade() },
                         onBolha = vm::definirBolha,
                         onOcr = vm::definirOcr,
                         onDetalhesDoApp = { context.abrirDetalhesDoApp() }
+                    )
+                    SubTela.TESTE_PRINT -> TestarPrintScreen(
+                        custoKmCentavos = cfg.custoKmCentavos,
+                        tarifaMinimaCentavos = cfg.tarifaMinimaCentavos
                     )
                     SubTela.NUVEM -> {
                     if (vm.loginDisponivel && usuario != null) {

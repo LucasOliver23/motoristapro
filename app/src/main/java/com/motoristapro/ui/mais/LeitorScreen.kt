@@ -35,6 +35,7 @@ internal fun LeitorConteudo(
     ocr: Boolean,
     diagnostico: Diagnostico?,
     onTestar: () -> Unit,
+    onTestarPrint: () -> Unit,
     onAcessibilidade: () -> Unit,
     onBolha: (Boolean) -> Unit,
     onOcr: (Boolean) -> Unit,
@@ -58,6 +59,9 @@ internal fun LeitorConteudo(
             OutlinedButton(onClick = onAcessibilidade, modifier = Modifier.weight(1f)) {
                 Text("Acessibilidade")
             }
+        }
+        OutlinedButton(onClick = onTestarPrint, modifier = Modifier.fillMaxWidth()) {
+            Text("Testar com print (Uber, 99, iFood, inDrive)")
         }
         LinhaSwitch(
             "Bolha flutuante",

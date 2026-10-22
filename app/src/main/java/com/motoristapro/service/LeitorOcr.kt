@@ -13,6 +13,7 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicInteger
 import androidx.annotation.RequiresApi
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 
@@ -129,15 +130,9 @@ class LeitorOcr(private val servico: AccessibilityService) {
             hardware.recycle()
             if (completo == null) return null
 
-            val topo = (completo.height * FRACAO_TOPO_IGNORADA).toInt()
-            val recorte = Bitmap.createBitmap(completo, 0, topo, completo.width, completo.height - topo)
-            if (recorte != completo) completo.recycle()
-            // 720 px de largura sobram para ler "R$ 12,40" e é metade do trabalho do ML Kit.
-            if (recorte.width <= LARGURA_MAXIMA) return recorte
-            val escala = LARGURA_MAXIMA.toFloat() / recorte.width
-            val menor = Bitmap.createScaledBitmap(recorte, LARGURA_MAXIMA, (recorte.height * escala).toInt(), true)
-            if (menor != recorte) recorte.recycle()
-            return menor
+            val pronto = recortarParaOcr(completo)
+            if (pronto !== completo) completo.recycle()
+            return pronto
         } finally {
             buffer.close()
         }
@@ -147,12 +142,7 @@ class LeitorOcr(private val servico: AccessibilityService) {
         try {
             reconhecedor.process(InputImage.fromBitmap(imagem, 0))
                 .addOnSuccessListener { texto ->
-                    // Blocos em ordem de leitura (de cima para baixo, esquerda para direita).
-                    val linhas = texto.textBlocks
-                        .sortedWith(compareBy({ it.boundingBox?.top ?: 0 }, { it.boundingBox?.left ?: 0 }))
-                        .flatMap { bloco -> bloco.lines.map { it.text.trim() } }
-                        .filter { it.isNotEmpty() }
-                    finalizar(minha, aoTerminar, linhas)
+                    finalizar(minha, aoTerminar, linhasEmOrdem(texto))
                 }
                 .addOnFailureListener { e ->
                     Log.e(TAG, "OCR falhou", e)
@@ -194,12 +184,37 @@ class LeitorOcr(private val servico: AccessibilityService) {
     private companion object {
         const val TAG = "MotoristaPro"
 
-        /** Ignora os 30% de cima da tela (mapa + nossa janela flutuante); os cards ficam embaixo. */
-        const val FRACAO_TOPO_IGNORADA = 0.30f
-
-        const val LARGURA_MAXIMA = 720
-
         /** Captura + reconhecimento normalmente levam menos de 1 s; 8 s é sinal de que travou. */
         const val PRAZO_LEITURA_MS = 8_000L
     }
 }
+
+/** Ignora os 30% de cima da tela (mapa + nossa janela flutuante); os cards ficam embaixo. */
+internal const val FRACAO_TOPO_IGNORADA = 0.30f
+
+/** 720 px de largura sobram para ler "R$ 12,40" e é metade do trabalho do ML Kit. */
+internal const val LARGURA_MAXIMA_OCR = 720
+
+/**
+ * Recorta o topo e reduz a imagem como o leitor faz antes do OCR. Também usado
+ * pelo "Testar com print", para o teste ler o que o leitor leria.
+ *
+ * Não recicla [completo]: pode devolver o próprio [completo] (sem recorte e
+ * já pequeno), então quem chamou compara e recicla.
+ */
+internal fun recortarParaOcr(completo: Bitmap, fracaoTopo: Float = FRACAO_TOPO_IGNORADA): Bitmap {
+    val topo = (completo.height * fracaoTopo).toInt()
+    val recorte = Bitmap.createBitmap(completo, 0, topo, completo.width, completo.height - topo)
+    if (recorte.width <= LARGURA_MAXIMA_OCR) return recorte
+    val escala = LARGURA_MAXIMA_OCR.toFloat() / recorte.width
+    val menor = Bitmap.createScaledBitmap(recorte, LARGURA_MAXIMA_OCR, (recorte.height * escala).toInt(), true)
+    if (menor !== recorte && recorte !== completo) recorte.recycle()
+    return menor
+}
+
+/** Linhas do OCR em ordem de leitura (de cima para baixo, esquerda para direita). */
+internal fun linhasEmOrdem(texto: Text): List<String> =
+    texto.textBlocks
+        .sortedWith(compareBy({ it.boundingBox?.top ?: 0 }, { it.boundingBox?.left ?: 0 }))
+        .flatMap { bloco -> bloco.lines.map { it.text.trim() } }
+        .filter { it.isNotEmpty() }

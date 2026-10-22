@@ -15,6 +15,7 @@ enum class SubTela(val titulo: String) {
     CHECKUP("Checkup do app"),
     RISCO("Endereços de risco"),
     LEITOR("Leitor de ofertas"),
+    TESTE_PRINT("Testar com print"),
     NUVEM("Conta e nuvem"),
     BACKUP("Backup e exportação"),
     VERSAO("Versão do app"),
