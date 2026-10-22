@@ -1,5 +1,11 @@
-NADA PARA APAGAR NESTA VERSAO (4.15.0)
+NADA PARA APAGAR NESTA VERSAO (4.15.1)
 ======================================
+
+4.15.1 = a 4.15.0 completa com numero novo. A 4.15.0 foi publicada duas
+vezes com o mesmo codigo (95): o celular que pegou a primeira (so o Testar
+com print) nao via a segunda (Uber Envios, contagem de entregas, copia que
+esconde bairro) como atualizacao. Regra: TODO merge na main precisa subir
+o versionCode, senao a Release sai mas o app nao atualiza.
 
 Nenhum arquivo removido. O banco continua na versao 14 (sem migracao nova).
 
@@ -51,7 +57,7 @@ Arquivos novos:
   app/src/test/java/com/motoristapro/service/LeituraDePrintTest.kt
 
 Arquivos alterados:
-  app/build.gradle.kts (4.15.0 / 95)
+  app/build.gradle.kts (4.15.1 / 96)
   app/src/main/java/com/motoristapro/service/OfertaParser.kt ("envios" = entrega, contagem de entregas)
   app/src/main/java/com/motoristapro/service/EstiloCartao.kt (texto do campo Paradas)
   app/src/test/java/com/motoristapro/service/OfertaParserTest.kt (3 prints reais)
