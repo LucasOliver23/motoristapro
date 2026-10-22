@@ -510,10 +510,20 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                     )
                     }
                     SubTela.SEMAFORO -> {
-                        // As faixas decidem a COR; o estilo decide o que o cartão
-                        // escreve dentro dela. Separados eram dois menus para
-                        // ajustar a mesma coisa.
-                        CardSuasFaixas(
+                        // A régua do lucro por hora decide a COR (4.16); as faixas
+                        // antigas só aparecem como "Avançado" ou sem meta/custo.
+                        val regua by remember {
+                            (context.applicationContext as MotoristaApp).regua.parametros
+                        }.collectAsStateWithLifecycle()
+                        var avancado by remember { mutableStateOf(vm.limites.avancadoLigado) }
+                        CardComoDecide(
+                            regua = regua,
+                            avancado = avancado,
+                            onAvancado = { vm.limites.avancadoLigado = it; avancado = it },
+                            onAbrirAssistente = { assistenteAberto = true }
+                        )
+                        // O estilo decide o que o cartão escreve dentro da cor.
+                        if (regua == null || avancado) CardSuasFaixas(
                             faixas = faixas,
                             temCusto = cfg.custoKmCentavos > 0,
                             valorMinimoViagem = cfg.tarifaMinimaCentavos,

@@ -257,7 +257,9 @@ object OfertaParser {
 
     /**
      * Valor da oferta: o maior R$ entre as linhas que não são ganhos/tarifa base/taxa/bônus.
-     * Se todas as linhas forem "ignoráveis", usa o maior R$ da tela.
+     * Se todas as linhas forem "ignoráveis", usa o maior R$ da tela — tirando os
+     * preços POR UNIDADE ("R$0,34/km aprox."): com o valor de verdade cortado do
+     * print, o R$/km virava o valor da corrida.
      */
     private fun extrairValor(textos: List<String>, tudo: String): Double? {
         fun valores(s: String) = RE_VALOR.findAll(s).mapNotNull { paraDouble(it.groupValues[1]) }
@@ -265,8 +267,11 @@ object OfertaParser {
             .filter { !RE_IGNORAR_VALOR.containsMatchIn(it) }
             .flatMap { valores(it) }
             .maxOrNull()
-        return principais ?: valores(tudo).maxOrNull()
+        return principais ?: valores(RE_POR_UNIDADE.replace(tudo, " ")).maxOrNull()
     }
+
+    // "R$0,34/km", "R$ 0,52 / min", "R$ 30/h": preço por unidade, nunca o valor da corrida.
+    private val RE_POR_UNIDADE = Regex("""(?:R\$|RS)\s*[\d.,]+\s*/\s*(?:km|h|min)\b""", RegexOption.IGNORE_CASE)
 
     /**
      * Número de entregas da rota. "Entrega 1" aparece no mapa e no card: conta uma vez.

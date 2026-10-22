@@ -11,7 +11,12 @@ import android.content.Context
  * SharedPreferences (e não Room) porque são lidos a cada oferta, no caminho
  * crítico do serviço de acessibilidade, sem necessidade de query.
  *
- * Regra da cor: primeiro os VETOS (valor mínimo da viagem, lucro mínimo em R$ e
+ * Desde a 4.16 quem decide a cor é a régua do LUCRO POR HORA ([ReguaLucroHora]),
+ * quando o motorista tem meta e custo/km. As faixas daqui viram "Avançado": só
+ * entram (como trava a mais) com [avancadoLigado]. Sem meta ou sem custo, vale
+ * o semáforo antigo inteiro, como antes.
+ *
+ * Regra da cor antiga: primeiro os VETOS (valor mínimo da viagem, lucro mínimo em R$ e
  * em %) — qualquer um violado derruba para RUIM na hora, sem discussão. Passando
  * pelos vetos, vale a PIOR das faixas: uma corrida não é boa se alguma métrica
  * dela é ruim.
@@ -58,6 +63,18 @@ class LimitesOferta(context: Context) {
         get() = prefs.getFloat(KEY_LUCRO, 0f)
         set(v) = prefs.edit().putFloat(KEY_LUCRO, v).apply()
 
+    /**
+     * Faixas antigas (R$/km, R$/hora, nota, valor e lucro mínimos) valendo como
+     * trava a mais por cima da régua do lucro por hora.
+     *
+     * Sem escolha guardada, fica LIGADO para quem já tinha mexido em alguma
+     * faixa antes da 4.16 (ninguém perde o que configurou) e DESLIGADO para
+     * quem nunca mexeu — o motorista novo só vê a régua simples.
+     */
+    var avancadoLigado: Boolean
+        get() = prefs.getBoolean(KEY_AVANCADO, CHAVES_DAS_FAIXAS.any { prefs.contains(it) })
+        set(v) = prefs.edit().putBoolean(KEY_AVANCADO, v).apply()
+
     /** Lucro líquido mínimo como % do valor da oferta. 0 = não usar. Exige custo/km. */
     var minLucroPercent: Float
         get() = prefs.getFloat(KEY_LUCRO_PCT, 0f)
@@ -82,11 +99,27 @@ class LimitesOferta(context: Context) {
     /**
      * @param tarifaMinimaCentavos valor mínimo da viagem (Configuração, no Room).
      * @param custoKmCentavos custo/km; sem ele o lucro não é avaliado.
+     * @param regua meta e medidas do motorista; null (ou sem meta/custo) = semáforo antigo.
      */
     fun classificar(
         o: Oferta,
         tarifaMinimaCentavos: Long = 0,
-        custoKmCentavos: Long = 0
+        custoKmCentavos: Long = 0,
+        regua: ParametrosRegua? = null
+    ): Classificacao {
+        val nova = regua?.let { ReguaLucroHora.avaliar(o, it) }
+            ?: return classificarPorFaixas(o, tarifaMinimaCentavos, custoKmCentavos)
+        if (!avancadoLigado) return nova.classe
+        return pior(nova.classe, classificarPorFaixas(o, tarifaMinimaCentavos, custoKmCentavos))
+    }
+
+    private fun pior(a: Classificacao, b: Classificacao): Classificacao = if (a.ordinal >= b.ordinal) a else b
+
+    /** O semáforo antigo: vetos e depois a pior das faixas. */
+    private fun classificarPorFaixas(
+        o: Oferta,
+        tarifaMinimaCentavos: Long,
+        custoKmCentavos: Long
     ): Classificacao {
         // --- vetos ---
         if (tarifaMinimaCentavos > 0 && o.valor * 100 < tarifaMinimaCentavos) return Classificacao.RUIM
@@ -132,21 +165,29 @@ class LimitesOferta(context: Context) {
     fun valorParaFicarBoa(
         o: Oferta,
         tarifaMinimaCentavos: Long = 0,
-        custoKmCentavos: Long = 0
+        custoKmCentavos: Long = 0,
+        regua: ParametrosRegua? = null
     ): SugestaoDeTarifa? {
         if (o.km <= 0.0 || !o.valor.isFinite()) return null
-        if (classificar(o, tarifaMinimaCentavos, custoKmCentavos) == Classificacao.BOA) return null
+        if (classificar(o, tarifaMinimaCentavos, custoKmCentavos, regua) == Classificacao.BOA) return null
+
+        // Com a régua valendo, as faixas só contam se o Avançado estiver ligado.
+        val pelaRegua = regua?.let { ReguaLucroHora.valorParaBaterMeta(o, it) }
+        val usarFaixas = pelaRegua == null || avancadoLigado
 
         val exigencias = mutableListOf<Double>()
-        if (tarifaMinimaCentavos > 0) exigencias += tarifaMinimaCentavos / 100.0
-        exigencias += kmBoaAcima * o.km
-        if (o.minutos > 0) exigencias += horaBoaAcima * (o.minutos / 60.0)
+        pelaRegua?.let { exigencias += it }
+        if (usarFaixas) {
+            if (tarifaMinimaCentavos > 0) exigencias += tarifaMinimaCentavos / 100.0
+            exigencias += kmBoaAcima * o.km
+            if (o.minutos > 0) exigencias += horaBoaAcima * (o.minutos / 60.0)
+        }
 
         if (custoKmCentavos > 0) {
             val custo = o.km * (custoKmCentavos / 100.0)
             exigencias += custo + CENTAVO                    // lucro > 0
-            if (minLucroReais > 0f) exigencias += custo + minLucroReais
-            if (minLucroPercent > 0f && minLucroPercent < 100f) {
+            if (usarFaixas && minLucroReais > 0f) exigencias += custo + minLucroReais
+            if (usarFaixas && minLucroPercent > 0f && minLucroPercent < 100f) {
                 // (V - custo) / V >= p  ->  V >= custo / (1 - p)
                 exigencias += custo / (1.0 - minLucroPercent / 100.0)
             }
@@ -159,7 +200,7 @@ class LimitesOferta(context: Context) {
         // botões, e pedir R$ 9,00 em vez de R$ 8,73 não espanta ninguém.
         var sugerido = Math.ceil(alvo / PASSO) * PASSO
         repeat(3) {
-            if (classificar(o.copy(valor = sugerido), tarifaMinimaCentavos, custoKmCentavos) ==
+            if (classificar(o.copy(valor = sugerido), tarifaMinimaCentavos, custoKmCentavos, regua) ==
                 Classificacao.BOA
             ) {
                 return montar(o, sugerido)
@@ -189,7 +230,24 @@ class LimitesOferta(context: Context) {
      * null = o campo não tem faixa (valor, distância, tempo, paradas): esses são
      * informação, não julgamento.
      */
-    fun faixaDoCampo(campo: CampoCartao, o: Oferta, custoKmCentavos: Long): Classificacao? = when (campo) {
+    fun faixaDoCampo(
+        campo: CampoCartao,
+        o: Oferta,
+        custoKmCentavos: Long,
+        regua: ParametrosRegua? = null
+    ): Classificacao? {
+        val nova = regua?.let { ReguaLucroHora.avaliar(o, it) } ?: return faixaPelasFaixas(campo, o, custoKmCentavos)
+        return when (campo) {
+            // O lucro é o que a régua julga: pinta com o veredito dela.
+            CampoCartao.LUCRO, CampoCartao.LUCRO_PCT -> nova.classe
+            // Sem o Avançado, R$/km, R$/hora e nota são informação, não julgamento.
+            CampoCartao.REAIS_KM, CampoCartao.REAIS_HORA, CampoCartao.REAIS_MIN, CampoCartao.NOTA ->
+                if (avancadoLigado) faixaPelasFaixas(campo, o, custoKmCentavos) else null
+            CampoCartao.VALOR, CampoCartao.DISTANCIA, CampoCartao.TEMPO, CampoCartao.PARADAS -> null
+        }
+    }
+
+    private fun faixaPelasFaixas(campo: CampoCartao, o: Oferta, custoKmCentavos: Long): Classificacao? = when (campo) {
         CampoCartao.REAIS_KM -> faixa(o.reaisPorKm, kmRuimAbaixo, kmBoaAcima)
         CampoCartao.REAIS_HORA -> if (o.minutos > 0) faixa(o.reaisPorHora, horaRuimAbaixo, horaBoaAcima) else null
         // Por minuto é a mesma régua da hora, dividida por 60: quem pensa por
@@ -227,21 +285,15 @@ class LimitesOferta(context: Context) {
         const val KEY_USAR_NOTA = "usar_nota"
         const val KEY_LUCRO = "min_lucro_reais"
         const val KEY_LUCRO_PCT = "min_lucro_pct"
+        const val KEY_AVANCADO = "faixas_avancado"
+
+        /** Qualquer uma guardada = o motorista mexeu nas faixas antes da 4.16. */
+        val CHAVES_DAS_FAIXAS = listOf(
+            KEY_KM_RUIM, KEY_KM_BOA, KEY_HORA_RUIM, KEY_HORA_BOA, KEY_NOTA_RUIM, KEY_NOTA_BOA,
+            KEY_USAR_NOTA, KEY_LUCRO, KEY_LUCRO_PCT
+        )
     }
 }
 
 /** Quanto pedir para a corrida virar BOA, e quanto isso é a mais que o ofertado. */
 data class SugestaoDeTarifa(val valorSugerido: Double, val aumento: Double)
-
-/**
- * O veredito da oferta, em palavra de ação.
- *
- * "BOA" e "RUIM" descreviam a corrida; "ACEITAR" e "RECUSAR" dizem o que fazer,
- * que é o que o motorista precisa nos segundos que ele tem. A voz já falava
- * assim desde o começo — agora o cartão fala igual.
- */
-enum class Classificacao(val corFundo: Int, val rotulo: String) {
-    BOA(0xE60288D1.toInt(), "ACEITAR"),   // azul do visual novo (era verde)
-    MEDIA(0xE6F6B93B.toInt(), "ATENÇÃO"),
-    RUIM(0xE6C62828.toInt(), "RECUSAR")
-}

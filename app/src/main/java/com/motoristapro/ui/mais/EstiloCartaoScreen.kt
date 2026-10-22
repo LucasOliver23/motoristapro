@@ -323,9 +323,10 @@ private fun PreviaCartao(cfg: ConfigCartao, custoKmCentavos: Long) {
 private fun PreviaCartaoNovo(cfg: ConfigCartao, custoKmCentavos: Long) {
     val context = LocalContext.current
     val limites = remember { LimitesOferta(context) }
+    val regua = (context.applicationContext as com.motoristapro.MotoristaApp).regua.parametros.value
     val custo = custoKmCentavos.coerceAtLeast(70)
     val o = OFERTA_EXEMPLO
-    val classe = limites.classificar(o, 0, custo)
+    val classe = limites.classificar(o, 0, custo, regua)
     val cor = Color(cfg.paleta.cor(classe))
     val escuro = cfg.tema == TemaCartao.ESCURO
     val fundo = if (escuro) Color(0xFF0B0F14) else Color.White
@@ -360,7 +361,7 @@ private fun PreviaCartaoNovo(cfg: ConfigCartao, custoKmCentavos: Long) {
                 Text(topo, color = texto, fontWeight = FontWeight.Bold, fontSize = (12 * e).sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     cfg.numeros(o, custo).forEach { n ->
-                        val faixa = limites.faixaDoCampo(n.campo, o, custo)
+                        val faixa = limites.faixaDoCampo(n.campo, o, custo, regua)
                         Column {
                             Text(n.rotulo, color = texto.copy(alpha = 0.6f), fontSize = (10 * e).sp)
                             Row(verticalAlignment = Alignment.CenterVertically) {

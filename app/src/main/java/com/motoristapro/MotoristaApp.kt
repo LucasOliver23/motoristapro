@@ -42,6 +42,11 @@ class MotoristaApp : Application() {
     val atualizacao: AtualizacaoManager by lazy { AtualizacaoManager(this) }
     val assinatura: AssinaturaManager by lazy { AssinaturaManager(this, autenticacao) }
 
+    /** Meta, custo e medidas do motorista para a régua do lucro por hora (4.16). */
+    val regua: com.motoristapro.custo.FonteRegua by lazy {
+        com.motoristapro.custo.FonteRegua(repository, preferencias, escopoApp)
+    }
+
     /** Escopo para tarefas curtas de manutenção (vive enquanto o processo viver). */
     val escopoApp = CoroutineScope(SupervisorJob() + Dispatchers.IO + RegistroErros.handler("app"))
 

@@ -17,7 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.motoristapro.custo.MetaPorHora
 import com.motoristapro.data.repository.emReais
+import com.motoristapro.service.ParametrosRegua
+import com.motoristapro.service.ReguaLucroHora
+import com.motoristapro.ui.componentes.LinhaValor
 import com.motoristapro.ui.componentes.CampoFormulario
 import com.motoristapro.ui.componentes.CardSecao
 import com.motoristapro.ui.componentes.FaixaTresCores
@@ -33,6 +37,61 @@ import com.motoristapro.ui.theme.TextoSecundario
 import java.util.Locale
 
 private val PT = Locale("pt", "BR")
+
+/**
+ * Como o cartão decide (4.16): a régua do lucro por hora, com o que já é do
+ * motorista (medido) e o que ainda é padrão (estimado), e a chave das faixas
+ * avançadas. Sem meta ou custo, explica o que falta para a régua valer.
+ */
+@Composable
+internal fun CardComoDecide(
+    regua: ParametrosRegua?,
+    avancado: Boolean,
+    onAvancado: (Boolean) -> Unit,
+    onAbrirAssistente: () -> Unit
+) {
+    CardSecao(titulo = "Como o cartão decide") {
+        if (regua == null) {
+            TextoAjuda(
+                "Hoje a cor vem das faixas abaixo. Para o cartão decidir pelo LUCRO POR HORA, " +
+                    "faça o assistente de custo (custo por km e meta de lucro) e escolha as horas por dia em Suas metas."
+            )
+            TextButton(onClick = onAbrirAssistente) { Text("Abrir o assistente de custo") }
+            return@CardSecao
+        }
+        val fracao = regua.fracaoMedida ?: MetaPorHora.FRACAO_PADRAO
+        val alvo = regua.metaLimpaHoraCentavos / 100.0 / fracao
+        TextoAjuda("A corrida compensa quando o lucro dela por hora bate a sua meta, já contando a espera entre corridas.")
+        LinhaValor("Sua meta limpa", String.format(PT, "R$ %.2f por hora de turno", regua.metaLimpaHoraCentavos / 100.0))
+        LinhaValor(
+            "Tempo com corrida",
+            String.format(PT, "%.0f%% do turno", fracao * 100) + if (regua.fracaoMedida == null) " (estimado)" else " (medido)",
+            cor = if (regua.fracaoMedida == null) AmareloAlerta else MaterialTheme.colorScheme.onSurface
+        )
+        LinhaValor("A corrida precisa render", String.format(PT, "R$ %.2f por hora de corrida", alvo), negrito = true)
+        LinhaValor(
+            "Velocidade nas corridas",
+            String.format(PT, "%.0f km/h", regua.velocidadeMedidaKmH ?: ReguaLucroHora.VELOCIDADE_PADRAO_KMH) +
+                if (regua.velocidadeMedidaKmH == null) " (estimado)" else " (medido)",
+            cor = if (regua.velocidadeMedidaKmH == null) AmareloAlerta else MaterialTheme.colorScheme.onSurface
+        )
+        TextoAjuda(
+            String.format(
+                PT,
+                "ACEITAR: lucro de R$ %.0f/h ou mais. ATENÇÃO: de R$ %.0f a R$ %.0f/h. RECUSAR: abaixo disso ou com prejuízo. " +
+                    "A velocidade só entra quando o card não mostra o tempo (entregas). \"Estimado\" vira o seu número " +
+                    "depois de 3 horas de turno e ${ReguaLucroHora.MINIMO_CORRIDAS_VELOCIDADE} corridas registradas.",
+                alvo, alvo * (1 - MetaPorHora.MARGEM_AMARELO), alvo
+            )
+        )
+        LinhaSwitch(
+            "Faixas avançadas",
+            "Usa também as faixas de R$/km, R$/hora, nota e valor mínimo abaixo como trava a mais: " +
+                "a corrida fica com a pior das duas cores.",
+            avancado, onAvancado
+        )
+    }
+}
 
 private fun Long.campo(): String = emReais().removePrefix("R$ ")
 

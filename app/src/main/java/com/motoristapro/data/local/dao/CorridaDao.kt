@@ -20,6 +20,12 @@ data class CorridasPorApp(
     @ColumnInfo(name = "segundos") val segundos: Long
 )
 
+/** Distância e tempo de uma corrida: a velocidade média da régua (4.16) sai daqui. */
+data class TrechoCorrida(
+    @ColumnInfo(name = "metros") val metros: Long,
+    @ColumnInfo(name = "segundos") val segundos: Long
+)
+
 /** Uma linha de [CorridaDao.observarFatiasHorarias]. */
 data class FatiaHoraria(
     @ColumnInfo(name = "dia_semana") val diaSemana: Int,
@@ -65,6 +71,14 @@ data class ResumoPeriodo(
  */
 @Dao
 interface CorridaDao {
+
+    /** As últimas corridas do veículo com km e tempo, para a velocidade média. */
+    @Query(
+        """SELECT distancia_m AS metros, duracao_seg AS segundos FROM corridas
+           WHERE veiculo_id = :veiculoId AND distancia_m > 0 AND duracao_seg > 0
+           ORDER BY inicio_em DESC LIMIT :limite"""
+    )
+    fun observarUltimosTrechos(veiculoId: Long, limite: Int): Flow<List<TrechoCorrida>>
 
     // ------------------------------------------------------------------ escrita
 
