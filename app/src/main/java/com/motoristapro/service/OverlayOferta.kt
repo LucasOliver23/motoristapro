@@ -348,7 +348,7 @@ class OverlayOferta(private val context: Context) {
 
     /**
      * O cartão do visual 4.7: etiqueta ACEITAR / ATENÇÃO / RECUSAR em cima, e
-     * embaixo os 4 números que decidem a corrida, cada um com a barrinha na cor
+     * embaixo os 3 números que decidem a corrida, cada um com a barrinha na cor
      * da SUA faixa. Verde/amarelo/vermelho de verdade aqui (não o azul do app):
      * é o que o olho do motorista já lê como "pode ir / cuidado / não".
      */

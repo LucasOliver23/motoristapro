@@ -492,7 +492,7 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                             Ferramenta(
                                 titulo = "Aparência do cartão",
                                 icone = "🎨",
-                                estado = "números, tamanho e posição",
+                                estado = "tamanho, posição e tempo na tela",
                                 onClick = { sub = SubTela.ESTILO }
                             ),
                             Ferramenta(

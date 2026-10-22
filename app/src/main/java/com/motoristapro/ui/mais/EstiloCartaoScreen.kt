@@ -58,7 +58,7 @@ import com.motoristapro.ui.theme.VermelhoPrejuizo
 private val OFERTA_EXEMPLO = Oferta(
     valor = 18.40, km = 11.0, minutos = 26,
     enderecos = listOf("Av. Paulista, 1578"),
-    paradas = 2, nota = 4.82
+    nota = 4.82
 )
 
 /**
@@ -79,93 +79,24 @@ fun EstiloCartaoScreen(custoKmCentavos: Long) {
     }
 
     Text(
-        "Este é o cartão que sobe por cima do app de corrida. Mexa abaixo e veja mudando.",
+        "Este é o cartão que sobe por cima do app de corrida. Ele é igual para todo mundo: " +
+            "os números certos já vêm escolhidos.",
         style = MaterialTheme.typography.bodySmall, color = TextoSecundario
     )
 
     PreviaCartao(cfg, custoKmCentavos)
 
-    CardSecao(titulo = "O que aparece no cartão") {
+    CardSecao(titulo = "O que o cartão mostra") {
         Text(
-            "Marque os números que importam para você. Use as flechas para pôr em cima " +
-                "o que você olha primeiro.",
+            "Em cima, ACEITAR, ATENÇÃO ou RECUSAR. Embaixo, três números:\n" +
+                "• Corrida de passageiro: lucro, R$/km e R$/hora.\n" +
+                "• Entrega: lucro, R$/km e quantas paradas.\n" +
+                "E a linha \"Lucro R$ X/h · meta R$ Y/h\", que é o que decide a cor.",
             style = MaterialTheme.typography.bodySmall, color = TextoSecundario
         )
-        // Primeiro os escolhidos, na ordem; depois o resto, para adicionar.
-        cfg.campos.forEachIndexed { i, campo ->
-            LinhaCampo(
-                campo = campo,
-                marcado = true,
-                podeSubir = i > 0,
-                podeDescer = i < cfg.campos.lastIndex,
-                onMarcar = { mudar(cfg.alternando(campo)) },
-                onSubir = { mudar(cfg.movendo(campo, -1)) },
-                onDescer = { mudar(cfg.movendo(campo, +1)) }
-            )
-        }
-        val fora = CampoCartao.entries.filter { it !in cfg.campos }
-        if (fora.isNotEmpty()) {
-            HorizontalDivider(color = Contorno)
-            Text(
-                "DESLIGADOS", style = MaterialTheme.typography.labelSmall,
-                color = TextoSecundario, fontWeight = FontWeight.Bold
-            )
-            fora.forEach { campo ->
-                LinhaCampo(
-                    campo = campo,
-                    marcado = false,
-                    podeSubir = false,
-                    podeDescer = false,
-                    onMarcar = { mudar(cfg.alternando(campo)) },
-                    onSubir = { }, onDescer = { }
-                )
-            }
-        }
     }
 
-    CardSecao(titulo = "Cores e tamanho") {
-        Rotulo("Cor do cartão")
-        Seletor(
-            opcoes = TemaCartao.entries.map { it.rotulo },
-            indiceAtivo = TemaCartao.entries.indexOf(cfg.tema),
-            onEscolher = { mudar(cfg.copy(tema = TemaCartao.entries[it])) }
-        )
-        Text(
-            when (cfg.tema) {
-                TemaCartao.NOVO -> "Cartão branco com a etiqueta ACEITAR, ATENÇÃO ou RECUSAR e 4 números grandes."
-                TemaCartao.COLORIDO -> "Fundo verde, amarelo ou vermelho conforme a decisão. Decide de relance."
-                TemaCartao.ESCURO -> "Fundo escuro com a borda na cor da decisão e os mesmos 4 números."
-                TemaCartao.CLARO -> "Fundo branco, para quem roda com a tela clara."
-            },
-            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-        )
-
-        Rotulo("Paleta de cores")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            PaletaCartao.entries.forEach { p ->
-                val ativa = p == cfg.paleta
-                Column(
-                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                        .background(SuperficieAlta)
-                        .border(2.dp, if (ativa) Lima else Color.Transparent, RoundedCornerShape(12.dp))
-                        .clickable { mudar(cfg.copy(paleta = p)) }
-                        .padding(vertical = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf(p.boa, p.media, p.ruim).forEach { c ->
-                            Box(Modifier.size(16.dp).clip(RoundedCornerShape(8.dp)).background(Color(c)))
-                        }
-                    }
-                    Text(
-                        p.rotulo, style = MaterialTheme.typography.labelSmall,
-                        color = if (ativa) Lima else TextoSecundario,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                }
-            }
-        }
-
+    CardSecao(titulo = "Ajustes do cartão") {
         Rotulo("Tamanho da letra")
         Seletor(
             opcoes = TamanhoCartao.entries.map { it.rotulo },
@@ -183,19 +114,6 @@ fun EstiloCartaoScreen(custoKmCentavos: Long) {
             "Deixe longe do botão de aceitar do app para não tocar errado com pressa.",
             style = MaterialTheme.typography.bodySmall, color = TextoSecundario
         )
-    }
-
-    CardSecao(titulo = "Transparência e tempo") {
-        Rotulo("Transparência: ${cfg.opacidade}%")
-        Slider(
-            value = cfg.opacidade.toFloat(),
-            onValueChange = { mudar(cfg.copy(opacidade = it.toInt().coerceIn(40, 100))) },
-            valueRange = 40f..100f
-        )
-        Text(
-            "Abaixo de 100% dá para ler o endereço do app por baixo do cartão.",
-            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-        )
 
         Rotulo("Some sozinho em ${cfg.segundosNaTela}s")
         Slider(
@@ -203,33 +121,21 @@ fun EstiloCartaoScreen(custoKmCentavos: Long) {
             onValueChange = { mudar(cfg.copy(segundosNaTela = it.toInt().coerceIn(5, 60))) },
             valueRange = 5f..60f
         )
-        Text(
-            "Um toque no cartão fecha na hora, independente deste tempo.",
-            style = MaterialTheme.typography.bodySmall, color = TextoSecundario
-        )
-    }
 
-    CardSecao(titulo = "Detalhes") {
+        LinhaChave(
+            titulo = "Cores para daltônico",
+            detalhe = "Azul, amarelo e roxo no lugar de verde, amarelo e vermelho",
+            marcado = cfg.paleta == PaletaCartao.DALTONICO,
+            onMudar = { mudar(cfg.copy(paleta = if (it) PaletaCartao.DALTONICO else PaletaCartao.CLASSICA)) }
+        )
         LinhaChave(
             titulo = "Botões no cartão",
             detalhe = "Registrar, Embarque e Destino (desligado: cartão menor; os atalhos ficam na notificação)",
             marcado = cfg.botoes,
             onMudar = { mudar(cfg.copy(botoes = it)) }
         )
-        LinhaChave(
-            titulo = "Faixa da decisão",
-            detalhe = "BOA / ATENÇÃO / RUIM em letra grande no alto do cartão",
-            marcado = cfg.avisoEmDestaque,
-            onMudar = { mudar(cfg.copy(avisoEmDestaque = it)) }
-        )
-        LinhaChave(
-            titulo = "Mostrar o valor da corrida na faixa",
-            detalhe = "Ex.: \"BOA  •  R$ 18,40\"",
-            marcado = cfg.mostrarApp,
-            onMudar = { mudar(cfg.copy(mostrarApp = it)) }
-        )
         OutlinedButton(
-            onClick = { mudar(estilo.restaurarPadrao()) },
+            onClick = { mudar(estilo.restaurarPadrao().copy(tema = TemaCartao.ESCURO)) },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Voltar ao padrão") }
     }
@@ -317,7 +223,7 @@ private fun PreviaCartao(cfg: ConfigCartao, custoKmCentavos: Long) {
 
 /**
  * Prévia do cartão branco / escuro: o mesmo desenho do cartão de verdade
- * (etiqueta, 4 números com a barrinha da faixa, botões), com a oferta de exemplo.
+ * (etiqueta, 3 números com a barrinha da faixa, botões), com a oferta de exemplo.
  */
 @Composable
 private fun PreviaCartaoNovo(cfg: ConfigCartao, custoKmCentavos: Long) {
@@ -439,52 +345,6 @@ fun VozOfertasCard() {
             },
             valueRange = 0.8f..1.5f
         )
-    }
-}
-
-/** Linha de um campo: marca/desmarca e muda de lugar. */
-@Composable
-private fun LinhaCampo(
-    campo: CampoCartao,
-    marcado: Boolean,
-    podeSubir: Boolean,
-    podeDescer: Boolean,
-    onMarcar: () -> Unit,
-    onSubir: () -> Unit,
-    onDescer: () -> Unit
-) {
-    Row(
-        Modifier.fillMaxWidth().clickable { onMarcar() }.padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            Modifier.size(22.dp).clip(RoundedCornerShape(6.dp))
-                .background(if (marcado) Lima else SuperficieAlta)
-                .border(1.dp, if (marcado) Lima else Contorno, RoundedCornerShape(6.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            if (marcado) Text("✓", color = Fundo, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        }
-        Column(Modifier.weight(1f).padding(start = 10.dp)) {
-            Text(campo.rotulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-            Text(campo.explicacao, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
-        }
-        if (marcado) {
-            SetaOrdem("▲", podeSubir, onSubir)
-            SetaOrdem("▼", podeDescer, onDescer)
-        }
-    }
-}
-
-@Composable
-private fun SetaOrdem(simbolo: String, ativa: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier.size(32.dp).clip(RoundedCornerShape(8.dp))
-            .background(SuperficieAlta)
-            .clickable(enabled = ativa) { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(simbolo, color = if (ativa) Lima else Contorno, fontSize = 12.sp)
     }
 }
 
