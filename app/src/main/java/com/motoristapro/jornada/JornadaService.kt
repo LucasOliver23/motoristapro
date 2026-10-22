@@ -245,7 +245,7 @@ class JornadaService : Service() {
         )
         val minutos = paradoMs / 60_000
         val aviso = NotificationCompat.Builder(this, Notificacoes.CANAL_RESUMO)
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setSmallIcon(com.motoristapro.R.drawable.ic_notificacao)
             .setContentTitle("Parado há $minutos min com a jornada rodando")
             .setContentText("Pausar não conta esse tempo como hora rodada.")
             .setStyle(
@@ -346,7 +346,7 @@ class JornadaService : Service() {
         )
         val km = String.format(Locale("pt", "BR"), "%.1f km rodados", metros / 1000.0)
         return NotificationCompat.Builder(this, Notificacoes.CANAL_JORNADA)
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setSmallIcon(com.motoristapro.R.drawable.ic_notificacao)
             .setContentTitle("Jornada em andamento")
             .setContentText(if (temPermissaoLocalizacao()) km else "Cronômetro ativo (GPS sem permissão)")
             .setOngoing(true)

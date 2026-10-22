@@ -8,7 +8,7 @@ package com.motoristapro.service
  * assim desde o começo — agora o cartão fala igual.
  */
 enum class Classificacao(val corFundo: Int, val rotulo: String) {
-    BOA(0xE60288D1.toInt(), "ACEITAR"),   // azul do visual novo (era verde)
+    BOA(0xE622A06B.toInt(), "ACEITAR"),   // verde da decisão (5.0: cor só para decidir)
     MEDIA(0xE6F6B93B.toInt(), "ATENÇÃO"),
     RUIM(0xE6C62828.toInt(), "RECUSAR")
 }

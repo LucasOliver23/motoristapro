@@ -1,5 +1,6 @@
 package com.motoristapro.ui.manutencao
 
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -148,7 +149,7 @@ fun ManutencaoConteudo(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("⚠", color = AmareloAlerta, fontSize = 18.sp)
+                com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Alerta, AmareloAlerta)
                 Text(
                     buildAnnotatedString {
                         append("${item.nome} · ")
@@ -200,7 +201,7 @@ fun ManutencaoConteudo(
                             .background(if (ativo) Lima else SuperficieAlta)
                             .clickable { onAvisoKm(km) }
                             .padding(horizontal = 10.dp, vertical = 6.dp),
-                        color = if (ativo) Color(0xFF0D1117) else TextoSecundario,
+                        color = if (ativo) CorSobreDestaque else TextoSecundario,
                         style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold
                     )
                 }
@@ -410,7 +411,7 @@ private fun LinhaItem(item: ItemManutencao, odometroAtual: Long, onClick: () -> 
                 drawArc(Contorno, -90f, 360f, false, canto, lado, style = Stroke(traco))
                 if (fracao > 0f) drawArc(cor, -90f, 360f * fracao, false, canto, lado, style = Stroke(traco, cap = StrokeCap.Round))
             }
-            Text(emojiDoItem(item.nome), fontSize = 15.sp)
+            com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Chave, tamanho = 16.dp)
         }
         Column(Modifier.weight(1f)) {
             Text(item.nome, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
@@ -442,19 +443,6 @@ private fun LinhaItem(item: ItemManutencao, odometroAtual: Long, onClick: () -> 
                 modifier = Modifier.padding(top = 3.dp)
             )
         }
-    }
-}
-
-private fun emojiDoItem(nome: String): String {
-    val n = nome.lowercase()
-    return when {
-        "óleo" in n || "oleo" in n -> "💧"
-        "rela" in n || "corrente" in n -> "⛓"
-        "pneu" in n -> "◎"
-        "freio" in n || "pastilha" in n || "lona" in n -> "🛑"
-        "filtro" in n -> "🌀"
-        "bateria" in n -> "🔋"
-        else -> "🔧"
     }
 }
 

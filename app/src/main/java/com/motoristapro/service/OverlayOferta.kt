@@ -138,10 +138,10 @@ class OverlayOferta(private val context: Context) {
         val partes = escolhidos.drop(3).map { it.second }.toMutableList()
         linhaRegua(o)?.let { partes.add(0, it) }
         if (o.paradas > 1 && cfg.campos.none { it == CampoCartao.PARADAS }) {
-            partes += "⏸ ${o.paradas} paradas • ${moeda(o.valor / o.paradas)} cada"
+            partes += "${o.paradas} paradas • ${moeda(o.valor / o.paradas)} cada"
         }
         // Devolução nunca é opcional: é risco de trabalhar de graça.
-        if (o.devolucao) partes += "⚠ pode ter devolução"
+        if (o.devolucao) partes += "Pode ter devolução"
         tvDetalhe.text = partes.joinToString("  •  ")
         tvDetalhe.visibility = if (partes.isEmpty()) View.GONE else View.VISIBLE
 
@@ -159,12 +159,12 @@ class OverlayOferta(private val context: Context) {
         if (alertaRisco.isNullOrBlank()) {
             tvRisco.visibility = View.GONE
         } else {
-            tvRisco.text = "⚠  ÁREA DE RISCO: $alertaRisco"
+            tvRisco.text = "ÁREA DE RISCO: $alertaRisco"
             tvRisco.visibility = View.VISIBLE
         }
 
         ofertaAtual = o
-        btRegistrar.text = "✓ Registrar corrida"
+        btRegistrar.text = "Registrar corrida"
         btRegistrar.isEnabled = true
         btLocal.visibility = if (o.enderecos.isNotEmpty()) View.VISIBLE else View.GONE
 
@@ -295,11 +295,11 @@ class OverlayOferta(private val context: Context) {
     /** Feedback visual depois que a corrida foi gravada. */
     fun marcarRegistrada() {
         btRegistrarNovo?.let {
-            it.text = "Registrada ✓"
+            it.text = "Registrada"
             it.isEnabled = false
         }
         if (::btRegistrar.isInitialized) {
-            btRegistrar.text = "Registrada ✓"
+            btRegistrar.text = "Registrada"
             btRegistrar.isEnabled = false
         }
         handler.removeCallbacks(esconderRunnable)
@@ -369,14 +369,14 @@ class OverlayOferta(private val context: Context) {
         // do tamanho do conteúdo e não da tela, com a etiqueta ACEITAR/ATENÇÃO/
         // RECUSAR em cima — o motorista lê a decisão antes dos números.
         val escuro = cfg.tema == TemaCartao.ESCURO
-        val fundo = if (escuro) 0xFF0B0F14.toInt() else BRANCO
+        val fundo = if (escuro) 0xFF121212.toInt() else BRANCO
         val corNumero = if (escuro) BRANCO else ESCURO
 
         val etiqueta = TextView(context).apply {
             text = when (classe) {
-                Classificacao.BOA -> "✓  ACEITAR"
-                Classificacao.MEDIA -> "!  ATENÇÃO"
-                Classificacao.RUIM -> "✕  RECUSAR"
+                Classificacao.BOA -> "ACEITAR"
+                Classificacao.MEDIA -> "ATENÇÃO"
+                Classificacao.RUIM -> "RECUSAR"
             }
             setTextColor(BRANCO)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f * e)
@@ -416,9 +416,9 @@ class OverlayOferta(private val context: Context) {
 
         val avisos = buildList {
             linhaRegua(o)?.let { add(it) }
-            if (o.paradas > 1) add("⏸ ${o.paradas} paradas · ${moeda(o.valor / o.paradas)} cada")
-            if (o.devolucao) add("⚠ pode ter devolução")
-            sugestao?.let { add("↑ Peça ${moeda(it.valorSugerido)} (+${moeda(it.aumento)}) e vira boa") }
+            if (o.paradas > 1) add("${o.paradas} paradas · ${moeda(o.valor / o.paradas)} cada")
+            if (o.devolucao) add("Pode ter devolução")
+            sugestao?.let { add("Peça ${moeda(it.valorSugerido)} (+${moeda(it.aumento)}) e vira boa") }
         }
 
         val caixa = LinearLayout(context).apply {
@@ -436,7 +436,7 @@ class OverlayOferta(private val context: Context) {
             })
             addView(metricas)
             if (!alertaRisco.isNullOrBlank()) {
-                addView(faixaAviso("⚠  ÁREA DE RISCO: $alertaRisco", cfg.paleta.ruim, BRANCO, e))
+                addView(faixaAviso("ÁREA DE RISCO: $alertaRisco", cfg.paleta.ruim, BRANCO, e))
             }
             if (avisos.isNotEmpty()) {
                 addView(texto(12f * e, false).apply {
@@ -451,12 +451,12 @@ class OverlayOferta(private val context: Context) {
             if (cfg.botoes) addView(LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(0, dp(6), 0, 0)
-                val reg = chip("✓ Registrar", e, escuro) { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
+                val reg = chip("Registrar", e, escuro) { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
                 btRegistrarNovo = reg
                 addView(reg)
-                o.enderecos.firstOrNull()?.let { emb -> addView(chip("📍 Embarque", e, escuro) { aoVerLocal?.invoke(emb) }) }
+                o.enderecos.firstOrNull()?.let { emb -> addView(chip("Embarque", e, escuro) { aoVerLocal?.invoke(emb) }) }
                 o.enderecos.takeIf { it.size > 1 }?.lastOrNull()?.let { dest ->
-                    addView(chip("📍 Destino", e, escuro) { aoVerLocal?.invoke(dest) })
+                    addView(chip("Destino", e, escuro) { aoVerLocal?.invoke(dest) })
                 }
             })
         }
@@ -576,8 +576,8 @@ class OverlayOferta(private val context: Context) {
             }
             visibility = View.GONE
         }
-        btRegistrar = botao("✓ Registrar corrida") { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
-        btLocal = botao("📍 Ver embarque") {
+        btRegistrar = botao("Registrar corrida") { ofertaAtual?.let { aoRegistrar?.invoke(it) } }
+        btLocal = botao("Ver embarque") {
             ofertaAtual?.enderecos?.firstOrNull()?.let { aoVerLocal?.invoke(it) }
         }
         val linhaBotoes = LinearLayout(context).apply {

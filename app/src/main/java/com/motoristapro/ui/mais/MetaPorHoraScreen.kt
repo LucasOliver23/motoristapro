@@ -1,5 +1,7 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.theme.VerdeLucro
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -93,7 +95,7 @@ fun MetaPorHoraConteudo(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("POR HORA", fontSize = 9.sp, letterSpacing = 1.sp, color = TextoSecundario, fontWeight = FontWeight.SemiBold)
-                Text(conta.lucroPorHoraCentavos.emReais(), style = EstiloValor, fontSize = 19.sp, color = Lima)
+                Text(conta.lucroPorHoraCentavos.emReais(), style = EstiloValor, fontSize = 19.sp, color = VerdeLucro)
             }
         }
         Text(
@@ -118,7 +120,7 @@ fun MetaPorHoraConteudo(
                 ) {
                     Text(
                         "${h}h", fontWeight = FontWeight.Bold,
-                        color = if (ativo) Color(0xFF0D1117) else TextoSecundario
+                        color = if (ativo) CorSobreDestaque else TextoSecundario
                     )
                 }
             }
@@ -173,10 +175,10 @@ fun MetaPorHoraConteudo(
         enabled = !jaUsando,
         modifier = Modifier.fillMaxWidth().height(52.dp),
         shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0D1117))
+        colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
     ) {
         Text(
-            if (jaUsando) "Semáforo já está na sua meta ✓" else "Usar R$ ${conta.ofertaPorHoraReais}/h no semáforo",
+            if (jaUsando) "Semáforo já está na sua meta" else "Usar R$ ${conta.ofertaPorHoraReais}/h no semáforo",
             fontWeight = FontWeight.ExtraBold
         )
     }

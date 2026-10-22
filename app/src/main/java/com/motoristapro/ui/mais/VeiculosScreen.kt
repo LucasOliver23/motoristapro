@@ -1,5 +1,6 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -85,7 +86,7 @@ fun VeiculosScreen() {
             val itens = runCatching { repo.manutencoesDo(v.id).first() }.getOrDefault(emptyList())
             val urgente = if (km != null) maisUrgente(itens)?.let { item ->
                 val faltam = item.faltamKm(km)
-                if (faltam <= 0) "🔧 ${item.nome} venceu" else "🔧 ${item.nome} em ${faltam.kmPainel()} km"
+                if (faltam <= 0) "${item.nome} venceu" else "${item.nome} em ${faltam.kmPainel()} km"
             } else null
             v.id to (km to urgente)
         }
@@ -248,7 +249,7 @@ private fun VeiculoDialog(
                             t.rotulo,
                             modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (ativo) Lima else SuperficieAlta)
                                 .clickable { tipo = t }.padding(horizontal = 12.dp, vertical = 7.dp),
-                            color = if (ativo) Color(0xFF0D1117) else TextoSecundario,
+                            color = if (ativo) CorSobreDestaque else TextoSecundario,
                             style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold
                         )
                     }

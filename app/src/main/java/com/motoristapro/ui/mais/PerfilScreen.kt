@@ -1,5 +1,6 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,7 +62,7 @@ internal fun PerfilCard(
             val inicial = (nome.ifBlank { emailConta.orEmpty() }).trim().firstOrNull()?.uppercase() ?: "M"
             Surface(shape = CircleShape, color = Lima, modifier = Modifier.size(48.dp)) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(inicial, color = Color(0xFF0A0D0B), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                    Text(inicial, color = CorSobreDestaque, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
                 }
             }
             Column(Modifier.weight(1f)) {

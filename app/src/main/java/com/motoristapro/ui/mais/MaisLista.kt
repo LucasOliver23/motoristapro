@@ -215,7 +215,7 @@ private fun LinhaFerramenta(f: Ferramenta) {
                 Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(SuperficieAlta),
                 contentAlignment = Alignment.Center
             ) {
-                Text(f.icone, fontSize = 15.sp)
+                Box(Modifier.size(6.dp).clip(CircleShape).background(TextoSecundario))
             }
         }
         Column(Modifier.weight(1f).padding(start = 12.dp, end = 10.dp)) {
@@ -239,7 +239,7 @@ private fun LinhaFerramenta(f: Ferramenta) {
                 checked = ligadoAgora,
                 onCheckedChange = { f.onClick() },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color(0xFF0D1117),
+                    checkedThumbColor = CorSobreDestaque,
                     checkedTrackColor = Lima,
                     checkedBorderColor = Lima,
                     uncheckedThumbColor = TextoSecundario,
@@ -258,27 +258,38 @@ private fun LinhaFerramenta(f: Ferramenta) {
 }
 
 /**
- * O ícone de traço (e a cor do assunto) de cada ajuste, a partir do selo
- * antigo. Assim as linhas do Menu não mudam de lugar nem de texto — só o
- * desenho. Selo sem par aqui continua aparecendo como antes.
+ * O ícone de cada ajuste, a partir do selo antigo (as linhas do Menu não mudam
+ * de lugar nem de texto, só o desenho). 5.0: todos no destaque neutro; só o
+ * alerta é vermelho, porque ali a cor significa alguma coisa. Nenhum emoji
+ * chega à tela: selo sem par vira um ponto.
  */
-private fun iconeDeTraco(selo: String): Pair<ImageVector, Color>? = when (selo) {
-    "💰" -> Icones.Veiculo to AzulInfo
-    "🚦" -> Icones.Semaforo to AmareloAlerta
-    "🔧" -> Icones.Chave to Laranja
-    "🔔" -> Icones.Sino to AmareloAlerta
-    "👁" -> Icones.Olho to Lima
-    "🩺" -> Icones.Checkup to Roxo
-    "🔊" -> Icones.Som to Turquesa
-    "⚪" -> Icones.Bolha to Roxo
-    "⚠" -> Icones.Alerta to VermelhoPrejuizo
-    "🧭" -> Icones.Bussola to AzulInfo
-    "⭐" -> Icones.Estrela to AmareloAlerta
-    "☁" -> Icones.Nuvem to Turquesa
-    "📦" -> Icones.Caixa to Laranja
-    "🌓" -> Icones.Contraste to Roxo
-    "⚙" -> Icones.Engrenagem to TextoSecundario
-    else -> null
+private fun iconeDeTraco(selo: String): Pair<ImageVector, Color>? {
+    val icone = when (selo) {
+        "💰" -> Icones.Veiculo
+        "🚗" -> Icones.Veiculo
+        "🚦" -> Icones.Semaforo
+        "🔧" -> Icones.Chave
+        "🔔" -> Icones.Sino
+        "👁" -> Icones.Olho
+        "🩺" -> Icones.Checkup
+        "🔊" -> Icones.Som
+        "⚪" -> Icones.Bolha
+        "⚠" -> Icones.Alerta
+        "🧭" -> Icones.Bussola
+        "⭐" -> Icones.Estrela
+        "☁" -> Icones.Nuvem
+        "📦" -> Icones.Caixa
+        "🌓" -> Icones.Contraste
+        "⚙" -> Icones.Engrenagem
+        "🎯" -> Icones.Alvo
+        "%" -> Icones.Porcento
+        "🎨" -> Icones.Paleta
+        "⏰" -> Icones.Relogio
+        "⚖" -> Icones.Atividade
+        "📄" -> Icones.Documento
+        else -> return null
+    }
+    return icone to (if (selo == "⚠") VermelhoPrejuizo else Lima)
 }
 
 /**

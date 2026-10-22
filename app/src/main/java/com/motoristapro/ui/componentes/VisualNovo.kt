@@ -1,5 +1,6 @@
 package com.motoristapro.ui.componentes
 
+import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -122,7 +123,7 @@ fun ValorComCentavos(
 
 /** Barra da meta: trilho cinza, progresso azul, canto redondo. [fracao] vai de 0 a 1. */
 @Composable
-fun BarraMeta(fracao: Float, modifier: Modifier = Modifier, cor: Color = Lima, altura: Int = 8) {
+fun BarraMeta(fracao: Float, modifier: Modifier = Modifier, cor: Color = VerdeLucro, altura: Int = 8) {
     Box(
         modifier.fillMaxWidth().height(altura.dp).clip(RoundedCornerShape(99.dp)).background(SuperficieMaisAlta)
     ) {
@@ -259,4 +260,4 @@ fun DivisorLista(recuo: Int = 0) {
 }
 
 /** Texto escuro para usar SOBRE o azul (botão, pílula escolhida): o branco não lê ali. */
-val CorSobreDestaque = Color(0xFF04131B)
+val CorSobreDestaque: Color get() = com.motoristapro.ui.theme.SobreDestaque

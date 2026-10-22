@@ -1,5 +1,6 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -150,7 +151,7 @@ private fun PreviaCartao(cfg: ConfigCartao, custoKmCentavos: Long) {
     }
     val classe = Classificacao.BOA
     val corFaixa = when (classe) {
-        Classificacao.BOA -> Lima
+        Classificacao.BOA -> VerdeLucro
         Classificacao.MEDIA -> AmareloAlerta
         Classificacao.RUIM -> VermelhoPrejuizo
     }
@@ -213,7 +214,7 @@ private fun PreviaCartao(cfg: ConfigCartao, custoKmCentavos: Long) {
                 )
             }
             Text(
-                "✓ Registrar corrida      📍 Ver embarque",
+                "Registrar corrida      Ver embarque",
                 color = corTexto.copy(alpha = 0.8f),
                 fontSize = (12 * escala).sp
             )
@@ -235,7 +236,7 @@ private fun PreviaCartaoNovo(cfg: ConfigCartao, custoKmCentavos: Long) {
     val classe = limites.classificar(o, 0, custo, regua)
     val cor = Color(cfg.paleta.cor(classe))
     val escuro = cfg.tema == TemaCartao.ESCURO
-    val fundo = if (escuro) Color(0xFF0B0F14) else Color.White
+    val fundo = if (escuro) Color(0xFF121212) else Color.White
     val texto = if (escuro) Color.White else Color(0xFF101720)
     val e = cfg.tamanho.escala
     val topo = String.format(java.util.Locale("pt", "BR"), "R$ %.2f  ·  %d min  ·  %.1f km", o.valor, o.minutos, o.km)
@@ -249,9 +250,9 @@ private fun PreviaCartaoNovo(cfg: ConfigCartao, custoKmCentavos: Long) {
             run {
                 Text(
                     when (classe) {
-                        Classificacao.BOA -> "✓  ACEITAR"
-                        Classificacao.MEDIA -> "!  ATENÇÃO"
-                        Classificacao.RUIM -> "✕  RECUSAR"
+                        Classificacao.BOA -> "ACEITAR"
+                        Classificacao.MEDIA -> "ATENÇÃO"
+                        Classificacao.RUIM -> "RECUSAR"
                     },
                     color = Color.White, fontWeight = FontWeight.Bold, fontSize = (12 * e).sp,
                     modifier = Modifier.padding(start = 8.dp)
@@ -284,7 +285,7 @@ private fun PreviaCartaoNovo(cfg: ConfigCartao, custoKmCentavos: Long) {
                     }
                 }
                 if (cfg.botoes) Text(
-                    "✓ Registrar     📍 Embarque     📍 Destino",
+                    "Registrar     Embarque     Destino",
                     color = texto.copy(alpha = 0.75f), fontSize = (12 * e).sp
                 )
             }
@@ -311,7 +312,7 @@ fun VozOfertasCard() {
             ).forEach { (c, rotulo) ->
                 val marcada = c.name in classes
                 val cor = when (c) {
-                    Classificacao.BOA -> Lima
+                    Classificacao.BOA -> VerdeLucro
                     Classificacao.MEDIA -> AmareloAlerta
                     Classificacao.RUIM -> VermelhoPrejuizo
                 }
@@ -415,7 +416,7 @@ fun AparenciaScreen() {
                     Text(m.rotulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                     Text(m.descricao, style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
                 }
-                if (ativo) Text("✓", color = Lima, fontWeight = FontWeight.Bold)
+                if (ativo) com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Certo, Lima)
             }
         }
     }

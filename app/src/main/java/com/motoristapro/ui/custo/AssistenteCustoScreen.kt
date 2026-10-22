@@ -1,5 +1,6 @@
 package com.motoristapro.ui.custo
 
+import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -728,7 +729,7 @@ private fun ResultadoFinal(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(p.rotulo, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(64.dp))
                         Text(String.format(PT, "%,d km", p.km), style = MaterialTheme.typography.bodySmall, color = TextoSecundario, modifier = Modifier.weight(1f))
-                        Text(p.lucroCentavos.emReais(), style = EstiloValor, fontSize = 15.sp, color = Lima)
+                        Text(p.lucroCentavos.emReais(), style = EstiloValor, fontSize = 15.sp, color = VerdeLucro)
                     }
                 }
                 Text("lucro já descontados todos os custos", fontSize = 11.sp, color = TextoSecundario)
@@ -751,7 +752,7 @@ private fun ResultadoFinal(
                 colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
             ) {
                 Text(
-                    if (aplicado) "Aplicado ao semáforo ✓"
+                    if (aplicado) "Aplicado ao semáforo"
                     else "Usar ${r.tarifaMinimaPorKmCentavos.emReais()}/km no semáforo",
                     fontWeight = FontWeight.ExtraBold
                 )

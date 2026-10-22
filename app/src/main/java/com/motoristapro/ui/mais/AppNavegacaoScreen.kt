@@ -73,7 +73,7 @@ fun AppNavegacaoScreen() {
                         color = TextoSecundario
                     )
                 }
-                if (ativo) Text("✓", color = Lima, fontWeight = FontWeight.Bold)
+                if (ativo) com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Certo, Lima)
             }
         }
     }

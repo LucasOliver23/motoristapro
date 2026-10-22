@@ -236,12 +236,12 @@ class PainelBolha(private val context: Context) {
         const val TAG = "MotoristaPro"
         val MATCH = LinearLayout.LayoutParams.MATCH_PARENT
         val WRAP = LinearLayout.LayoutParams.WRAP_CONTENT
-        val COR_FUNDO = 0xF50D1117.toInt()
+        val COR_FUNDO = 0xF5000000.toInt()
         val COR_CAIXA = 0xFF21262D.toInt()
         val COR_CONTORNO = 0xFF2C333D.toInt()
         val COR_TEXTO = 0xFFFFFFFF.toInt()
         val COR_APAGADO = 0xFF8B949E.toInt()
-        val COR_LIMA = 0xFF4CC9F0.toInt()   // azul claro do visual novo (nome mantido)
+        val COR_LIMA = 0xFFFFFFFF.toInt()   // destaque branco (5.0; nome mantido)
         val COR_VERMELHO = 0xFFFF5252.toInt()
     }
 }

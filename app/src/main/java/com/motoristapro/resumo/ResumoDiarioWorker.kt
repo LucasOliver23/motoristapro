@@ -53,7 +53,7 @@ class ResumoDiarioWorker(context: Context, params: WorkerParameters) : Coroutine
                 (repo.obterJornadaAtiva()?.segundosRodando(agora) ?: 0L)
         }.getOrDefault(0L)
 
-        val titulo = "💰 Lucro do dia: ${lucro.emReais()}" +
+        val titulo = "Lucro do dia: ${lucro.emReais()}" +
             if (meta > 0) " (${(lucro.coerceAtLeast(0) * 100 / meta)}% da meta)" else ""
         val linha1 = buildList {
             add("${r.qtdCorridas} corrida(s)")
@@ -62,13 +62,13 @@ class ResumoDiarioWorker(context: Context, params: WorkerParameters) : Coroutine
         }.joinToString(" · ")
         val linha2 = when {
             meta <= 0 -> "${r.faturamentoCentavos.emReais()} faturado · ${r.despesasCentavos.emReais()} de despesas"
-            lucro >= meta -> "Meta de ${meta.emReais()} batida! 🎉"
+            lucro >= meta -> "Meta de ${meta.emReais()} batida!"
             else -> "Faltaram ${(meta - lucro).emReais()} para a meta de ${meta.emReais()}."
         }
         val texto = "$linha1\n$linha2"
 
         val notificacao = NotificationCompat.Builder(ctx, Notificacoes.CANAL_RESUMO)
-            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setSmallIcon(com.motoristapro.R.drawable.ic_notificacao)
             .setContentTitle(titulo)
             .setContentText(linha1)
             .setStyle(NotificationCompat.BigTextStyle().bigText(texto))

@@ -1,5 +1,6 @@
 package com.motoristapro.ui.dashboard
 
+import com.motoristapro.ui.theme.VerdeLucro
 import com.motoristapro.ui.manutencao.DadosKm
 import com.motoristapro.custo.TipoVeiculo
 import com.motoristapro.ui.manutencao.KmDoPainelDialog
@@ -375,7 +376,7 @@ private fun ManutencaoChegando(nome: String, faltam: Long, vence: Long, onClick:
         Box(
             Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(cor.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center
-        ) { Text("🔧", fontSize = 18.sp) }
+        ) { com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Chave, cor) }
         Column(Modifier.weight(1f)) {
             Text(
                 if (vencido) "$nome venceu" else "$nome chegando",
@@ -416,13 +417,13 @@ private fun PacoteValeuAPena(e: DashboardUiState) {
                 Text(
                     "Sem ele a 99 ficaria com ~ ${PacoteTaxa.taxaEvitadaCentavos(e.ganhos99HojeCentavos).emReais()}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (compensou) Lima else TextoSecundario
+                    color = if (compensou) VerdeLucro else TextoSecundario
                 )
             }
             Text(
                 (if (compensou) "+ " else "− ") + kotlin.math.abs(economia).emReais(),
                 style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
-                color = if (compensou) Lima else VermelhoPrejuizo
+                color = if (compensou) VerdeLucro else VermelhoPrejuizo
             )
         }
         Text(
@@ -453,7 +454,7 @@ private fun QuantoFalta(e: DashboardUiState, agora: Long) {
     val negrito = SpanStyle(fontWeight = FontWeight.Bold, color = TextoPrincipal)
     val mensagem = buildAnnotatedString {
         when (previsao) {
-            PrevisaoMeta.Batida -> withStyle(negrito) { append("Meta do dia batida! 🎉") }
+            PrevisaoMeta.Batida -> withStyle(negrito) { append("Meta do dia batida!") }
             is PrevisaoMeta.Falta -> {
                 append("Faltam ")
                 withStyle(negrito) { append(previsao.faltaCentavos.emReais()) }
@@ -467,8 +468,8 @@ private fun QuantoFalta(e: DashboardUiState, agora: Long) {
                     val metaHora = e.metaPorHoraCentavos
                     if (metaHora > 0) {
                         val bate = ritmo >= metaHora
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = if (bate) Lima else AmareloAlerta)) {
-                            append(" (meta ${metaHora.emReais()}/h${if (bate) " ✓" else ""})")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = if (bate) VerdeLucro else AmareloAlerta)) {
+                            append(" (meta ${metaHora.emReais()}/h${if (bate) ", bate" else ""})")
                         }
                     }
                     val chega = previsao.chegaEmMillis
@@ -493,7 +494,7 @@ private fun QuantoFalta(e: DashboardUiState, agora: Long) {
     ) {
         Icon(
             Icones.Relogio, contentDescription = null,
-            tint = if (previsao == PrevisaoMeta.Batida) Lima else Turquesa,
+            tint = if (previsao == PrevisaoMeta.Batida) VerdeLucro else Turquesa,
             modifier = Modifier.size(20.dp)
         )
         Text(mensagem, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)

@@ -85,7 +85,7 @@ object AvisoManutencao {
         val titulo = if (l.fase == FaseLembrete.VENCIDO) "${l.item.nome}: passou ${-l.faltamKm} km"
         else "${l.item.nome} em ${l.faltamKm} km"
         val aviso = NotificationCompat.Builder(context, CANAL)
-            .setSmallIcon(android.R.drawable.ic_menu_manage)
+            .setSmallIcon(com.motoristapro.R.drawable.ic_notificacao)
             .setContentTitle(titulo)
             .setContentText("Próxima em $vence km")
             .setContentIntent(abrir)

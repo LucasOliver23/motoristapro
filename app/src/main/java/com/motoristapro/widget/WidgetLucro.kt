@@ -112,7 +112,7 @@ class WidgetLucro : AppWidgetProvider() {
                 R.id.widget_meta,
                 when {
                     d.metaCentavos <= 0 -> "Defina a meta no app"
-                    d.lucroCentavos >= d.metaCentavos -> "Meta batida! 🎉"
+                    d.lucroCentavos >= d.metaCentavos -> "Meta batida!"
                     else -> "${d.progresso}% da meta de ${d.metaCentavos.emReais()}"
                 }
             )

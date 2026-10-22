@@ -1,5 +1,6 @@
 package com.motoristapro.ui.manutencao
 
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -108,7 +109,7 @@ fun KmDoPainelDialog(
                                     .background(if (ativo) Lima else MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable { if (!ativo) onTrocarVeiculo(v.id) }
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
-                                color = if (ativo) androidx.compose.ui.graphics.Color(0xFF0D1117) else MaterialTheme.colorScheme.onSurface,
+                                color = if (ativo) CorSobreDestaque else MaterialTheme.colorScheme.onSurface,
                                 style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -173,8 +174,8 @@ private fun Detalhes(encerrando: Boolean, dados: DadosKm, km: Long) {
     dados.urgente?.let { item ->
         val faltam = item.faltamKm(km)
         Text(
-            if (faltam > 0) "🔧 ${item.nome} em $faltam km (${item.odometroDoVencimento.kmPainel()} km)"
-            else "🔧 ${item.nome} venceu há ${-faltam} km",
+            if (faltam > 0) "${item.nome} em $faltam km (${item.odometroDoVencimento.kmPainel()} km)"
+            else "${item.nome} venceu há ${-faltam} km",
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                 .background(corDaManutencao(faltam).copy(alpha = 0.12f)).padding(10.dp),
             style = MaterialTheme.typography.bodySmall, color = corDaManutencao(faltam)

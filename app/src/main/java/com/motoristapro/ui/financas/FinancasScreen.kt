@@ -1,5 +1,7 @@
 package com.motoristapro.ui.financas
 
+import com.motoristapro.ui.theme.VerdeLucro
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import com.motoristapro.ui.NavegacaoRapida
 import com.motoristapro.ui.Aba
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -131,7 +133,7 @@ fun FinancasRoute(
             ExtendedFloatingActionButton(
                 onClick = { nova = true },
                 containerColor = Lima,
-                contentColor = Color(0xFF0A0D0B),
+                contentColor = CorSobreDestaque,
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = { Text("Despesa", fontWeight = FontWeight.Bold) }
             )
@@ -158,7 +160,7 @@ fun FinancasRoute(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("📄", fontSize = 20.sp)
+                    com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Documento, tamanho = 22.dp)
                     Column(Modifier.weight(1f)) {
                         Text("Relatório do mês", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         Text("PDF para imposto, banco ou financiamento", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
@@ -286,7 +288,7 @@ private fun EntradaItem(item: CorridaComPlataforma) {
                 style = MaterialTheme.typography.bodySmall, color = TextoSecundario
             )
         }
-        Text("+ " + c.receitaCentavos.emReais().removePrefix("R$ "), style = EstiloValor, fontSize = 16.sp, color = Lima)
+        Text("+ " + c.receitaCentavos.emReais().removePrefix("R$ "), style = EstiloValor, fontSize = 16.sp, color = VerdeLucro)
     }
 }
 
