@@ -79,9 +79,18 @@ class ReguaLucroHoraTest {
     }
 
     @Test
-    fun semMetaOuSemCusto_naoAvalia() {
+    fun semMeta_naoAvalia() {
         assertNull(ReguaLucroHora.avaliar(Oferta(20.0, 4.0, 20), novato.copy(metaLimpaHoraCentavos = 0)))
-        assertNull(ReguaLucroHora.avaliar(Oferta(20.0, 4.0, 20), novato.copy(custoKmCentavos = 0)))
+        assertNull(ReguaLucroHora.avaliar(Oferta(20.0, 4.0, 20), novato.copy(custoKmCentavos = -1)))
+    }
+
+    /** Bike quitada: custo zero é custo de verdade, o lucro é o valor inteiro. */
+    @Test
+    fun bikeComCustoZero_avalia() {
+        val a = ReguaLucroHora.avaliar(Oferta(7.0, 2.26, 17), novato.copy(custoKmCentavos = 0))!!
+        assertEquals(7.0, a.lucroReais, 0.001)
+        // R$ 24,71/h contra R$ 41,67/h: menos de 70% do que precisa.
+        assertEquals(Classificacao.RUIM, a.classe)
     }
 
     @Test

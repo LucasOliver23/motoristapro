@@ -70,6 +70,15 @@ internal fun CardComoDecide(
         )
         LinhaValor("A corrida precisa render", String.format(PT, "R$ %.2f por hora de corrida", alvo), negrito = true)
         LinhaValor(
+            "Seu custo",
+            String.format(PT, "R$ %.2f/km", regua.custoKmCentavos / 100.0) +
+                if (regua.custoBasico) " (básico)" else " (completo)",
+            cor = if (regua.custoBasico) AmareloAlerta else MaterialTheme.colorScheme.onSurface
+        )
+        if (regua.custoBasico) {
+            TextoAjuda("Custo básico: ainda sem óleo, pneus e revisão. Complete no assistente de custo para ficar exato.")
+        }
+        LinhaValor(
             "Velocidade nas corridas",
             String.format(PT, "%.0f km/h", regua.velocidadeMedidaKmH ?: ReguaLucroHora.VELOCIDADE_PADRAO_KMH) +
                 if (regua.velocidadeMedidaKmH == null) " (estimado)" else " (medido)",

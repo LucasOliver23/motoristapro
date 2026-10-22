@@ -5,6 +5,7 @@ import com.motoristapro.data.repository.FinanceiroRepository
 import com.motoristapro.data.repository.Periodo
 import com.motoristapro.service.ParametrosRegua
 import com.motoristapro.service.ReguaLucroHora
+import com.motoristapro.ui.custo.paraDados
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,25 +22,30 @@ import kotlinx.coroutines.flow.stateIn
  */
 class FonteRegua(repo: FinanceiroRepository, prefs: PreferenciasApp, escopo: CoroutineScope) {
 
-    /** null = sem meta, sem horas ou sem custo/km: vale o semáforo antigo. */
+    /**
+     * null = sem meta, sem horas ou sem custo: vale o semáforo antigo. Custo/km
+     * zero só vale com o assistente feito (bike quitada); sem ele é "não preenchido".
+     */
     val parametros: StateFlow<ParametrosRegua?> = Periodo.ultimosDias(DIAS_DA_MEDIA).let { (ini, fim) ->
         combine(
             repo.configuracao(),
             combine(prefs.horasPorDia, repo.perfilCusto()) { escolhidas, perfil ->
-                escolhidas ?: perfil?.horasPorDia
+                (escolhidas ?: perfil?.horasPorDia) to perfil?.paraDados()
             },
             repo.resumoDoPeriodo(ini, fim),
             repo.totaisJornadasEncerradas(ini, fim),
             repo.ultimosTrechos()
-        ) { cfg, horas, resumo, turnos, trechos ->
-            if (horas == null || horas <= 0 || cfg.metaLucroDiarioCentavos <= 0 || cfg.custoKmCentavos <= 0) {
+        ) { cfg, (horas, dados), resumo, turnos, trechos ->
+            val semCusto = cfg.custoKmCentavos < 0 || (cfg.custoKmCentavos == 0L && dados == null)
+            if (horas == null || horas <= 0 || cfg.metaLucroDiarioCentavos <= 0 || semCusto) {
                 return@combine null
             }
             ParametrosRegua(
                 metaLimpaHoraCentavos = Math.round(cfg.metaLucroDiarioCentavos.toDouble() / horas),
                 custoKmCentavos = cfg.custoKmCentavos,
                 fracaoMedida = MetaPorHora.fracaoComPassageiro(resumo.segundosEmCorrida, turnos.segundos),
-                velocidadeMedidaKmH = ReguaLucroHora.velocidadeEmCorrida(trechos.map { it.metros to it.segundos })
+                velocidadeMedidaKmH = ReguaLucroHora.velocidadeEmCorrida(trechos.map { it.metros to it.segundos }),
+                custoBasico = dados?.custoCompleto == false
             )
         }
     }.stateIn(escopo, SharingStarted.Eagerly, null)

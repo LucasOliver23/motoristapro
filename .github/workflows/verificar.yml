@@ -10,6 +10,9 @@ on:
       - 'mockups/**'
       - 'README.md'
       - 'APAGAR.txt'
+  # Botão "Run workflow" na aba Actions: roda de novo quando o GitHub perde o
+  # aviso de um push (aconteceu na 4.17.0).
+  workflow_dispatch:
 
 jobs:
   verificar:

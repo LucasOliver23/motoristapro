@@ -134,13 +134,14 @@ private fun LegendaFatia(nome: String, porKm: Double, cor: Color, modifier: Modi
 @Composable
 internal fun VeiculoCard(cfg: Configuracao, dados: DadosCusto?, onAbrir: () -> Unit) {
     val nome = cfg.veiculoNome?.takeIf { it.isNotBlank() } ?: dados?.veiculoNome?.takeIf { it.isNotBlank() }
-    val moto = dados?.tipoVeiculo != TipoVeiculo.CARRO
+    val tipo = dados?.tipoVeiculo ?: TipoVeiculo.MOTO
+    val moto = tipo != TipoVeiculo.CARRO
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Superficie)
             .clickable { onAbrir() }.padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        SeloIcone(if (moto) Icones.Moto else Icones.Carro, AzulInfo, tamanho = 46.dp)
+        SeloIcone(Icones.doVeiculo(tipo), AzulInfo, tamanho = 46.dp)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(nome ?: "Veículo não informado", fontWeight = FontWeight.Bold)
             val etiquetas = buildList {

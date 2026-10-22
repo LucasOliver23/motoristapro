@@ -119,6 +119,19 @@ object Icones {
         "M3 17h2", "M19 17h2"
     )
 
+    /** Bike (4.17): duas rodas, o quadro e o guidão. */
+    val Bike = icone(
+        circulo(5.5f, 17.5f, 3.5f), circulo(18.5f, 17.5f, 3.5f), circulo(15f, 5f, 1f),
+        "M12 17.5V14l-3-3 4-3 2 3h2"
+    )
+
+    /** O desenho de cada tipo de veículo. */
+    fun doVeiculo(tipo: com.motoristapro.custo.TipoVeiculo): ImageVector = when (tipo) {
+        com.motoristapro.custo.TipoVeiculo.CARRO -> Carro
+        com.motoristapro.custo.TipoVeiculo.MOTO -> Moto
+        com.motoristapro.custo.TipoVeiculo.BIKE -> Bike
+    }
+
     val Alvo = icone(circulo(12f, 12f, 9f), circulo(12f, 12f, 4f))
 
     val Fechar = icone("M18 6L6 18", "M6 6l12 12")

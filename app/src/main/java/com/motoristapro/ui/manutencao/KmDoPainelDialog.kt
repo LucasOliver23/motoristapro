@@ -39,8 +39,8 @@ import java.util.Locale
 
 private val PT_BR = Locale("pt", "BR")
 
-/** "da moto" / "do carro". */
-fun TipoVeiculo.comArtigo(): String = if (this == TipoVeiculo.MOTO) "da moto" else "do carro"
+/** "da moto" / "do carro" / "da bike". */
+fun TipoVeiculo.comArtigo(): String = if (this == TipoVeiculo.CARRO) "do carro" else "da ${rotulo.lowercase()}"
 
 /** "83.544" — o km do painel como o motorista lê. */
 fun Long.kmPainel(): String = String.format(PT_BR, "%,d", this)
@@ -83,7 +83,7 @@ fun KmDoPainelDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                if (dados.tipo == TipoVeiculo.MOTO) Icones.Moto else Icones.Carro,
+                Icones.doVeiculo(dados.tipo),
                 contentDescription = null, tint = Lima, modifier = Modifier.size(34.dp)
             )
         },
@@ -103,7 +103,7 @@ fun KmDoPainelDialog(
                         dados.veiculos.forEach { v ->
                             val ativo = v.id == dados.veiculoAtivo
                             Text(
-                                (if (v.tipo == TipoVeiculo.CARRO.name) "🚗 " else "🏍️ ") + v.nome,
+                                v.nome,
                                 modifier = Modifier.clip(RoundedCornerShape(99.dp))
                                     .background(if (ativo) Lima else MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable { if (!ativo) onTrocarVeiculo(v.id) }
@@ -119,7 +119,7 @@ fun KmDoPainelDialog(
                         encerrando && dados.atual?.estimado == true ->
                             "Pelo GPS você rodou uns ${dados.atual.kmGps} km. Confira no painel."
                         encerrando -> "Confira o km no painel antes de encerrar."
-                        else -> "Olhe o painel e confira. Se usou ${if (dados.tipo == TipoVeiculo.MOTO) "a moto" else "o carro"} " +
+                        else -> "Olhe o painel e confira. Se usou ${dados.tipo.nomeComArtigo} " +
                             "fora do app, o número muda aqui."
                     },
                     style = MaterialTheme.typography.bodySmall, color = TextoSecundario

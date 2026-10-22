@@ -46,6 +46,8 @@ import com.motoristapro.atualizacao.AvisoAtualizacao
 import com.motoristapro.auth.LoginScreen
 import com.motoristapro.service.leitorOfertasAtivo
 import com.motoristapro.ui.assinatura.AssinaturaScreen
+import com.motoristapro.ui.custo.AssistenteRapidoScreen
+import kotlinx.coroutines.flow.combine
 import com.motoristapro.ui.theme.MotoristaTema
 import com.motoristapro.ui.theme.PreferenciaTema
 import com.motoristapro.ui.theme.temaEscuro
@@ -188,7 +190,7 @@ private fun AppComPermissoes() {
     }
 
     if (estado.tudoLiberado) {
-        AppRaiz()
+        PortaDoCusto { AppRaiz() }
     } else {
         PermissoesScreen(
             estado = estado,
@@ -196,6 +198,26 @@ private fun AppComPermissoes() {
             onPedirAcessibilidade = { context.abrirConfigAcessibilidade() },
             onConfigRestrita = { context.abrirDetalhesDoApp() }
         )
+    }
+}
+
+/**
+ * Assistente rápido obrigatório (4.17): sem custo e meta o cartão não sabe se a
+ * corrida dá lucro, então o app só abre depois dele. Quem já fez o assistente e
+ * tem meta passa direto; quem não tinha meta responde só o que falta.
+ */
+@Composable
+private fun PortaDoCusto(conteudo: @Composable () -> Unit) {
+    val app = LocalContext.current.applicationContext as MotoristaApp
+    val precisa by remember {
+        combine(app.repository.configuracao(), app.repository.perfilCusto()) { cfg, perfil ->
+            perfil == null || cfg.metaLucroDiarioCentavos <= 0
+        }
+    }.collectAsStateWithLifecycle(initialValue = null)
+    when (precisa) {
+        null -> Unit                                   // lendo o banco: um instante, sem piscar o assistente
+        true -> AssistenteRapidoScreen(onPronto = {})  // o banco muda e a porta abre sozinha
+        false -> conteudo()
     }
 }
 

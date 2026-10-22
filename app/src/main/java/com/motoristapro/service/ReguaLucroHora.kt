@@ -7,17 +7,20 @@ import com.motoristapro.custo.MetaPorHora
  *
  * @param metaLimpaHoraCentavos o lucro limpo que ele quer por hora de TURNO
  *        (meta do dia ÷ horas por dia).
- * @param custoKmCentavos custo por km do veículo ativo.
+ * @param custoKmCentavos custo por km do veículo ativo. Zero vale (bike quitada).
  * @param fracaoMedida do turno, quanto é com corrida (0..1). null = ainda não
  *        mediu: vale [MetaPorHora.FRACAO_PADRAO], marcado como estimado.
  * @param velocidadeMedidaKmH velocidade média nas corridas registradas. null =
  *        ainda não tem corridas suficientes: vale [ReguaLucroHora.VELOCIDADE_PADRAO_KMH].
+ * @param custoBasico o custo/km ainda não tem desgaste (óleo, pneus...): fica um
+ *        pouco abaixo do real até o motorista completar o assistente.
  */
 data class ParametrosRegua(
     val metaLimpaHoraCentavos: Long,
     val custoKmCentavos: Long,
     val fracaoMedida: Double? = null,
-    val velocidadeMedidaKmH: Double? = null
+    val velocidadeMedidaKmH: Double? = null,
+    val custoBasico: Boolean = false
 )
 
 /** O veredito da régua e a conta por trás dele, para o cartão mostrar. */
@@ -64,10 +67,10 @@ object ReguaLucroHora {
     const val MINIMO_CORRIDAS_VELOCIDADE = 10
 
     /**
-     * @return null quando falta a meta ou o custo/km: aí vale o semáforo antigo.
+     * @return null quando falta a meta (ou o custo é inválido): aí vale o semáforo antigo.
      */
     fun avaliar(o: Oferta, p: ParametrosRegua): AvaliacaoRegua? {
-        if (p.metaLimpaHoraCentavos <= 0 || p.custoKmCentavos <= 0) return null
+        if (p.metaLimpaHoraCentavos <= 0 || p.custoKmCentavos < 0) return null
         if (o.km <= 0.0 || !o.valor.isFinite()) return null
 
         val fracao = p.fracaoMedida?.takeIf { it > 0.0 && it <= 1.0 }

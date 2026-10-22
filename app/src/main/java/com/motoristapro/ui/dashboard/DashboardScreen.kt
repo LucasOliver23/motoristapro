@@ -1,6 +1,7 @@
 package com.motoristapro.ui.dashboard
 
 import com.motoristapro.ui.manutencao.DadosKm
+import com.motoristapro.custo.TipoVeiculo
 import com.motoristapro.ui.manutencao.KmDoPainelDialog
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -179,7 +180,16 @@ fun DashboardRoute(
     val escopo = rememberCoroutineScope()
     var perguntaKm by remember { mutableStateOf<Pair<Boolean, DadosKm>?>(null) }
     fun perguntarKm(encerrando: Boolean) {
-        escopo.launch { perguntaKm = encerrando to vm.dadosKm(encerrando) }
+        escopo.launch {
+            val dados = vm.dadosKm(encerrando)
+            // Bike não tem painel de km: segue direto. Com mais de um veículo a
+            // pergunta do início ainda aparece, para escolher com qual rodar.
+            if (dados.tipo == TipoVeiculo.BIKE && dados.veiculos.size <= 1) {
+                if (encerrando) vm.encerrarJornada() else pedirPermissoes.launch(permissoes)
+            } else {
+                perguntaKm = encerrando to dados
+            }
+        }
     }
 
     // Botão "Iniciar jornada" do widget: espera o Início carregar e segue o
