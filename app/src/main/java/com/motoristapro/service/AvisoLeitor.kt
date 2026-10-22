@@ -87,7 +87,7 @@ object AvisoLeitor {
         )
 
         val aviso = NotificationCompat.Builder(context, CANAL)
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setSmallIcon(com.motoristapro.R.drawable.ic_notificacao)
             .setContentTitle("O leitor de ofertas desligou")
             .setContentText("As ofertas pararam de ser lidas. Toque para religar.")
             .setStyle(

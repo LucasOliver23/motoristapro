@@ -1,5 +1,6 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.theme.VerdeLucro
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -153,7 +154,7 @@ internal fun TestarPrintScreen(
         Text(
             classe.rotulo,
             color = when (classe) {
-                Classificacao.BOA -> Lima
+                Classificacao.BOA -> VerdeLucro
                 Classificacao.MEDIA -> AmareloAlerta
                 Classificacao.RUIM -> VermelhoPrejuizo
             },
@@ -167,7 +168,7 @@ internal fun TestarPrintScreen(
         if (o.minutos > 0) LinhaValor("R$/hora", o.reaisPorHora.emReaisDouble())
         if (custoKmCentavos > 0) {
             val lucro = o.lucroEstimado(custoKmCentavos)
-            LinhaValor("Lucro estimado", lucro.emReaisDouble(), cor = if (lucro > 0) Lima else VermelhoPrejuizo)
+            LinhaValor("Lucro estimado", lucro.emReaisDouble(), cor = if (lucro > 0) VerdeLucro else VermelhoPrejuizo)
         } else {
             LinhaValor("Lucro estimado", "faça o assistente de custo", cor = TextoSecundario)
         }
@@ -175,7 +176,7 @@ internal fun TestarPrintScreen(
             LinhaValor(
                 "Lucro por hora de corrida",
                 avaliacao.lucroPorHoraReais.emReaisDouble(),
-                cor = if (avaliacao.lucroPorHoraReais >= avaliacao.alvoPorHoraReais) Lima else AmareloAlerta,
+                cor = if (avaliacao.lucroPorHoraReais >= avaliacao.alvoPorHoraReais) VerdeLucro else AmareloAlerta,
                 negrito = true
             )
             LinhaValor("Precisa (sua meta)", avaliacao.alvoPorHoraReais.emReaisDouble())

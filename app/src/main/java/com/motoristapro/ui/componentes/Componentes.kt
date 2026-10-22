@@ -54,6 +54,7 @@ import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.theme.TextoSecundario
+import com.motoristapro.ui.theme.TextoPrincipal
 import com.motoristapro.ui.theme.SuperficieAlta
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
@@ -132,7 +133,16 @@ fun SeloIcone(icone: ImageVector, cor: Color, modifier: Modifier = Modifier, tam
     }
 }
 
-/** Botão principal: azul claro com texto escuro. É a ação que o dedo procura. */
+/**
+ * Um ícone no lugar onde antes ia um emoji (5.0): mesmo tamanho de letra, cor
+ * do texto. Emoji cada celular desenha de um jeito; o ícone é sempre igual.
+ */
+@Composable
+fun IconeTexto(icone: ImageVector, cor: Color = TextoPrincipal, tamanho: Dp = 18.dp) {
+    Icon(icone, contentDescription = null, tint = cor, modifier = Modifier.size(tamanho))
+}
+
+/** Botão principal: destaque (branco no escuro) com texto escuro. É a ação que o dedo procura. */
 @Composable
 fun BotaoPro(
     texto: String,
@@ -148,7 +158,7 @@ fun BotaoPro(
         colors = ButtonDefaults.buttonColors(
             containerColor = Lima,
             // Escuro, não branco: sobre o azul claro o branco não tem contraste.
-            contentColor = Color(0xFF0D1117)
+            contentColor = CorSobreDestaque
         )
     ) { Text(texto, fontWeight = FontWeight.Bold) }
 }
@@ -313,7 +323,7 @@ fun <T> ChipsSelecao(
                 label = { Text(rotulo(op)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Lima,
-                    selectedLabelColor = Color(0xFF0A0D0B)
+                    selectedLabelColor = CorSobreDestaque
                 )
             )
         }

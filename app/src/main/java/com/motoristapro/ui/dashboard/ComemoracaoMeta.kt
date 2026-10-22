@@ -1,5 +1,6 @@
 package com.motoristapro.ui.dashboard
 
+import com.motoristapro.ui.theme.VerdeLucro
 import android.content.Context
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -105,7 +106,7 @@ fun ComemoracaoMeta(
     ) {
         Box(
             Modifier.fillMaxSize().background(Fundo)
-                .background(Brush.radialGradient(listOf(Lima.copy(alpha = 0.18f), Color.Transparent)))
+                .background(Brush.radialGradient(listOf(VerdeLucro.copy(alpha = 0.18f), Color.Transparent)))
         ) {
             Confete(Modifier.fillMaxSize())
             Column(
@@ -115,17 +116,17 @@ fun ComemoracaoMeta(
             ) {
                 Box(
                     Modifier.scale(escala.value).size(110.dp).clip(CircleShape)
-                        .background(Lima.copy(alpha = 0.14f)).border(3.dp, Lima, CircleShape),
+                        .background(VerdeLucro.copy(alpha = 0.14f)).border(3.dp, VerdeLucro, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icones.Certo, contentDescription = null, tint = Lima, modifier = Modifier.size(56.dp))
+                    Icon(Icones.Certo, contentDescription = null, tint = VerdeLucro, modifier = Modifier.size(56.dp))
                 }
                 Spacer(Modifier.height(24.dp))
                 Text(
                     "Meta do dia batida!",
                     style = EstiloValor, fontSize = 28.sp, color = TextoPrincipal, textAlign = TextAlign.Center
                 )
-                Text(lucroCentavos.emReais(), style = EstiloValor, fontSize = 48.sp, color = Lima)
+                Text(lucroCentavos.emReais(), style = EstiloValor, fontSize = 48.sp, color = VerdeLucro)
                 if (segundosRodados >= 60) {
                     val porHora = lucroCentavos * 3600 / segundosRodados
                     Text(
@@ -166,7 +167,7 @@ private fun CartaoSequencia(s: SequenciaMeta) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("🔥", fontSize = 32.sp)
+            com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Fogo, AmareloAlerta, 34.dp)
             Column {
                 Text(
                     if (s.atual == 1) "1 dia batendo a meta" else "${s.atual} dias seguidos",
@@ -186,7 +187,7 @@ private fun CartaoSequencia(s: SequenciaMeta) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             s.semana.forEachIndexed { i, d ->
                 val (fundo, texto) = when (d.situacao) {
-                    SequenciaMeta.Situacao.BATIDA -> Lima to Fundo
+                    SequenciaMeta.Situacao.BATIDA -> VerdeLucro to Fundo
                     SequenciaMeta.Situacao.NAO_BATIDA -> SuperficieAlta to VermelhoPrejuizo
                     else -> SuperficieAlta to TextoSecundario
                 }

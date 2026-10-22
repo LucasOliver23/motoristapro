@@ -1,5 +1,6 @@
 package com.motoristapro.auth
 
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -198,10 +199,10 @@ fun LoginScreen(
             },
             enabled = podeEnviar,
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B))
+            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
         ) {
             if (ocupado) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF0A0D0B), strokeWidth = 2.dp)
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = CorSobreDestaque, strokeWidth = 2.dp)
             } else {
                 Text(if (modoCadastro) "Criar conta" else "Entrar", fontWeight = FontWeight.Bold)
             }

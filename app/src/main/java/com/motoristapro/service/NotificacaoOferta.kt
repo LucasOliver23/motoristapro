@@ -52,7 +52,7 @@ object NotificacaoOferta {
             }
 
             val b = NotificationCompat.Builder(context, Notificacoes.CANAL_OFERTA)
-                .setSmallIcon(android.R.drawable.ic_menu_directions)
+                .setSmallIcon(com.motoristapro.R.drawable.ic_notificacao)
                 .setContentTitle(titulo)
                 .setContentText(numeros)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(texto))

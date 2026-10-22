@@ -75,7 +75,7 @@ internal fun CardSecaoEnderecosRisco(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("⚠  $p", style = MaterialTheme.typography.bodyMedium)
+                    Text(p, style = MaterialTheme.typography.bodyMedium)
                     TextButton(onClick = { onRemover(p) }) {
                         Text("Remover", color = VermelhoPrejuizo)
                     }

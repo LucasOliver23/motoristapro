@@ -1,5 +1,6 @@
 package com.motoristapro.ui.relatorios
 
+import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -228,9 +229,9 @@ private fun LucroDoPeriodo(e: RelatoriosUiState) {
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    if (lucro >= meta) "meta batida 🎉" else "faltam ${(meta - lucro).emReais()}",
+                    if (lucro >= meta) "meta batida" else "faltam ${(meta - lucro).emReais()}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (lucro >= meta) Lima else TextoSecundario
+                    color = if (lucro >= meta) VerdeLucro else TextoSecundario
                 )
             }
         } else {
@@ -381,7 +382,7 @@ private fun ResumoConectado(e: RelatoriosUiState) {
         )
         LinhaDupla(
             "R$ por hora conectada", null,
-            e.ganhoPorHoraConectadoCentavos.emReais(), Lima
+            e.ganhoPorHoraConectadoCentavos.emReais(), VerdeLucro
         )
     }
 }
@@ -417,7 +418,7 @@ private fun QuadroDoPeriodo(e: RelatoriosUiState) {
         LinhaValor("Despesas lançadas", "- " + r.despesasCentavos.emReais(), cor = VermelhoPrejuizo)
         LinhaValor(
             "Lucro", r.lucroLiquidoCentavos.emReais(), negrito = true,
-            cor = if (r.lucroLiquidoCentavos >= 0) Lima else VermelhoPrejuizo
+            cor = if (r.lucroLiquidoCentavos >= 0) VerdeLucro else VermelhoPrejuizo
         )
 
         Spacer(Modifier.height(6.dp))
@@ -428,7 +429,7 @@ private fun QuadroDoPeriodo(e: RelatoriosUiState) {
             val lucroKm = r.ganhoPorKmCentavos - e.custoRealKmCentavos
             LinhaValor(
                 "Lucro por km", lucroKm.centavosEmReais() + "/km",
-                negrito = true, cor = if (lucroKm >= 0) Lima else VermelhoPrejuizo
+                negrito = true, cor = if (lucroKm >= 0) VerdeLucro else VermelhoPrejuizo
             )
         }
         LinhaValor(
@@ -471,13 +472,13 @@ fun RelatoriosRoute(
             MapaDeCalor(e)
 
             // As análises que respondem "quando e onde vale sair".
-            AtalhoAtividade("⏰", "Melhores horários", "quando as suas corridas pagam mais") {
+            AtalhoAtividade(Icones.Relogio, "Melhores horários", "quando as suas corridas pagam mais") {
                 analise = SubTela.HORARIOS.name
             }
-            AtalhoAtividade("⚖", "Comparar apps", "qual plataforma paga mais para você") {
+            AtalhoAtividade(Icones.Atividade, "Comparar apps", "qual plataforma paga mais para você") {
                 analise = SubTela.COMPARAR.name
             }
-            AtalhoAtividade("📄", "Relatório do mês", "PDF para imposto, banco ou financiamento") {
+            AtalhoAtividade(Icones.Documento, "Relatório do mês", "PDF para imposto, banco ou financiamento") {
                 analise = SubTela.RELATORIO.name
             }
 
@@ -511,7 +512,7 @@ fun RelatoriosRoute(
                     )
                     LinhaValor(
                         "Lucro real", e.lucroRealCentavos.emReais(),
-                        cor = if (e.lucroRealCentavos >= 0) Lima else VermelhoPrejuizo, negrito = true
+                        cor = if (e.lucroRealCentavos >= 0) VerdeLucro else VermelhoPrejuizo, negrito = true
                     )
                 }
             }
@@ -617,14 +618,14 @@ fun RelatoriosRoute(
 
 /** Uma linha que abre outra tela, no estilo das listas do Menu. */
 @Composable
-private fun AtalhoAtividade(icone: String, titulo: String, sub: String, onClick: () -> Unit) {
+private fun AtalhoAtividade(icone: androidx.compose.ui.graphics.vector.ImageVector, titulo: String, sub: String, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Superficie)
             .clickable { onClick() }.padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(icone, fontSize = 20.sp)
+        com.motoristapro.ui.componentes.SeloIcone(icone, Lima)
         Column(Modifier.weight(1f)) {
             Text(titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
             Text(sub, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)

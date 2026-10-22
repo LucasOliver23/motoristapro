@@ -86,7 +86,7 @@ class CartaoResumo(private val context: Context) {
     fun mostrarRegistrada(valorCentavos: Long, hora: String, agora: Boolean) {
         val cartao = cartao().apply {
             addView(linha(
-                titulo = if (agora) "Corrida registrada ✓" else "Já está registrada ✓",
+                titulo = if (agora) "Corrida registrada" else "Já estava registrada",
                 sub = "${reais(valorCentavos)} · $hora · conta no lucro do dia",
                 valor = null,
                 corSub = AZUL
@@ -188,12 +188,12 @@ class CartaoResumo(private val context: Context) {
 
     private companion object {
         const val TAG = "MotoristaPro"
-        const val FUNDO = 0xFF161C24.toInt()
+        const val FUNDO = 0xFF121212.toInt()
         const val CONTORNO = 0xFF2B323B.toInt()
-        const val AZUL = 0xFF4CC9F0.toInt()
-        const val ESCURO = 0xFF0D1117.toInt()
+        const val AZUL = 0xFFFFFFFF.toInt()   // destaque branco (5.0; nome mantido)
+        const val ESCURO = 0xFF000000.toInt()
         const val BRANCO = 0xFFFFFFFF.toInt()
-        const val CINZA_FUNDO = 0xFF21262D.toInt()
+        const val CINZA_FUNDO = 0xFF1C1C1E.toInt()
         const val CINZA_TEXTO = 0xFF8B949E.toInt()
         const val AMARELO_99 = 0xFFFFD400.toInt()
     }

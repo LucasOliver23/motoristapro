@@ -96,7 +96,7 @@ class BolhaFlutuante(private val context: Context) {
         val inicio = inicioJornada
         if (inicio != null) {
             val min = ((System.currentTimeMillis() - inicio) / 60_000).coerceAtLeast(0)
-            tvTempo.text = "⏱ %dh%02d".format(min / 60, min % 60)
+            tvTempo.text = "%dh%02d".format(min / 60, min % 60)
         } else {
             tvTempo.text = "turno parado"
         }
@@ -220,8 +220,8 @@ class BolhaFlutuante(private val context: Context) {
         const val TAG = "MotoristaPro"
         /** Meio segundo de dedo parado na bolha já conta como "leia agora". */
         const val TEMPO_SEGURAR_MS = 500L
-        val COR_LIMA = 0xFF4CC9F0.toInt()   // azul claro do visual novo (nome mantido)
-        val COR_FUNDO = 0xEE0D1117.toInt()
+        val COR_LIMA = 0xFF00D084.toInt()   // verde do lucro (5.0; nome mantido)
+        val COR_FUNDO = 0xEE000000.toInt()
         val COR_FUNDO_NEGATIVO = 0xEE3A1212.toInt()
     }
 }

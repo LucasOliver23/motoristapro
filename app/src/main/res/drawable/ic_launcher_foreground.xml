@@ -1,31 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Volante estilizado. Desenho vetorial: fica nítido em qualquer tamanho de tela. -->
+<!--
+  Ícone do app (5.0): um medidor. O ponteiro entra na faixa verde, que é o
+  "essa corrida bate a sua meta" do cartão. Branco no preto; o verde é a
+  única cor, e significa aceitar. Desenho aprovado em mockups/icone-app.html.
+  Grade de 108 (ícone adaptativo): o desenho fica dentro do círculo seguro de 66.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Aro (anel): círculo externo menos o interno -->
+    <!-- Arco do medidor, da esquerda até o começo da faixa verde -->
     <path
-        android:fillColor="#4CC9F0"
-        android:fillType="evenOdd"
-        android:pathData="M54,54 m-28,0 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0
-                          M54,54 m-21,0 a21,21 0 1,0 42,0 a21,21 0 1,0 -42,0" />
+        android:pathData="M22,68 A32,32 0 0,1 81.7,52"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="9"
+        android:strokeLineCap="round" />
 
-    <!-- Cubo central -->
+    <!-- Faixa verde: onde a corrida bate a meta -->
     <path
-        android:fillColor="#4CC9F0"
-        android:pathData="M54,54 m-8.5,0 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0" />
+        android:pathData="M81.7,52 A32,32 0 0,1 86,68"
+        android:strokeColor="#00D084"
+        android:strokeWidth="9"
+        android:strokeLineCap="round" />
 
-    <!-- Três raios: esquerda, direita e baixo -->
+    <!-- Ponteiro -->
     <path
-        android:fillColor="#4CC9F0"
-        android:pathData="M33,50.5 h13 v7 h-13 z" />
+        android:pathData="M54,68 L73,49"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round" />
+
+    <!-- Eixo -->
     <path
-        android:fillColor="#4CC9F0"
-        android:pathData="M62,50.5 h13 v7 h-13 z" />
-    <path
-        android:fillColor="#4CC9F0"
-        android:pathData="M50.5,62 h7 v13 h-7 z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,68 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0" />
 </vector>

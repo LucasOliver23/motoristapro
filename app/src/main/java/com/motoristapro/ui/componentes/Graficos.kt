@@ -1,5 +1,6 @@
 package com.motoristapro.ui.componentes
 
+import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +43,7 @@ fun GraficoBarras(
     rotulos: List<String>,
     modifier: Modifier = Modifier,
     altura: Dp = 160.dp,
-    corPositiva: Color = Lima,
+    corPositiva: Color = VerdeLucro,
     corNegativa: Color = VermelhoPrejuizo,
     destaque: Int = -1
 ) {

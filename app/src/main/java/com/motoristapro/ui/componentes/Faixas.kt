@@ -1,5 +1,6 @@
 package com.motoristapro.ui.componentes
 
+import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
@@ -191,7 +192,7 @@ fun FaixaTresCores(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Ruim", style = MaterialTheme.typography.bodySmall, color = VermelhoPrejuizo)
             Text(unidade, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
-            Text("Boa", style = MaterialTheme.typography.bodySmall, color = Lima)
+            Text("Boa", style = MaterialTheme.typography.bodySmall, color = VerdeLucro)
         }
         if (ajuda != null) {
             Text(ajuda, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
@@ -264,7 +265,7 @@ fun TabelaFaixas(linhas: List<LinhaFaixa>, modifier: Modifier = Modifier) {
             Text("", Modifier.weight(1.1f))
             Cabecalho("Ruim", VermelhoPrejuizo, Modifier.weight(1f))
             Cabecalho("Atenção", AmareloAlerta, Modifier.weight(1f))
-            Cabecalho("Boa", Lima, Modifier.weight(1f))
+            Cabecalho("Boa", VerdeLucro, Modifier.weight(1f))
         }
         linhas.forEach { l ->
             Row(
@@ -277,7 +278,7 @@ fun TabelaFaixas(linhas: List<LinhaFaixa>, modifier: Modifier = Modifier) {
                 )
                 Celula(l.ruim, VermelhoPrejuizo, Modifier.weight(1f))
                 Celula(l.atencao, AmareloAlerta, Modifier.weight(1f))
-                Celula(l.boa, Lima, Modifier.weight(1f))
+                Celula(l.boa, VerdeLucro, Modifier.weight(1f))
             }
         }
     }

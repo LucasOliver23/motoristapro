@@ -109,7 +109,7 @@ fun AssinaturaScreen(
 
         VANTAGENS.forEach { (titulo, detalhe) ->
             Row(verticalAlignment = Alignment.Top) {
-                Text("✓", color = Lima, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 10.dp))
+                Box(Modifier.padding(end = 10.dp)) { com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Certo, Lima) }
                 Column {
                     Text(titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(detalhe, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)

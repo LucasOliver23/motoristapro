@@ -37,14 +37,14 @@ import androidx.compose.runtime.setValue
  * tem cor própria e não acende em azul quando a aba abre. Casa, lista,
  * carteira, gráfico e pessoa são o que está no desenho do visual novo.
  */
-enum class Aba(val rotulo: String, val icone: ImageVector) {
-    INICIO("Início", Icones.Inicio),
-    CORRIDAS("Corridas", Icones.Corridas),
-    FINANCAS("Finanças", Icones.Financas),
+enum class Aba(val rotulo: String, val icone: ImageVector, val iconeAberta: ImageVector) {
+    INICIO("Início", Icones.Inicio, Icones.InicioPreenchido),
+    CORRIDAS("Corridas", Icones.Corridas, Icones.CorridasPreenchido),
+    FINANCAS("Finanças", Icones.Financas, Icones.FinancasPreenchido),
     // "Atividade" em vez de "Relatórios": a aba responde "como foi meu período",
     // e relatório é palavra de escritório, não de quem está dirigindo.
-    RELATORIOS("Atividade", Icones.Atividade),
-    MAIS("Menu", Icones.Menu)
+    RELATORIOS("Atividade", Icones.Atividade, Icones.AtividadePreenchido),
+    MAIS("Menu", Icones.Menu, Icones.MenuPreenchido)
 }
 
 /** Estrutura principal: barra de abas embaixo e o conteúdo da aba selecionada. */
@@ -69,14 +69,14 @@ fun AppRaiz() {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             // A barra usa o MESMO fundo da tela e sem a pílula de seleção do
-            // Material: o que marca a aba aberta é o ícone ficar azul, não uma
-            // cápsula colorida atrás dele.
+            // A aba aberta vem com o ícone PREENCHIDO e em destaque; as outras em
+            // contorno cinza. Sem cápsula colorida atrás: cor só para decidir (5.0).
             NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 Aba.entries.forEach { item ->
                     NavigationBarItem(
                         selected = item == aba,
                         onClick = { abaIndice = item.ordinal },
-                        icon = { Icon(item.icone, contentDescription = null) },
+                        icon = { Icon(if (item == aba) item.iconeAberta else item.icone, contentDescription = null) },
                         label = { Text(item.rotulo) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Lima,

@@ -1,5 +1,6 @@
 package com.motoristapro.ui.corridas
 
+import com.motoristapro.ui.theme.VerdeLucro
 import com.motoristapro.ui.componentes.Segmentado
 import com.motoristapro.ui.componentes.CorSobreDestaque
 import com.motoristapro.ui.componentes.chaveDaMarca
@@ -152,7 +153,7 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
             ExtendedFloatingActionButton(
                 onClick = { nova = true },
                 containerColor = Lima,
-                contentColor = Color(0xFF0A0D0B),
+                contentColor = CorSobreDestaque,
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = { Text("Corrida", fontWeight = FontWeight.Bold) }
             )
@@ -406,7 +407,7 @@ private fun FilaDePlataformas(
         ) {
             Text(
                 "T",
-                color = if (escolhida == null) Color(0xFF0A0D0B) else TextoSecundario,
+                color = if (escolhida == null) CorSobreDestaque else TextoSecundario,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.labelLarge
             )
@@ -516,7 +517,7 @@ private fun ResumoOfertasCard(e: OfertasUiState, onLimparSuspeitas: () -> Unit) 
         }
         if (e.qtdSuspeitas > 0) {
             Text(
-                "⚠ ${e.qtdSuspeitas} leitura(s) acima de R$ 50/km ficaram de fora das médias — " +
+                "${e.qtdSuspeitas} leitura(s) acima de R$ 50/km ficaram de fora das médias — " +
                     "o leitor pegou o número errado da tela do aplicativo.",
                 style = MaterialTheme.typography.bodySmall, color = AmareloAlerta
             )
@@ -581,7 +582,7 @@ private fun OfertaItem(
     val momento = Instant.ofEpochMilli(o.recebidaEm).atZone(zona)
     val dia = if (momento.toLocalDate() == LocalDate.now()) "Hoje" else momento.format(FORMATO_DIA_MES)
     val cor = when (o.classificacao) {
-        "BOA" -> Lima
+        "BOA" -> VerdeLucro
         "MEDIA" -> AmareloAlerta
         else -> VermelhoPrejuizo
     }
@@ -604,7 +605,7 @@ private fun OfertaItem(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "${o.plataforma} · " + if (o.registrada) "registrada ✓" else "não registrada",
+                    "${o.plataforma} · " + if (o.registrada) "registrada" else "não registrada",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (o.registrada) Lima else TextoSecundario
                 )
@@ -619,7 +620,7 @@ private fun OfertaItem(
                 Modifier.padding(start = 8.dp).clip(RoundedCornerShape(10.dp))
                     .background(Laranja.copy(alpha = 0.14f)).clickable { onExcluir() }
                     .padding(horizontal = 9.dp, vertical = 6.dp)
-            ) { Text("🗑", fontSize = 14.sp) }
+            ) { com.motoristapro.ui.componentes.IconeTexto(com.motoristapro.ui.componentes.Icones.Lixeira, Laranja, 16.dp) }
         }
 
         Row(verticalAlignment = Alignment.Bottom) {
@@ -631,14 +632,14 @@ private fun OfertaItem(
 
         if (o.leituraSuspeita) {
             Text(
-                "⚠ Leitura suspeita: ${o.reaisPorKmCentavos.emReais()}/km. " +
+                "Leitura suspeita: ${o.reaisPorKmCentavos.emReais()}/km. " +
                     "O leitor provavelmente pegou outro número da tela — esta oferta não entra nas médias.",
                 style = MaterialTheme.typography.bodySmall, color = AmareloAlerta
             )
         } else if (custoKmCentavos > 0) {
             // ---- lucro: so faz sentido com o custo por km cadastrado
             val lucro = o.lucroCentavos(custoKmCentavos)
-            val corLucro = if (lucro >= 0) Lima else VermelhoPrejuizo
+            val corLucro = if (lucro >= 0) VerdeLucro else VermelhoPrejuizo
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))) {
                 Text(
                     "Lucro: ${lucro.emReais()} (${o.lucroPercentual(custoKmCentavos)}%)",
@@ -653,9 +654,9 @@ private fun OfertaItem(
 
         Text(
             buildString {
-                append(String.format(PT, "🛣 %.1f km", o.km))
-                if (o.minutos > 0) append("    🕒 ${o.minutos} min")
-                if (o.paradas > 1) append("    ⏸ ${o.paradas} paradas")
+                append(String.format(PT, "%.1f km", o.km))
+                if (o.minutos > 0) append("  ·  ${o.minutos} min")
+                if (o.paradas > 1) append("  ·  ${o.paradas} paradas")
             },
             style = MaterialTheme.typography.bodySmall,
             color = TextoSecundario

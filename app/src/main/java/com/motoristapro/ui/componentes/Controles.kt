@@ -37,7 +37,7 @@ fun LinhaSwitch(titulo: String, descricao: String, marcado: Boolean, onMudar: (B
         Switch(
             checked = marcado,
             onCheckedChange = onMudar,
-            colors = SwitchDefaults.colors(checkedTrackColor = Lima, checkedThumbColor = Color(0xFF0A0D0B))
+            colors = SwitchDefaults.colors(checkedTrackColor = Lima, checkedThumbColor = CorSobreDestaque)
         )
     }
 }
@@ -54,7 +54,7 @@ fun BotaoLima(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
-        colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0A0D0B)),
+        colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque),
         content = content
     )
 }

@@ -305,7 +305,7 @@ private fun PassoPermissao(
             if (!concedida) {
                 Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(rotuloBotao) }
             } else {
-                Text("Concedida ✓", color = VerdeLucro, style = MaterialTheme.typography.labelLarge)
+                Text("Concedida", color = VerdeLucro, style = MaterialTheme.typography.labelLarge)
             }
         }
     }

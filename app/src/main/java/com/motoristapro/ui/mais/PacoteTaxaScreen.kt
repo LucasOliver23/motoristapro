@@ -1,5 +1,6 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -91,7 +92,7 @@ fun PacoteTaxaScreen(onSalvo: () -> Unit) {
                 checked = sozinho,
                 onCheckedChange = { sozinho = it },
                 enabled = plano != PlanoPacote.NENHUM,
-                colors = SwitchDefaults.colors(checkedTrackColor = Lima, checkedThumbColor = Color(0xFF0D1117))
+                colors = SwitchDefaults.colors(checkedTrackColor = Lima, checkedThumbColor = CorSobreDestaque)
             )
         }
 
@@ -102,7 +103,7 @@ fun PacoteTaxaScreen(onSalvo: () -> Unit) {
             },
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0D1117))
+            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
         ) { Text("Salvar", fontWeight = FontWeight.ExtraBold) }
     }
 }

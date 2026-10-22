@@ -17,8 +17,10 @@ import androidx.compose.ui.text.font.FontWeight
 import com.motoristapro.R
 
 /**
- * Paleta: grafite azulado em três camadas (escuro) ou papel em três camadas (claro),
- * mais as cores de significado fixo — lucro, atenção, prejuízo, informação.
+ * Paleta (5.0): preto absoluto em três camadas (escuro) ou branco em três camadas
+ * (claro). A COR só aparece quando significa alguma coisa: verde é lucro e
+ * "aceitar", amarelo é atenção, vermelho é prejuízo e "recusar". Botões, abas,
+ * seleção e ícones usam o DESTAQUE, que é branco no escuro e preto no claro.
  *
  * O motorista escolhe o modo em Mais > Aparência. Para o resto do app NADA muda:
  * os nomes das cores (Lima, TextoSecundario, Fundo...) continuam os mesmos, só
@@ -31,21 +33,20 @@ import com.motoristapro.R
 // lucro, VermelhoPrejuizo para gasto) — assim o tema claro troca a cor sem
 // ninguém mexer em tela nenhuma. Estas constantes são a origem do tema escuro.
 
-val FundoApp = Color(0xFF0D1117)
-val FundoCard = Color(0xFF161C24)
-val VerdeNeon = Color(0xFF39FF14)
-
-/**
- * O destaque do visual novo (3.8.0): azul claro no lugar do verde neon.
- * O neon cansava a vista à noite; o azul continua aceso no fundo preto sem gritar.
- */
-val AzulClaro = Color(0xFF4CC9F0)
+val FundoApp = Color(0xFF000000)
+val FundoCard = Color(0xFF121212)
 val VermelhoDespesa = Color(0xFFFF5252)
-val FundoBotaoEscuro = Color(0xFF21262D)
+val FundoBotaoEscuro = Color(0xFF1C1C1E)
 
 private class Paleta(
+    /** Verde do lucro e do "aceitar". Só para dinheiro e decisão. */
     val lucro: Color,
-    val lucroEscuro: Color,
+    /** Destaque neutro: botões, aba aberta, seleção, ícones. */
+    val destaque: Color,
+    /** Destaque apagado (trilhas, bordas do que está selecionado). */
+    val destaqueEscuro: Color,
+    /** Texto e ícone em cima do destaque. */
+    val sobreDestaque: Color,
     val prejuizo: Color,
     val alerta: Color,
     val info: Color,
@@ -62,44 +63,49 @@ private class Paleta(
 )
 
 private val ESCURA = Paleta(
-    // Paleta definida pelo Oliver: preto de painel, azul claro no dinheiro.
-    lucro = AzulClaro,
-    lucroEscuro = Color(0xFF1E9BD7),
+    // Padrão do Oliver: preto absoluto, cartões #121212 / #1c1c1e, verde #00d084
+    // — e o verde só no dinheiro e na decisão; o resto é branco.
+    lucro = Color(0xFF00D084),
+    destaque = Color(0xFFFFFFFF),
+    destaqueEscuro = Color(0xFFBDBDBD),
+    sobreDestaque = Color(0xFF000000),
     prejuizo = VermelhoDespesa,
     alerta = Color(0xFFFFC94D),
-    info = Color(0xFF58A6FF),
-    turquesa = Color(0xFF2DE2C5),
-    roxo = Color(0xFFBC8CFF),
+    info = Color(0xFF7AA7E0),
+    turquesa = Color(0xFFE5E5E5),
+    roxo = Color(0xFFB79BE8),
     fundo = FundoApp,
     superficie = FundoCard,
     superficieAlta = FundoBotaoEscuro,
-    superficieMaisAlta = Color(0xFF2B323B),
+    superficieMaisAlta = Color(0xFF2C2C2E),
     textoPrincipal = Color(0xFFFFFFFF),
-    textoSecundario = Color(0xFF8B949E),
+    textoSecundario = Color(0xFF9A9A9A),
     // Contorno quase do tom do cartão: separa sem desenhar moldura.
-    contorno = Color(0xFF21262D),
+    contorno = Color(0xFF262626),
     uber = Color(0xFFFFFFFF)
 )
 
 // No claro as cores de significado precisam ESCURECER: lima sobre branco não se lê.
 // O tom muda, o significado não — azul continua lucro, vermelho continua prejuízo.
 private val CLARA = Paleta(
-    // Azul mais fechado: o azul claro some no fundo branco.
-    lucro = Color(0xFF0284C7),
-    lucroEscuro = Color(0xFF0369A1),
+    // Verde mais fechado: o #00d084 some no fundo branco. Destaque vira preto.
+    lucro = Color(0xFF047857),
+    destaque = Color(0xFF111111),
+    destaqueEscuro = Color(0xFF444444),
+    sobreDestaque = Color(0xFFFFFFFF),
     prejuizo = Color(0xFFDC2626),
     alerta = Color(0xFFB45309),
     info = Color(0xFF2563EB),
-    turquesa = Color(0xFF0F8276),
+    turquesa = Color(0xFF333333),
     roxo = Color(0xFF6A32B0),
-    fundo = Color(0xFFF1F5F9),
+    fundo = Color(0xFFF5F5F5),
     superficie = Color(0xFFFFFFFF),
     superficieAlta = Color(0xFFFFFFFF),
-    superficieMaisAlta = Color(0xFFE2E8F0),
-    textoPrincipal = Color(0xFF0F172A),
-    textoSecundario = Color(0xFF64748B),
-    contorno = Color(0xFFE2E8F0),
-    uber = Color(0xFF0F172A)
+    superficieMaisAlta = Color(0xFFE5E5E5),
+    textoPrincipal = Color(0xFF111111),
+    textoSecundario = Color(0xFF6B6B6B),
+    contorno = Color(0xFFE5E5E5),
+    uber = Color(0xFF111111)
 )
 
 private val paletaAtual = mutableStateOf(ESCURA)
@@ -108,8 +114,16 @@ private val escuroAtual = mutableStateOf(true)
 /** true quando o app está desenhando no modo escuro (já resolvendo "do sistema"). */
 val temaEscuro: Boolean get() = escuroAtual.value
 
-val Lima: Color get() = paletaAtual.value.lucro
-val LimaEscuro: Color get() = paletaAtual.value.lucroEscuro
+/**
+ * O DESTAQUE (5.0): branco no escuro, preto no claro. O nome ficou do tempo em
+ * que o destaque era verde-limão, para não mexer em 250 telas; dinheiro e
+ * decisão usam [VerdeLucro].
+ */
+val Lima: Color get() = paletaAtual.value.destaque
+val LimaEscuro: Color get() = paletaAtual.value.destaqueEscuro
+val SobreDestaque: Color get() = paletaAtual.value.sobreDestaque
+
+/** Verde do lucro e do "aceitar": só para dinheiro positivo e decisão boa. */
 val VerdeLucro: Color get() = paletaAtual.value.lucro
 val VermelhoPrejuizo: Color get() = paletaAtual.value.prejuizo
 val AmareloAlerta: Color get() = paletaAtual.value.alerta
@@ -220,14 +234,14 @@ object PreferenciaTema {
 // ------------------------------------------------------------------ esquemas
 
 private val EsquemaEscuro = darkColorScheme(
-    primary = ESCURA.lucro,
-    onPrimary = ESCURA.fundo,
-    primaryContainer = Color(0xFF122A40),
-    onPrimaryContainer = ESCURA.lucro,
-    secondary = ESCURA.turquesa,
-    onSecondary = ESCURA.fundo,
-    secondaryContainer = Color(0xFF11201C),
-    onSecondaryContainer = Color(0xFFB6E8DF),
+    primary = ESCURA.destaque,
+    onPrimary = ESCURA.sobreDestaque,
+    primaryContainer = ESCURA.superficieMaisAlta,
+    onPrimaryContainer = ESCURA.destaque,
+    secondary = ESCURA.destaque,
+    onSecondary = ESCURA.sobreDestaque,
+    secondaryContainer = ESCURA.superficieAlta,
+    onSecondaryContainer = ESCURA.textoPrincipal,
     tertiary = ESCURA.alerta,
     onTertiary = ESCURA.fundo,
     background = ESCURA.fundo,
@@ -248,14 +262,14 @@ private val EsquemaEscuro = darkColorScheme(
 )
 
 private val EsquemaClaro = lightColorScheme(
-    primary = CLARA.lucro,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE0F2FE),
-    onPrimaryContainer = CLARA.lucroEscuro,
-    secondary = CLARA.turquesa,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFD3EFEB),
-    onSecondaryContainer = Color(0xFF0A5A52),
+    primary = CLARA.destaque,
+    onPrimary = CLARA.sobreDestaque,
+    primaryContainer = CLARA.superficieMaisAlta,
+    onPrimaryContainer = CLARA.destaque,
+    secondary = CLARA.destaque,
+    onSecondary = CLARA.sobreDestaque,
+    secondaryContainer = CLARA.superficieMaisAlta,
+    onSecondaryContainer = CLARA.textoPrincipal,
     tertiary = CLARA.alerta,
     onTertiary = Color.White,
     background = CLARA.fundo,
@@ -288,18 +302,18 @@ val FonteTexto = FontFamily(
 )
 
 /**
- * Fonte dos números grandes (lucro do dia, valor da oferta): Space Grotesk (OFL).
- * Só nos valores de destaque — no texto corrido ela cansa.
+ * Fonte dos números grandes (lucro do dia, valor da oferta): a mesma Inter (5.0),
+ * em ExtraBold. Uma fonte só no app inteiro; a Space Grotesk saiu.
  */
 val FonteNumeros = FontFamily(
-    Font(R.font.space_grotesk_medium, FontWeight.Medium),
-    Font(R.font.space_grotesk_bold, FontWeight.Bold)
+    Font(R.font.inter_bold, FontWeight.Bold),
+    Font(R.font.inter_extrabold, FontWeight.ExtraBold)
 )
 
-/** Estilo pronto para um valor de destaque: Space Grotesk, negrito, algarismos fixos. */
+/** Estilo pronto para um valor de destaque: Inter ExtraBold, algarismos de largura fixa. */
 val EstiloValor = TextStyle(
     fontFamily = FonteNumeros,
-    fontWeight = FontWeight.Bold,
+    fontWeight = FontWeight.ExtraBold,
     fontFeatureSettings = "tnum"
 )
 
@@ -316,7 +330,7 @@ private val Inter = TextStyle(fontFamily = FonteTexto)
 
 private val Tipografia = Typography().run {
     copy(
-        // display* no app são só números grandes: vão em Space Grotesk.
+        // display* no app são só números grandes: Inter ExtraBold com tnum.
         displayLarge = displayLarge.merge(EstiloValor),
         displayMedium = displayMedium.merge(EstiloValor),
         displaySmall = displaySmall.merge(EstiloValor),

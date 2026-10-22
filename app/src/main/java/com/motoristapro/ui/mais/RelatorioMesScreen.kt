@@ -1,5 +1,6 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.componentes.CorSobreDestaque
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -141,7 +142,7 @@ fun RelatorioMesScreen() {
             },
             modifier = Modifier.weight(1f).height(50.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = Color(0xFF0D1117))
+            colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
         ) { Text("Compartilhar PDF", fontWeight = FontWeight.ExtraBold) }
         Button(
             onClick = { salvar.launch("motoristapro-${r.mes}.pdf") },

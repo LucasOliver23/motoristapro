@@ -1,5 +1,6 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.theme.VerdeLucro
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,7 +45,7 @@ internal fun LeitorConteudo(
     CardSecao(titulo = "Leitor de ofertas") {
         Text(
             if (leitorOk) "Conectado e lendo Uber, 99 e iFood" else "Desconectado",
-            color = if (leitorOk) Lima else VermelhoPrejuizo,
+            color = if (leitorOk) VerdeLucro else VermelhoPrejuizo,
             fontWeight = FontWeight.SemiBold
         )
         if (!leitorOk) {
