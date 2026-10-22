@@ -20,7 +20,7 @@ data class Oferta(
     val minutos: Int,         // minutos totais
     /** Endereços lidos no card (1º costuma ser o embarque). Usado no botão Street View. */
     val enderecos: List<String> = emptyList(),
-    /** Entregas/paradas da rota (iFood: "Entrega 1", "Entrega 2"...). 0 = não informado. */
+    /** Entregas da rota (iFood: "Entrega 1", "Entrega 2"...; 99: "Entrega Food (2)"). 0 = não informado. */
     val paradas: Int = 0,
     /** iFood: "Possibilidade de devolução: Sim" (pode ter que voltar ao restaurante). */
     val devolucao: Boolean = false,
@@ -101,8 +101,16 @@ object OfertaParser {
         RegexOption.IGNORE_CASE
     )
 
-    // iFood: "Entrega 1", "Entrega 2", "Coleta 1"
-    private val RE_PARADA = Regex("""\b(Entrega|Coleta)\s*(\d{1,2})\b""", RegexOption.IGNORE_CASE)
+    // iFood: "Entrega 1", "Entrega 2". A coleta (restaurante, mercado) não conta: parada é
+    // onde se ENTREGA. O OCR às vezes troca letras ("Fntrena 2", "Entreqa 2").
+    private val RE_PARADA = Regex("""\b[EF]n?tre[gqn]a\s*(\d{1,2})\b""", RegexOption.IGNORE_CASE)
+
+    // O número de entregas escrito na tela: "2 Paradas" (iFood, no mapa) e
+    // "Entrega Food (2)" (99: dois pedidos, duas entregas).
+    private val RE_QTD_PARADAS = Regex(
+        """\b(\d{1,2})\s*paradas\b|entrega\s*food\s*\(\s*(\d{1,2})\s*\)""",
+        RegexOption.IGNORE_CASE
+    )
 
     // iFood: "Possibilidade de devolução" seguido de "Sim" (mesma linha ou na seguinte)
     private val RE_DEVOLUCAO = Regex("""devolu[cç][aã]o\s*:?\s*\n?\s*Sim\b""", RegexOption.IGNORE_CASE)
@@ -146,10 +154,10 @@ object OfertaParser {
         return null
     }
 
-    // Telas de ENTREGA (99 Entrega Food, iFood, Uber Flash): muitas não mostram minutos,
+    // Telas de ENTREGA (99 Entrega Food, iFood, Uber Flash/Envios): muitas não mostram minutos,
     // só o valor e a distância total. Nessas o tempo deixa de ser obrigatório.
     private val RE_ENTREGA = Regex(
-        """entrega\s*food|dist[âa]ncia\s+total|tipo\s+de\s+pedido|\bcoleta\b|restaurante|\bflash\b|entrega\s*\(\d""",
+        """entrega\s*food|dist[âa]ncia\s+total|tipo\s+de\s+pedido|\bcoleta\b|restaurante|\bflash\b|\benvios?\b|entrega\s*\(\d""",
         RegexOption.IGNORE_CASE
     )
 
@@ -260,9 +268,19 @@ object OfertaParser {
         return principais ?: valores(tudo).maxOrNull()
     }
 
-    /** Número de entregas/coletas distintas ("Entrega 1" aparece no mapa e no card: conta uma vez). */
-    private fun contarParadas(tudo: String): Int =
-        RE_PARADA.findAll(tudo).map { it.groupValues[1].lowercase() + it.groupValues[2] }.toSet().size
+    /**
+     * Número de entregas da rota. "Entrega 1" aparece no mapa e no card: conta uma vez.
+     * "Entrega 2" sozinha (a 1 escondida atrás do card) já quer dizer duas. E o número
+     * escrito ("2 Paradas", "Entrega Food (2)") vale quando é maior.
+     */
+    private fun contarParadas(tudo: String): Int {
+        val numeros = RE_PARADA.findAll(tudo).mapNotNull { it.groupValues[1].toIntOrNull() }.toSet()
+        val pelosNumeros = maxOf(numeros.size, numeros.maxOrNull() ?: 0)
+        val escrito = RE_QTD_PARADAS.findAll(tudo)
+            .mapNotNull { m -> m.groupValues.drop(1).firstOrNull { it.isNotBlank() }?.toIntOrNull() }
+            .maxOrNull() ?: 0
+        return maxOf(pelosNumeros, escrito)
+    }
 
     /** Linhas com cara de endereço, sem repetição, na ordem da tela (máx. 3). */
     fun extrairEnderecos(textos: List<String>): List<String> {

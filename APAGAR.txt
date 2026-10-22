@@ -19,6 +19,24 @@ Testar com print (Menu > Leitor de ofertas > Testar com print):
   O app abre direto no Testar com print com a imagem.
 - Funciona sem o leitor ligado e sem conta no app do print.
 
+Uber Envios (entrega da Uber):
+- "Envios" passou a contar como tela de entrega: card da Uber Envios que
+  mostra so o km (sem minutos) agora e lido, igual ao iFood.
+
+Primeiros prints reais viraram teste (OfertaParserTest):
+- Uber Envios Moto: R$ 4,96, 10,9 km, 19 min, nota 5,00.
+- iFood com coleta no mercado: R$ 15,75, 8,5 km, 43 min, devolucao.
+
+Contagem de entregas (paradas) corrigida:
+- So conta ENTREGA, nao a coleta. Antes, coleta + 1 entrega no iFood
+  virava "2 paradas" e o cartao dividia o valor por 2 ("R$ X cada").
+- Le o numero escrito: "2 Paradas" (iFood) e "Entrega Food (2)" (99).
+- "Entrega 2" sozinha ja conta 2, e aceita o erro do OCR ("Fntrena 2").
+- Print real da 99 Entrega Food (2) virou teste: R$ 16,69, 8,7 km, 2 entregas.
+
+"Copiar textos" troca mais pedacos de endereco: "R.104, 116" (sem espaco),
+quadra, lote, setor, bairro, vila, nucleo, jardim, parque.
+
 Por dentro:
 - A escolha da oferta (qual oferta vale numa tela) saiu do
   OfertaAccessibilityService para EscolhaOferta: o leitor e o teste usam
@@ -34,6 +52,9 @@ Arquivos novos:
 
 Arquivos alterados:
   app/build.gradle.kts (4.15.0 / 95)
+  app/src/main/java/com/motoristapro/service/OfertaParser.kt ("envios" = entrega, contagem de entregas)
+  app/src/main/java/com/motoristapro/service/EstiloCartao.kt (texto do campo Paradas)
+  app/src/test/java/com/motoristapro/service/OfertaParserTest.kt (3 prints reais)
   app/src/main/AndroidManifest.xml (receber imagem pelo Compartilhar)
   app/src/main/java/com/motoristapro/service/LeitorOcr.kt
   app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
