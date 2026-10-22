@@ -41,7 +41,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
@@ -312,7 +311,6 @@ fun BarraFatias(f: FatiasCusto, modifier: Modifier) {
 private fun SomaDoPasso(rotulo: String, porKmCentavos: Double, icone: ImageVector, cor: Color, conta: String? = null) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Superficie)
-            .background(Brush.linearGradient(listOf(Lima.copy(alpha = 0.10f), Color.Transparent)))
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -654,7 +652,6 @@ private fun ResultadoFinal(
     val f = FatiasCusto.de(r)
     Column(
         Modifier.fillMaxSize()
-            .background(Brush.radialGradient(listOf(Lima.copy(alpha = 0.16f), Color.Transparent)))
     ) {
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 4.dp)) {
             IconButton(onClick = onFechar) { Icon(Icones.Fechar, contentDescription = "Fechar", tint = TextoSecundario) }

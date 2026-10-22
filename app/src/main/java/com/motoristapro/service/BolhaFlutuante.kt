@@ -3,7 +3,10 @@ package com.motoristapro.service
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.PixelFormat
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
@@ -12,16 +15,21 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.motoristapro.data.repository.emReais
+import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.ui.MainActivity
 import kotlin.math.abs
 
 /**
  * Bolha flutuante: lucro de hoje + cronômetro do turno, sempre à mão por cima da Uber/99.
- * Arrastar move (e gruda na borda mais próxima); toque abre o MotoristaPro.
+ * Em volta, um anel que enche com a meta do dia: amarelo até bater, verde depois (5.1).
+ * Toque abre o painel do turno; segurar lê a tela agora; arrastar muda de lugar
+ * (e gruda na borda mais próxima).
  * Mesmo tipo de janela do overlay de ofertas (TYPE_ACCESSIBILITY_OVERLAY).
  */
 class BolhaFlutuante(private val context: Context) {
@@ -29,12 +37,14 @@ class BolhaFlutuante(private val context: Context) {
     private val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val handler = Handler(Looper.getMainLooper())
 
-    private var raiz: LinearLayout? = null
+    private var raiz: FrameLayout? = null
+    private lateinit var anel: AnelMeta
     private lateinit var tvLucro: TextView
     private lateinit var tvTempo: TextView
 
     private var lucroCentavos: Long = 0
-    private var inicioJornada: Long? = null
+    private var metaCentavos: Long = 0
+    private var jornada: Jornada? = null
 
     private val tick = object : Runnable {
         override fun run() {
@@ -78,9 +88,10 @@ class BolhaFlutuante(private val context: Context) {
         if (v.isAttachedToWindow) runCatching { wm.removeViewImmediate(v) }
     }
 
-    fun atualizar(lucroCentavos: Long, inicioJornada: Long?) {
+    fun atualizar(lucroCentavos: Long, metaCentavos: Long, jornada: Jornada?) {
         this.lucroCentavos = lucroCentavos
-        this.inicioJornada = inicioJornada
+        this.metaCentavos = metaCentavos
+        this.jornada = jornada
         renderizar()
     }
 
@@ -91,44 +102,57 @@ class BolhaFlutuante(private val context: Context) {
     }
 
     private fun renderizar() {
-        val v = raiz ?: return
-        tvLucro.text = lucroCentavos.emReais().replace(",00", "")
-        val inicio = inicioJornada
-        if (inicio != null) {
-            val min = ((System.currentTimeMillis() - inicio) / 60_000).coerceAtLeast(0)
-            tvTempo.text = "%dh%02d".format(min / 60, min % 60)
-        } else {
-            tvTempo.text = "turno parado"
+        if (raiz == null) return
+        // Reais inteiros: a bolha é pequena e o centavo não muda a decisão.
+        tvLucro.text = (lucroCentavos / 100).toString()
+        tvLucro.setTextColor(if (lucroCentavos < 0) COR_VERMELHO else COR_BRANCO)
+        val j = jornada
+        tvTempo.text = when {
+            j == null -> "parado"
+            j.pausada -> "pausa"
+            else -> {
+                val min = j.segundosRodando(System.currentTimeMillis()) / 60
+                "%d:%02d".format(min / 60, min % 60)
+            }
         }
-        (v.background as? GradientDrawable)?.setColor(
-            if (lucroCentavos >= 0) COR_FUNDO else COR_FUNDO_NEGATIVO
-        )
+        tvTempo.setTextColor(if (j?.pausada == true) COR_AMARELO else COR_CINZA)
+        val fracao = if (metaCentavos > 0) lucroCentavos.toFloat() / metaCentavos else 0f
+        anel.definir(fracao.coerceIn(0f, 1f), if (fracao >= 1f) COR_VERDE else COR_AMARELO)
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private fun criarView(): LinearLayout {
+    private fun criarView(): FrameLayout {
         tvLucro = TextView(context).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setTextColor(COR_LIMA)
-            typeface = Typeface.DEFAULT_BOLD
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            setTextColor(COR_BRANCO)
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             gravity = Gravity.CENTER
         }
         tvTempo = TextView(context).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            setTextColor(0xFFE8F0E9.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            setTextColor(COR_CINZA)
+            typeface = Typeface.MONOSPACE
             gravity = Gravity.CENTER
         }
-        return LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(dp(14), dp(10), dp(14), dp(10))
+        anel = AnelMeta(context)
+        return FrameLayout(context).apply {
+            layoutParams = ViewGroup.LayoutParams(dp(TAMANHO_DP), dp(TAMANHO_DP))
+            minimumWidth = dp(TAMANHO_DP)
+            minimumHeight = dp(TAMANHO_DP)
             background = GradientDrawable().apply {
-                cornerRadius = dp(28).toFloat()
+                shape = GradientDrawable.OVAL
                 setColor(COR_FUNDO)
-                setStroke(dp(2), COR_LIMA)
             }
-            addView(tvLucro)
-            addView(tvTempo)
+            addView(anel, FrameLayout.LayoutParams(dp(TAMANHO_DP), dp(TAMANHO_DP)))
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    addView(tvLucro)
+                    addView(tvTempo)
+                },
+                FrameLayout.LayoutParams(dp(TAMANHO_DP), dp(TAMANHO_DP))
+            )
 
             var xInicial = 0
             var yInicial = 0
@@ -220,8 +244,45 @@ class BolhaFlutuante(private val context: Context) {
         const val TAG = "MotoristaPro"
         /** Meio segundo de dedo parado na bolha já conta como "leia agora". */
         const val TEMPO_SEGURAR_MS = 500L
-        val COR_LIMA = 0xFF00D084.toInt()   // verde do lucro (5.0; nome mantido)
-        val COR_FUNDO = 0xEE000000.toInt()
-        val COR_FUNDO_NEGATIVO = 0xEE3A1212.toInt()
+        /** A bolha inteira: 72 dp, o dedo acerta sem cobrir o botão da Uber. */
+        const val TAMANHO_DP = 72
+        // Regra estrita de cor (5.1): sólidas sobre preto absoluto.
+        const val COR_FUNDO = 0xFF000000.toInt()
+        const val COR_BRANCO = 0xFFFFFFFF.toInt()
+        const val COR_CINZA = 0xFF8E8E93.toInt()
+        const val COR_VAZIO = 0xFF2C2C2E.toInt()
+        const val COR_VERDE = 0xFF00E676.toInt()
+        const val COR_AMARELO = 0xFFFFD600.toInt()
+        const val COR_VERMELHO = 0xFFFF1744.toInt()
+    }
+
+    /** O anel da meta: trilho cinza-escuro inteiro e, por cima, a parte já feita. */
+    private class AnelMeta(context: Context) : View(context) {
+        private val traco = 5f * context.resources.displayMetrics.density
+        private val trilho = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = traco
+            color = COR_VAZIO
+        }
+        private val feito = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = traco
+            strokeCap = Paint.Cap.ROUND
+        }
+        private val caixa = RectF()
+        private var fracao = 0f
+
+        fun definir(fracao: Float, cor: Int) {
+            this.fracao = fracao
+            feito.color = cor
+            invalidate()
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            val m = traco / 2 + 1
+            caixa.set(m, m, width - m, height - m)
+            canvas.drawArc(caixa, 0f, 360f, false, trilho)
+            if (fracao > 0f) canvas.drawArc(caixa, -90f, 360f * fracao, false, feito)
+        }
     }
 }

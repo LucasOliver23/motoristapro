@@ -1,5 +1,7 @@
 package com.motoristapro.ui.corridas
 
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawBehind
 import com.motoristapro.ui.theme.VerdeLucro
 import com.motoristapro.ui.componentes.Segmentado
 import com.motoristapro.ui.componentes.CorSobreDestaque
@@ -87,6 +89,7 @@ import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.SuperficieAlta
 import com.motoristapro.ui.theme.Superficie
 import com.motoristapro.ui.componentes.CardSecao
+import com.motoristapro.ui.NavegacaoRapida
 import com.motoristapro.ui.componentes.LogoPlataforma
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.height
@@ -131,6 +134,14 @@ fun CorridasRoute(vm: CorridasViewModel = viewModel(factory = CorridasViewModel.
     var excluirOferta by remember { mutableStateOf<OfertaRecebida?>(null) }
 
     LaunchedEffect(Unit) { vm.mensagens.collect { snackbar.showSnackbar(it) } }
+    // "Registrar corrida" do painel da bolha: abre já no formulário.
+    val pedidoNova by NavegacaoRapida.novaCorridaPedida.collectAsStateWithLifecycle()
+    LaunchedEffect(pedidoNova) {
+        if (pedidoNova) {
+            NavegacaoRapida.novaCorridaPedida.value = false
+            nova = true
+        }
+    }
 
     val coresPorId = remember(plataformas) { plataformas.associate { it.id to corPlataforma(it.corHex) } }
 
@@ -591,7 +602,10 @@ private fun OfertaItem(
     // ficam a um toque do mapa.
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Superficie)
-            .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 10.dp),
+            // A faixa da esquerda na cor da decisão (5.1): dá para varrer a lista
+            // de olho e achar as boas sem ler um número.
+            .drawBehind { drawRect(cor, size = Size(4.dp.toPx(), size.height)) }
+            .padding(start = 16.dp, end = 14.dp, top = 12.dp, bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -805,7 +819,7 @@ private fun FiltrosDaLista(
     ) { onAceite(FiltroAceite.entries[it]) }
 }
 
-/** Um logo da fila de filtro: borda azul quando escolhido, apagado quando outro foi escolhido. */
+/** Um logo da fila de filtro: borda verde quando escolhido, apagado quando outro foi escolhido. */
 @Composable
 private fun LogoFiltro(
     nome: String,
@@ -824,7 +838,7 @@ private fun LogoFiltro(
         Box {
             Box(
                 Modifier.size(50.dp).clip(RoundedCornerShape(15.dp))
-                    .border(2.dp, if (selecionado) Lima else Color.Transparent, RoundedCornerShape(15.dp))
+                    .border(2.dp, if (selecionado) VerdeLucro else Color.Transparent, RoundedCornerShape(15.dp))
                     .padding(2.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -840,9 +854,9 @@ private fun LogoFiltro(
             if (quantas > 0) {
                 Text(
                     "$quantas",
-                    modifier = Modifier.align(Alignment.TopEnd).clip(RoundedCornerShape(9.dp)).background(Lima)
+                    modifier = Modifier.align(Alignment.TopEnd).clip(RoundedCornerShape(9.dp)).background(VerdeLucro)
                         .padding(horizontal = 5.dp),
-                    color = CorSobreDestaque, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold
+                    color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold
                 )
             }
         }

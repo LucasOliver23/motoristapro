@@ -271,7 +271,7 @@ private fun iconeDeTraco(selo: String): Pair<ImageVector, Color>? {
         "🔧" -> Icones.Chave
         "🔔" -> Icones.Sino
         "👁" -> Icones.Olho
-        "🩺" -> Icones.Checkup
+        "🩺" -> Icones.Copiloto
         "🔊" -> Icones.Som
         "⚪" -> Icones.Bolha
         "⚠" -> Icones.Alerta

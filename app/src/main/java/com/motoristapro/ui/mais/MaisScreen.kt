@@ -1,5 +1,7 @@
 package com.motoristapro.ui.mais
 
+import com.motoristapro.ui.abrirPermissaoSobreposicao
+import androidx.compose.runtime.mutableIntStateOf
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -170,9 +172,21 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
         bateriaOk = context.bateriaLiberada()
         onPauseOrDispose { }
     }
+    // O Copiloto relê o sistema toda vez que a tela volta (o motorista liberou
+    // algo nas Configurações) e quando o leitor, a imagem ou um pedido muda.
+    var releitura by remember { mutableIntStateOf(0) }
     val pedirNotificacao = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         notificacoesOk = ok
+        releitura++
     }
+    LifecycleResumeEffect(Unit) {
+        releitura++
+        onPauseOrDispose { }
+    }
+    val pedirLocalizacao = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        releitura++
+    }
+    val copiloto = remember(releitura, leitorOk, ocr) { context.lerCopiloto(leitorOk) }
     LaunchedEffect(Unit) { vm.mensagens.collect { snackbar.showSnackbar(it) } }
 
     TelaAba(titulo = "Menu", snackbar = snackbar) { padding ->
@@ -271,12 +285,13 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         onClick = { sub = SubTela.METAS }
                     ),
                     Ferramenta(
-                        titulo = "Checkup do app",
+                        titulo = "Copiloto",
                         icone = "🩺",
-                        estado = if (leitorOk && bateriaOk && notificacoesOk) "tudo liberado" else "algo para liberar",
-                        aceso = leitorOk && bateriaOk && notificacoesOk,
+                        estado = if (copiloto.tudoPronto) "tudo liberado"
+                        else "${copiloto.prontos} de ${copiloto.total} prontos · liberar o resto",
+                        aceso = copiloto.tudoPronto,
                         alerta = !leitorOk,
-                        onClick = { sub = SubTela.CHECKUP }
+                        onClick = { sub = SubTela.COPILOTO }
                     ),
                     Ferramenta(
                         titulo = "Conta e nuvem",
@@ -444,17 +459,22 @@ fun MaisRoute(vm: MaisViewModel = viewModel(factory = MaisViewModel.Factory)) {
                         )
                         EstiloCartaoScreen(custoKmCentavos = cfg.custoKmCentavos)
                     }
-                    SubTela.CHECKUP -> CheckupConteudo(
-                        leitorOk = leitorOk,
-                        ocrLigado = ocr,
-                        notificacoesOk = notificacoesOk,
-                        bateriaOk = bateriaOk,
+                    SubTela.COPILOTO -> CopilotoConteudo(
+                        estado = copiloto,
                         diagnostico = diagnostico,
                         onAcessibilidade = { context.abrirConfigAcessibilidade() },
+                        onSobreposicao = { context.abrirPermissaoSobreposicao() },
                         onBateria = { context.pedirBateriaLivre() },
-                        onNotificacoes = { context.abrirDetalhesDoApp() },
+                        onNotificacoes = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                pedirNotificacao.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                context.abrirDetalhesDoApp()
+                            }
+                        },
                         onInicializacao = { context.abrirInicializacaoAutomatica() },
                         onOcr = { vm.definirOcr(!ocr) },
+                        onLocalizacao = { pedirLocalizacao.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
                         onTestar = vm::testarLeitor
                     )
                     SubTela.RISCO ->

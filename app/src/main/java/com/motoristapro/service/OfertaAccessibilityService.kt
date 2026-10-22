@@ -16,7 +16,9 @@ import com.motoristapro.diagnostico.RegistroErros
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.motoristapro.MotoristaApp
+import com.motoristapro.data.local.entity.Jornada
 import com.motoristapro.data.local.entity.OfertaRecebida
+import com.motoristapro.jornada.JornadaService
 import com.motoristapro.data.repository.nomePlataforma
 import com.motoristapro.ui.NavegacaoRapida
 import kotlinx.coroutines.CoroutineScope
@@ -62,8 +64,10 @@ class OfertaAccessibilityService : AccessibilityService() {
     private var bolha: BolhaFlutuante? = null
     private var painel: PainelBolha? = null
 
-    /** Início da jornada de hoje (null = turno parado), para o menu da bolha. */
-    @Volatile private var jornadaComecouEm: Long? = null
+    /** O turno aberto, o lucro e a meta de hoje, para a bolha e o painel dela. */
+    @Volatile private var jornadaAberta: Jornada? = null
+    @Volatile private var lucroHojeCentavos: Long = 0
+    @Volatile private var metaDoDiaCentavos: Long = 0
 
     /** Id no histórico da oferta exibida (para marcar como registrada). */
     private var ultimaOfertaId: Long? = null
@@ -180,9 +184,16 @@ class OfertaAccessibilityService : AccessibilityService() {
         }
         cartaoResumo = CartaoResumo(this)
         painel = PainelBolha(this).apply {
-            leitorLendo = { _conectado.value }
-            jornadaRodando = { jornadaComecouEm != null }
-            vozLigada = { voz?.ativo == true }
+            estado = {
+                EstadoBolha(
+                    lucroCentavos = lucroHojeCentavos,
+                    metaCentavos = metaDoDiaCentavos,
+                    turnoSegundos = jornadaAberta?.segundosRodando(System.currentTimeMillis()),
+                    turnoPausado = jornadaAberta?.pausada == true,
+                    leitorLendo = _conectado.value,
+                    vozLigada = voz?.ativo == true
+                )
+            }
             aoLerAgora = { lerAgora() }
             aoAlternarVoz = {
                 voz?.let { it.ativo = !it.ativo }
@@ -190,6 +201,19 @@ class OfertaAccessibilityService : AccessibilityService() {
             }
             aoAbrirAba = { aba ->
                 NavegacaoRapida.pedir(aba)
+                bolha?.abrirApp()
+            }
+            aoAlternarPausa = { alternarPausaDoTurno() }
+            aoEncerrarTurno = { encerrarTurnoPelaBolha() }
+            // Abrir turno pede a localização: quem pede é o Início, então o app abre lá.
+            aoIniciarTurno = {
+                NavegacaoRapida.iniciarJornadaPedido.value = true
+                NavegacaoRapida.pedir(0)
+                bolha?.abrirApp()
+            }
+            aoRegistrarCorrida = {
+                NavegacaoRapida.novaCorridaPedida.value = true
+                NavegacaoRapida.pedir(1)
                 bolha?.abrirApp()
             }
         }
@@ -205,10 +229,14 @@ class OfertaAccessibilityService : AccessibilityService() {
         // Bolha: lucro de hoje + início do turno, reativos ao banco.
         escopo.launch {
             try {
-                combine(repo.resumoHoje(), repo.jornadaAtiva()) { r, j -> r.lucroLiquidoCentavos to j?.inicioEm }
-                    .collect { (lucro, inicio) ->
-                        jornadaComecouEm = inicio
-                        bolha?.atualizar(lucro, inicio)
+                combine(repo.resumoHoje(), repo.jornadaAtiva(), repo.configuracao()) { r, j, cfg ->
+                    Triple(r.lucroLiquidoCentavos, j, cfg.metaLucroDiarioCentavos)
+                }
+                    .collect { (lucro, jornada, meta) ->
+                        jornadaAberta = jornada
+                        lucroHojeCentavos = lucro
+                        metaDoDiaCentavos = meta
+                        bolha?.atualizar(lucro, meta, jornada)
                     }
             } catch (e: Exception) {
                 Log.e(TAG, "Falha ao observar dados da bolha", e)
@@ -1001,6 +1029,33 @@ class OfertaAccessibilityService : AccessibilityService() {
      * Zera a memoria do que ja foi mostrado (senao a mesma oferta nao reaparece)
      * e, se a leitura por texto nao fechar, cai direto na leitura por imagem.
      */
+    /** "Pausar turno" / "Retomar turno" do painel da bolha: o mesmo do botão do Início. */
+    private fun alternarPausaDoTurno() {
+        val repo = (application as MotoristaApp).repository
+        escopo.launch {
+            runCatching {
+                val j = repo.obterJornadaAtiva() ?: return@runCatching
+                if (j.pausada) repo.retomarJornada(j.id) else repo.pausarJornada(j.id)
+            }.onFailure { Log.e(TAG, "Falha ao pausar pela bolha", it) }
+        }
+    }
+
+    /**
+     * "Encerrar turno" do painel (já confirmado lá). Igual ao botão da notificação:
+     * com o GPS rodando, o serviço do turno grava os km e o fim; sem ele, fecha no banco.
+     */
+    private fun encerrarTurnoPelaBolha() {
+        if (JornadaService.rodando.value) {
+            JornadaService.parar(this)
+            return
+        }
+        val repo = (application as MotoristaApp).repository
+        escopo.launch {
+            runCatching { repo.obterJornadaAtiva()?.let { repo.encerrarJornada(it.id) } }
+                .onFailure { Log.e(TAG, "Falha ao encerrar pela bolha", it) }
+        }
+    }
+
     fun lerAgora() {
         assinaturaDispensada = null
         ultimaAssinatura = null
