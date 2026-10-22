@@ -303,14 +303,14 @@ private fun CartaoVeiculo(v: VeiculoResumo, onEditar: () -> Unit) {
                     Image(f, contentDescription = "Foto do veículo", contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
                 } else {
                     Icon(
-                        if (v.tipo == TipoVeiculo.MOTO) Icones.Moto else Icones.Carro,
+                        Icones.doVeiculo(v.tipo),
                         contentDescription = v.tipo.rotulo, tint = Lima, modifier = Modifier.size(42.dp)
                     )
                 }
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    v.nome ?: if (v.tipo == TipoVeiculo.MOTO) "Minha moto" else "Meu carro",
+                    v.nome ?: if (v.tipo == TipoVeiculo.CARRO) "Meu carro" else "Minha ${v.tipo.rotulo.lowercase()}",
                     style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold
                 )
                 Text(v.detalhe, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)

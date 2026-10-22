@@ -2,7 +2,7 @@
 
 App Android para **motorista e entregador de aplicativo** (Uber, 99, iFood e inDrive) que lê a oferta de corrida na tela, mostra na hora se ela compensa — com o custo real do veículo — e controla o dia de trabalho: lucro, jornada, metas, km, manutenção e relatórios.
 
-Versão atual: **4.16.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
+Versão atual: **4.17.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
 
 ---
 
@@ -34,7 +34,7 @@ Versão atual: **4.16.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targe
 | **Registro de corridas** | Botão "Registrar" no cartão e na notificação; leitura da tela **Detalhes da corrida** da 99 (valor final, já com o pacote 0%); registro manual. |
 | **Jornada** | Cronômetro do turno, km pelo GPS, pausas, tempo por estado e por app. Pergunta o **km do painel** ao iniciar e ao encerrar (pega o uso fora do app). |
 | **Lucro e metas** | Lucro líquido do dia (corridas − despesas − custos fixos), meta diária/semanal/mensal, **meta por hora** com a conta aberta, previsão de horário em que a meta bate. |
-| **Custo real do veículo** | Assistente de custo (financiamento/aluguel, IPVA, seguro, depreciação, combustível, manutenção) → custo por km usado em tudo. |
+| **Custo real do veículo** | **Assistente rápido obrigatório** (4.17: veículo, combustível, o que paga pelo veículo, rotina e meta limpa por hora, em 1 minuto) → custo **básico**. O assistente completo (IPVA, seguro, depreciação, óleo, pneus, revisão) deixa o custo **completo**. Carro, moto e **bike**. |
 | **Pacote 0% de taxa da 99** | Lança o preço do pacote como despesa e mostra se valeu a pena no dia. |
 | **Vários veículos** | Moto e carro, cada um com km, foto, custo por km, manutenção e lucro do mês. O veículo **ativo** recebe o que for lançado. |
 | **Manutenção** | Itens por km (óleo, relação, pneu, freio…), anel de progresso, **EM DIA / ATENÇÃO / ATRASADA**, lembrete na barra do celular com "Fiz agora" / "Lembrar amanhã". |

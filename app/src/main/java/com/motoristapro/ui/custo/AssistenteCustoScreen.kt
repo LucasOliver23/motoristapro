@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.motoristapro.custo.CalculadoraCusto
 import com.motoristapro.custo.CustoAoVivo
 import com.motoristapro.custo.DadosCusto
 import com.motoristapro.custo.FatiasCusto
@@ -338,14 +339,7 @@ private fun PassoVeiculo(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> 
         "Isso muda o desgaste, a depreciação e quais custos entram na conta.",
         style = MaterialTheme.typography.bodyMedium, color = TextoSecundario
     )
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        BlocoEscolha(Icones.Carro, "Carro", d.tipoVeiculo == TipoVeiculo.CARRO, Modifier.weight(1f)) {
-            editar { it.copy(tipoVeiculo = TipoVeiculo.CARRO) }
-        }
-        BlocoEscolha(Icones.Moto, "Moto", d.tipoVeiculo == TipoVeiculo.MOTO, Modifier.weight(1f)) {
-            editar { it.copy(tipoVeiculo = TipoVeiculo.MOTO) }
-        }
-    }
+    EscolhaDoVeiculo(d, editar)
     Rotulo("O que você faz", Modifier.padding(top = 4.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         TipoTrabalho.entries.forEach { t ->
@@ -374,7 +368,8 @@ private fun PassoVeiculo(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> 
     ) { v -> editar { it.copy(veiculoNome = v) } }
     if (d.forma != FormaAquisicao.ALUGADO) {
         CampoDinheiro(
-            "Valor na tabela FIPE", d.valorVeiculoCentavos,
+            if (d.tipoVeiculo == TipoVeiculo.BIKE) "Quanto vale a bike" else "Valor na tabela FIPE",
+            d.valorVeiculoCentavos,
             ajuda = "Quanto ele vale hoje. Usado para a depreciação e o IPVA."
         ) { v -> editar { it.copy(valorVeiculoCentavos = v) } }
     }
@@ -407,7 +402,7 @@ private fun PassoFixos(d: DadosCusto, f: FatiasCusto, editar: ((DadosCusto) -> D
                 (d.valorVeiculoCentavos * (d.desvalorizacaoAnualX100 / 10_000.0) / 12.0).toLong()
             )
         }
-        Cartao {
+        if (d.tipoVeiculo != TipoVeiculo.BIKE) Cartao {
             Rotulo("IPVA")
             // Dois jeitos de informar o IPVA porque quase todo motorista sabe o
             // valor em reais do carnê, e quase nenhum sabe a aliquota do estado.
@@ -478,6 +473,13 @@ private fun PassoManutencao(d: DadosCusto, f: FatiasCusto, editar: ((DadosCusto)
 
 @Composable
 private fun PassoCombustivel(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
+    if (!d.tipoVeiculo.usaCombustivel) {
+        Text(
+            "Bike não gasta combustível: este passo fica de fora da conta. Toque em Continuar.",
+            style = MaterialTheme.typography.bodyMedium, color = TextoSecundario
+        )
+        return
+    }
     val porKm = if (d.consumoX100 > 0) d.precoLitroCentavos * 100.0 / d.consumoX100 else 0.0
     SomaDoPasso(
         "Combustível por km", porKm, Icones.Combustivel, CorCombustivel,
@@ -602,7 +604,25 @@ fun QuadroMeta(rotulo: String, centavos: Long, cor: Color, modifier: Modifier) {
     }
 }
 
-/** Bloco grande de escolha com ícone (Carro / Moto). */
+/** Carro, moto ou bike, em blocos grandes. Ao escolher bike, o tipo de trabalho vira entrega. */
+@Composable
+private fun EscolhaDoVeiculo(d: DadosCusto, editar: ((DadosCusto) -> DadosCusto) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        TipoVeiculo.entries.forEach { t ->
+            BlocoEscolha(Icones.doVeiculo(t), t.rotulo, d.tipoVeiculo == t, Modifier.weight(1f)) {
+                editar {
+                    it.copy(
+                        tipoVeiculo = t,
+                        // Bike não leva passageiro.
+                        tipoTrabalho = if (t == TipoVeiculo.BIKE) TipoTrabalho.ENTREGAS else it.tipoTrabalho
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Bloco grande de escolha com ícone (Carro / Moto / Bike). */
 @Composable
 private fun BlocoEscolha(icone: ImageVector, rotulo: String, ativo: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Column(
@@ -923,3 +943,181 @@ private fun Long.campoReais(): String = String.format(PT, "%,.2f", this / 100.0)
 
 private const val POR_PORCENTO = "%"
 private const val POR_REAIS = "R$"
+
+// ============================================================ assistente rápido
+
+/**
+ * Assistente rápido (4.17): a camada OBRIGATÓRIA, numa tela só, antes de usar o
+ * app. Só o que o motorista sabe de cabeça e que mais pesa no custo: o veículo,
+ * o combustível, o que paga pelo veículo, a rotina e a meta limpa por hora.
+ *
+ * Óleo, pneus, IPVA, seguro e depreciação ficam para o assistente completo
+ * (Menu ▸ Meu veículo e custos). Até lá o custo é o "básico" e o cartão avisa.
+ */
+@Composable
+fun AssistenteRapidoScreen(
+    onPronto: () -> Unit,
+    vm: AssistenteCustoViewModel = viewModel(factory = AssistenteCustoViewModel.Factory)
+) {
+    val e by vm.estado.collectAsStateWithLifecycle()
+    if (e.carregando) return
+    val d = e.dados
+    var metaHora by rememberSaveable { mutableStateOf(d.metaLimpaHoraCentavos) }
+    var salvando by remember { mutableStateOf(false) }
+    val comMeta = d.comMetaPorHora(metaHora)
+    val falta = comMeta.faltaNoBasico()
+    val r = remember(comMeta) { CalculadoraCusto.calcular(comMeta) }
+
+    Column(Modifier.fillMaxSize().background(Fundo).statusBarsPadding().imePadding()) {
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("Antes de começar", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = TextoPrincipal)
+            Text(
+                "Uma conta rápida para o cartão saber se a corrida dá lucro para VOCÊ. Leva um minuto.",
+                style = MaterialTheme.typography.bodyMedium, color = TextoSecundario
+            )
+
+            Cartao(espaco = 10) {
+                Rotulo("Seu veículo")
+                EscolhaDoVeiculo(d, vm::editar)
+                if (d.tipoVeiculo != TipoVeiculo.BIKE) {
+                    Rotulo("O que você faz", Modifier.padding(top = 4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TipoTrabalho.entries.forEach { t ->
+                            Pilula(if (t == TipoTrabalho.AMBOS) "Os dois" else t.rotulo, d.tipoTrabalho == t) {
+                                vm.editar { it.copy(tipoTrabalho = t) }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (d.tipoVeiculo.usaCombustivel) {
+                Cartao(espaco = 10) {
+                    Rotulo("Combustível")
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TipoCombustivel.entries.chunked(3).forEach { linha ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                linha.forEach { c ->
+                                    Pilula(c.rotulo, d.combustivel == c, Modifier.weight(1f)) {
+                                        vm.editar { it.copy(combustivel = c) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    CampoDinheiro(
+                        when (d.combustivel) {
+                            TipoCombustivel.ELETRICO -> "Preço do kWh"
+                            TipoCombustivel.GNV -> "Preço do m³"
+                            else -> "Preço do litro"
+                        },
+                        d.precoLitroCentavos
+                    ) { v -> vm.editar { it.copy(precoLitroCentavos = v) } }
+                    CampoDecimal(
+                        "Consumo médio (${d.combustivel.unidade})", d.consumoX100,
+                        ajuda = "Quanto ele faz no dia a dia, de cabeça mesmo."
+                    ) { v -> vm.editar { it.copy(consumoX100 = v) } }
+                }
+            }
+
+            Cartao(espaco = 10) {
+                Rotulo("Quanto paga pelo veículo")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FormaAquisicao.entries.forEach { f ->
+                        Pilula(f.rotulo, d.forma == f) { vm.editar { it.copy(forma = f) } }
+                    }
+                }
+                when (d.forma) {
+                    FormaAquisicao.QUITADO -> Text(
+                        "Seu, sem parcela. A depreciação entra depois, no assistente completo.",
+                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                    )
+                    FormaAquisicao.FINANCIADO -> CampoDinheiro("Parcela do mês", d.parcelaMensalCentavos) { v ->
+                        vm.editar { it.copy(parcelaMensalCentavos = v) }
+                    }
+                    FormaAquisicao.ALUGADO -> CampoDinheiro(
+                        "Aluguel do mês", d.aluguelMensalCentavos,
+                        ajuda = "Paga por semana? Multiplique por 4,3."
+                    ) { v -> vm.editar { it.copy(aluguelMensalCentavos = v) } }
+                }
+            }
+
+            Cartao(espaco = 10) {
+                Rotulo("Sua rotina e meta")
+                CampoKm("Km por dia", d.kmPorDia) { v -> vm.editar { it.copy(kmPorDia = v) } }
+                Text(
+                    "Horas por dia: ${d.horasPorDia}h",
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold
+                )
+                Slider(
+                    value = d.horasPorDia.toFloat().coerceIn(1f, 18f),
+                    onValueChange = { v -> vm.editar { it.copy(horasPorDia = v.toInt().coerceIn(1, 18)) } },
+                    valueRange = 1f..18f,
+                    steps = 16,
+                    colors = SliderDefaults.colors(thumbColor = TextoPrincipal, activeTrackColor = Lima, inactiveTrackColor = SuperficieMaisAlta)
+                )
+                Text("Dias por semana", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (1..7).forEach { n ->
+                        val ativo = d.diasPorSemana == n
+                        Box(
+                            Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp))
+                                .background(if (ativo) Lima else SuperficieAlta)
+                                .clickable { vm.editar { it.copy(diasPorSemana = n) } },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("$n", color = if (ativo) CorSobreDestaque else TextoSecundario, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                CampoDinheiro(
+                    "Quanto quer ganhar limpo por hora", metaHora,
+                    ajuda = "O que sobra pra você por hora rodando, já pagos combustível e veículo."
+                ) { v -> metaHora = v }
+            }
+
+            if (falta.isEmpty()) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Lima.copy(alpha = 0.08f))
+                        .border(1.dp, Lima.copy(alpha = 0.25f), RoundedCornerShape(16.dp)).padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Rotulo("Seu custo (básico)")
+                    Text("${r.custoPorKmCentavos.emReais()} /km", style = EstiloValor, fontSize = 22.sp, color = Lima)
+                    Text(
+                        "Meta: ${comMeta.metaLucroDiarioCentavos.emReais()} limpos por dia " +
+                            "(${metaHora.emReais()} × ${d.horasPorDia}h).",
+                        style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                    )
+                }
+            }
+            r.avisos.forEach { Text("• ${it.texto}", style = MaterialTheme.typography.bodySmall, color = AmareloAlerta) }
+            Text(
+                "Óleo, pneus, IPVA e seguro ficam para depois, em Menu ▸ Meu veículo e custos. " +
+                    "Até lá o cartão mostra \"custo básico\": um pouco abaixo do real.",
+                style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+            )
+        }
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (falta.isNotEmpty()) {
+                Text(
+                    "Falta: " + falta.joinToString(", ") + ".",
+                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario
+                )
+            }
+            Button(
+                onClick = {
+                    salvando = true
+                    vm.concluirRapido(metaHora) { onPronto() }
+                },
+                enabled = falta.isEmpty() && !salvando,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Lima, contentColor = CorSobreDestaque)
+            ) { Text("Pronto, começar", fontWeight = FontWeight.ExtraBold) }
+        }
+    }
+}

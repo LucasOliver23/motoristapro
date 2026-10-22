@@ -9,7 +9,22 @@ enum class FormaAquisicao(val rotulo: String) {
     ALUGADO("Alugado")
 }
 
-enum class TipoVeiculo(val rotulo: String) { CARRO("Carro"), MOTO("Moto") }
+enum class TipoVeiculo(val rotulo: String) {
+    CARRO("Carro"),
+    MOTO("Moto"),
+    /** Bike (4.17): sem combustível, sem IPVA e sem painel de km. */
+    BIKE("Bike");
+
+    val usaCombustivel: Boolean get() = this != BIKE
+
+    /** "a moto", "o carro", "a bike". */
+    val nomeComArtigo: String get() = if (this == CARRO) "o carro" else "a ${rotulo.lowercase()}"
+
+    companion object {
+        /** Do texto guardado no banco ("MOTO", "CARRO", "BIKE"); desconhecido = null. */
+        fun de(nome: String?): TipoVeiculo? = entries.firstOrNull { it.name == nome }
+    }
+}
 
 /** O que o motorista roda. Muda o que o app espera de km/dia e de ganho por corrida. */
 enum class TipoTrabalho(val rotulo: String) {
@@ -100,6 +115,41 @@ data class DadosCusto(
     val metaLucroSemanalCentavos: Long
         get() = Math.round(metaLucroMensalCentavos / SEMANAS_NO_MES)
 
+    /** A meta como o assistente rápido pergunta: lucro limpo por hora de turno. */
+    val metaLimpaHoraCentavos: Long
+        get() = if (horasPorDia > 0) Math.round(metaLucroDiarioCentavos.toDouble() / horasPorDia) else 0
+
+    /** Guarda a meta por hora como mensal (o resto do app usa a mensal e a do dia). */
+    fun comMetaPorHora(centavosPorHora: Long): DadosCusto =
+        copy(metaLucroMensalCentavos = Math.round(centavosPorHora.coerceAtLeast(0) * horasPorDia * diasPorMes))
+
+    /**
+     * "Custo completo": o motorista informou pelo menos um desgaste (óleo, pneus,
+     * revisão ou outra peça). Sem isso o custo é o BÁSICO — combustível e o que
+     * paga pelo veículo — e fica um pouco abaixo do real; o app mostra a etiqueta.
+     */
+    val custoCompleto: Boolean
+        get() = (trocaOleoCentavos > 0 && intervaloOleoKm > 0) ||
+            (jogoPneusCentavos > 0 && duracaoPneusKm > 0) ||
+            (revisaoCentavos > 0 && intervaloRevisaoKm > 0) ||
+            (outrosDesgasteCentavos > 0 && outrosDesgasteKm > 0)
+
+    /**
+     * O que falta para o assistente rápido (a camada obrigatória) fechar a conta.
+     * Vazio = pronto. Em português, para a tela mostrar como está.
+     */
+    fun faltaNoBasico(): List<String> = buildList {
+        if (tipoVeiculo.usaCombustivel) {
+            if (consumoX100 <= 0) add("o consumo (${combustivel.unidade})")
+            if (precoLitroCentavos <= 0) add("o preço do combustível")
+        }
+        if (forma == FormaAquisicao.FINANCIADO && parcelaMensalCentavos <= 0) add("a parcela do mês")
+        if (forma == FormaAquisicao.ALUGADO && aluguelMensalCentavos <= 0) add("o aluguel do mês")
+        if (kmPorDia <= 0) add("quantos km roda por dia")
+        if (horasPorDia <= 0) add("quantas horas roda por dia")
+        if (metaLucroMensalCentavos <= 0) add("quanto quer ganhar limpo por hora")
+    }
+
     /**
      * Os custos fixos que viram linha na lista do Início (rateada por dia
      * trabalhado). Só os de valor fixo no mês — combustível e manutenção
@@ -180,7 +230,7 @@ object CalculadoraCusto {
         // consumoX100 = km por litro × 100. Elétrico e GNV usam a mesma conta,
         // trocando litro por kWh ou m³ — a matemática é idêntica.
         val consumo = d.consumoX100 / 100.0
-        if (consumo > 0 && d.precoLitroCentavos > 0) {
+        if (d.tipoVeiculo.usaCombustivel && consumo > 0 && d.precoLitroCentavos > 0) {
             itens += "Combustível" to (kmMes / consumo) * d.precoLitroCentavos
         }
 
@@ -288,19 +338,21 @@ object CalculadoraCusto {
         faixa("Km por dia", d.kmPorDia, 10, 800, "10 a 800 km")
 
         val consumoMax = if (d.tipoVeiculo == TipoVeiculo.MOTO) 6000L else 2500L
-        if (d.consumoX100 > 0 && (d.consumoX100 < 150 || d.consumoX100 > consumoMax)) {
+        if (d.tipoVeiculo.usaCombustivel && d.consumoX100 > 0 && (d.consumoX100 < 150 || d.consumoX100 > consumoMax)) {
             lista += Aviso(
                 "Consumo médio",
                 "Consumo fora do comum para ${d.tipoVeiculo.rotulo.lowercase()} " +
                     "(normal: 1,5 a ${consumoMax / 100} ${d.combustivel.unidade})."
             )
         }
-        if (d.precoLitroCentavos > 0 && (d.precoLitroCentavos < 100 || d.precoLitroCentavos > 2_000)) {
+        if (d.tipoVeiculo.usaCombustivel && d.precoLitroCentavos > 0 &&
+            (d.precoLitroCentavos < 100 || d.precoLitroCentavos > 2_000)
+        ) {
             lista += Aviso("Preço por litro", "Preço fora do comum (normal: R$ 1,00 a R$ 20,00).")
         }
         // Não existe carro nem moto de trabalho abaixo de R$ 2.000: quase sempre
         // é um zero que ficou para trás (R$ 1.500 em vez de R$ 15.000).
-        if (d.valorVeiculoCentavos in 1..199_999) {
+        if (d.tipoVeiculo != TipoVeiculo.BIKE && d.valorVeiculoCentavos in 1..199_999) {
             lista += Aviso("Valor do veículo", "Valor abaixo de R$ 2.000 — confira se não faltou um zero.")
         }
         if (d.horasPorDia !in 1..18) {

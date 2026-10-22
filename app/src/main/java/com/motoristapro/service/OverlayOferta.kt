@@ -208,6 +208,7 @@ class OverlayOferta(private val context: Context) {
             append("Lucro ${moedaInteira(a.lucroPorHoraReais)}/h · meta ${moedaInteira(a.alvoPorHoraReais)}/h")
             if (a.tempoPeloKm) append(" · tempo pelo km")
             if (a.estimado) append(" · estimado")
+            if (regua?.custoBasico == true) append(" · custo básico")
         }
     }
 

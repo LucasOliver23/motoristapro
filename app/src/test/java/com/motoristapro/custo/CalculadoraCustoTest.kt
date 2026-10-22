@@ -273,4 +273,66 @@ class CalculadoraCustoTest {
         )
         assertTrue(semNada.custosFixosDoMes().isEmpty())
     }
+
+    // ---------------------------------------------------------- 4.17: rápido e bike
+
+    private val basicoMoto = DadosCusto(
+        tipoVeiculo = TipoVeiculo.MOTO, consumoX100 = 3500, precoLitroCentavos = 630,
+        kmPorDia = 150, horasPorDia = 10, diasPorSemana = 6
+    )
+
+    @Test
+    fun faltaNoBasico_listaOQueFalta() {
+        val falta = DadosCusto(tipoVeiculo = TipoVeiculo.MOTO, horasPorDia = 10).faltaNoBasico()
+        assertTrue(falta.any { it.contains("consumo") })
+        assertTrue(falta.any { it.contains("preço") })
+        assertTrue(falta.any { it.contains("km") })
+        assertTrue(falta.any { it.contains("limpo por hora") })
+    }
+
+    @Test
+    fun faltaNoBasico_completoComMeta() {
+        assertTrue(basicoMoto.comMetaPorHora(2500).faltaNoBasico().isEmpty())
+    }
+
+    @Test
+    fun faltaNoBasico_financiadoPedeAParcela() {
+        val d = basicoMoto.copy(forma = FormaAquisicao.FINANCIADO).comMetaPorHora(2500)
+        assertTrue(d.faltaNoBasico().any { it.contains("parcela") })
+    }
+
+    @Test
+    fun bike_naoPedeCombustivel_eNaoCobra() {
+        val bike = DadosCusto(
+            tipoVeiculo = TipoVeiculo.BIKE, consumoX100 = 3500, precoLitroCentavos = 630,
+            kmPorDia = 60, horasPorDia = 8
+        ).comMetaPorHora(2000)
+        assertTrue(bike.faltaNoBasico().isEmpty())
+        val r = CalculadoraCusto.calcular(bike)
+        assertEquals(0L, r.custoPorKmCentavos)          // consumo esquecido de antes não entra
+        assertTrue(r.avisos.none { it.campo == "Consumo médio" })
+    }
+
+    @Test
+    fun metaPorHora_idaEVolta() {
+        val d = basicoMoto.comMetaPorHora(2500)
+        // 25 × 10 h × 26 dias (6 × 4,33) = 6.495,00 por mês
+        assertEquals(649_500L, d.metaLucroMensalCentavos)
+        assertEquals(2500L, d.metaLimpaHoraCentavos)
+    }
+
+    @Test
+    fun custoCompleto_soComAlgumDesgaste() {
+        assertFalse(basicoMoto.custoCompleto)
+        assertTrue(basicoMoto.copy(trocaOleoCentavos = 4000, intervaloOleoKm = 1000).custoCompleto)
+        assertFalse(basicoMoto.copy(trocaOleoCentavos = 4000).custoCompleto)   // sem o km não fecha
+    }
+
+    @Test
+    fun tipoVeiculo_doTextoDoBanco() {
+        assertEquals(TipoVeiculo.BIKE, TipoVeiculo.de("BIKE"))
+        assertEquals(null, TipoVeiculo.de("PATINETE"))
+        assertEquals("a bike", TipoVeiculo.BIKE.nomeComArtigo)
+        assertEquals("o carro", TipoVeiculo.CARRO.nomeComArtigo)
+    }
 }

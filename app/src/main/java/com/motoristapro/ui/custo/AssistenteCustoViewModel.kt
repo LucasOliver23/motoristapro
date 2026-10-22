@@ -140,36 +140,56 @@ class AssistenteCustoViewModel(
         val r = _estado.value.resultado ?: return
         val d = _estado.value.dados
         viewModelScope.launch {
-            runCatching {
-                val cfg = repo.obterConfiguracao()
-                repo.salvarConfiguracao(
-                    cfg.copy(
-                        custoKmCentavos = r.custoPorKmCentavos,
-                        tarifaMinimaCentavos = r.tarifaMinimaPorKmCentavos,
-                        // O assistente e a UNICA porta de entrada destes dados:
-                        // a tela "Meu veiculo e custos" so mostra o que sai daqui.
-                        veiculoNome = d.veiculoNome.takeIf { it.isNotBlank() } ?: cfg.veiculoNome,
-                        consumoKmLx100 = d.consumoX100.takeIf { it > 0 } ?: cfg.consumoKmLx100,
-                        precoLitroCentavos = d.precoLitroCentavos.takeIf { it > 0 }
-                            ?: cfg.precoLitroCentavos,
-                        metaLucroMensalCentavos = d.metaLucroMensalCentavos
-                            .takeIf { it > 0 } ?: cfg.metaLucroMensalCentavos,
-                        // Diaria e semanal saem da mensal: uma meta so, sem se contradizer.
-                        metaLucroDiarioCentavos = d.metaLucroDiarioCentavos
-                            .takeIf { it > 0 } ?: cfg.metaLucroDiarioCentavos,
-                        metaLucroSemanalCentavos = d.metaLucroSemanalCentavos
-                            .takeIf { it > 0 } ?: cfg.metaLucroSemanalCentavos,
-                        diasTrabalhoMes = Math.round(d.diasPorMes).toInt().coerceIn(1, 31)
-                    )
-                )
-                // Seguro, IPVA, parcela e depreciacao viram linhas da lista de
-                // custos fixos, que e o que o Inicio desconta do lucro do dia.
-                repo.substituirCustosFixosDoAssistente(d.custosFixosDoMes())
-                // As horas do assistente passam a valer na meta por hora.
-                prefs?.definirHorasPorDia(d.horasPorDia)
-                aoAplicar()
-            }
+            aplicar(d, r)
             _estado.value = _estado.value.copy(aplicado = true)
+        }
+    }
+
+    /**
+     * Assistente rápido (a camada obrigatória, 4.17): grava a meta por hora,
+     * calcula e já aplica — sem a tela de resultado no meio. Os avisos de valor
+     * estranho a tela rápida mostra antes, enquanto o motorista digita.
+     */
+    fun concluirRapido(metaHoraCentavos: Long, aoTerminar: () -> Unit) {
+        val d = _estado.value.dados.comMetaPorHora(metaHoraCentavos)
+        val r = CalculadoraCusto.calcular(d)
+        _estado.value = _estado.value.copy(dados = d)
+        viewModelScope.launch {
+            runCatching { repo.salvarPerfilCusto(d.paraEntidade()) }
+            aplicar(d, r)
+            aoTerminar()
+        }
+    }
+
+    private suspend fun aplicar(d: DadosCusto, r: ResultadoCusto) {
+        runCatching {
+            val cfg = repo.obterConfiguracao()
+            repo.salvarConfiguracao(
+                cfg.copy(
+                    custoKmCentavos = r.custoPorKmCentavos,
+                    tarifaMinimaCentavos = r.tarifaMinimaPorKmCentavos,
+                    // O assistente e a UNICA porta de entrada destes dados:
+                    // a tela "Meu veiculo e custos" so mostra o que sai daqui.
+                    veiculoNome = d.veiculoNome.takeIf { it.isNotBlank() } ?: cfg.veiculoNome,
+                    consumoKmLx100 = d.consumoX100.takeIf { it > 0 } ?: cfg.consumoKmLx100,
+                    precoLitroCentavos = d.precoLitroCentavos.takeIf { it > 0 }
+                        ?: cfg.precoLitroCentavos,
+                    metaLucroMensalCentavos = d.metaLucroMensalCentavos
+                        .takeIf { it > 0 } ?: cfg.metaLucroMensalCentavos,
+                    // Diaria e semanal saem da mensal: uma meta so, sem se contradizer.
+                    metaLucroDiarioCentavos = d.metaLucroDiarioCentavos
+                        .takeIf { it > 0 } ?: cfg.metaLucroDiarioCentavos,
+                    metaLucroSemanalCentavos = d.metaLucroSemanalCentavos
+                        .takeIf { it > 0 } ?: cfg.metaLucroSemanalCentavos,
+                    diasTrabalhoMes = Math.round(d.diasPorMes).toInt().coerceIn(1, 31)
+                )
+            )
+            // Seguro, IPVA, parcela e depreciacao viram linhas da lista de
+            // custos fixos, que e o que o Inicio desconta do lucro do dia.
+            repo.substituirCustosFixosDoAssistente(d.custosFixosDoMes())
+            // As horas do assistente passam a valer na meta por hora.
+            prefs?.definirHorasPorDia(d.horasPorDia)
+            aoAplicar()
         }
     }
 

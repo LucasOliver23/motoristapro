@@ -167,7 +167,7 @@ private fun CartaoDoVeiculo(
     val context = LocalContext.current
     val foto = remember(v.id) { FotoVeiculo.carregar(context, v.id)?.asImageBitmap() }
     val forma = RoundedCornerShape(16.dp)
-    val moto = v.tipo != TipoVeiculo.CARRO.name
+    val tipo = TipoVeiculo.de(v.tipo) ?: TipoVeiculo.MOTO
     Row(
         Modifier.fillMaxWidth().clip(forma).background(Superficie)
             .border(2.dp, if (ativo) Lima else Color.Transparent, forma)
@@ -180,7 +180,7 @@ private fun CartaoDoVeiculo(
             contentAlignment = Alignment.Center
         ) {
             if (foto != null) Image(foto, null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
-            else Icon(if (moto) Icones.Moto else Icones.Carro, null, tint = Lima, modifier = Modifier.size(34.dp))
+            else Icon(Icones.doVeiculo(tipo), null, tint = Lima, modifier = Modifier.size(34.dp))
         }
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -195,7 +195,7 @@ private fun CartaoDoVeiculo(
             }
             Text(
                 listOfNotNull(
-                    if (moto) "Moto" else "Carro",
+                    tipo.rotulo,
                     km?.let { "${it.kmPainel()} km" },
                     v.custoKmCentavos.takeIf { it > 0 }?.let { "${it.emReais()}/km" }
                 ).joinToString(" · "),
@@ -226,7 +226,7 @@ private fun VeiculoDialog(
     onApagar: (Long) -> Unit
 ) {
     var nome by rememberSaveable { mutableStateOf(inicial?.nome.orEmpty()) }
-    var carro by rememberSaveable { mutableStateOf(inicial?.tipo == TipoVeiculo.CARRO.name) }
+    var tipo by rememberSaveable { mutableStateOf(TipoVeiculo.de(inicial?.tipo) ?: TipoVeiculo.MOTO) }
     var custo by rememberSaveable {
         mutableStateOf(inicial?.custoKmCentavos?.takeIf { it > 0 }?.let { String.format(java.util.Locale("pt", "BR"), "%.2f", it / 100.0) }.orEmpty())
     }
@@ -242,12 +242,12 @@ private fun VeiculoDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(false to "🏍️ Moto", true to "🚗 Carro").forEach { (ehCarro, rotulo) ->
-                        val ativo = carro == ehCarro
+                    TipoVeiculo.entries.forEach { t ->
+                        val ativo = tipo == t
                         Text(
-                            rotulo,
+                            t.rotulo,
                             modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(if (ativo) Lima else SuperficieAlta)
-                                .clickable { carro = ehCarro }.padding(horizontal = 12.dp, vertical = 7.dp),
+                                .clickable { tipo = t }.padding(horizontal = 12.dp, vertical = 7.dp),
                             color = if (ativo) Color(0xFF0D1117) else TextoSecundario,
                             style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold
                         )
@@ -258,7 +258,9 @@ private fun VeiculoDialog(
                     "Custo por km (R$)", custo, { custo = it.filter { c -> c.isDigit() || c == ',' || c == '.' } },
                     ajuda = "Se não souber, deixe vazio e use o assistente de custo com este veículo ativo"
                 )
-                CampoFormulario("Consumo (km/L)", consumo, { consumo = it.filter { c -> c.isDigit() || c == ',' || c == '.' } })
+                if (tipo.usaCombustivel) {
+                    CampoFormulario("Consumo (km/L)", consumo, { consumo = it.filter { c -> c.isDigit() || c == ',' || c == '.' } })
+                }
             }
         },
         confirmButton = {
@@ -267,9 +269,9 @@ private fun VeiculoDialog(
                 onSalvar(
                     base.copy(
                         nome = nome.trim(),
-                        tipo = if (carro) TipoVeiculo.CARRO.name else TipoVeiculo.MOTO.name,
+                        tipo = tipo.name,
                         custoKmCentavos = custoCentavos,
-                        consumoKmLx100 = consumoX100
+                        consumoKmLx100 = if (tipo.usaCombustivel) consumoX100 else 0
                     )
                 )
             }) { Text("Salvar", color = Lima) }
