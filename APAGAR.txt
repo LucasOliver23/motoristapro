@@ -1,44 +1,55 @@
-APAGADO NESTA VERSAO (5.0.0)
+APAGADO NESTA VERSAO (5.1.0)
 ============================
 
-Fonte Space Grotesk (o app agora usa so a Inter):
-  app/src/main/res/font/space_grotesk_bold.ttf
-  app/src/main/res/font/space_grotesk_medium.ttf
+Arquivo renomeado (o Checkup virou Copiloto):
+  app/src/main/java/com/motoristapro/ui/mais/CheckupScreen.kt
+  -> app/src/main/java/com/motoristapro/ui/mais/CopilotoScreen.kt
+  (se copiar os arquivos a mao, APAGUE o CheckupScreen.kt antigo)
 
 O banco continua na versao 14 (sem migracao).
 
-Visual novo (5.0): a "cara de app gerado" saiu
-- Icone do app: o MEDIDOR (desenho aprovado em mockups/icone-app.html):
-  meio circulo branco no preto, o ponteiro entrando na faixa verde.
-  As notificacoes (resumo, oferta, turno, manutencao, leitor caido)
-  ganharam o mesmo medidor no lugar dos icones genericos do Android.
-- Cores: preto absoluto #000000, cartoes #121212 / #1c1c1e. A COR so
-  aparece quando significa algo: verde #00d084 e lucro e ACEITAR,
-  amarelo e atencao, vermelho e prejuizo e RECUSAR. Botoes, aba aberta,
-  selecao e icones usam o DESTAQUE: branco no escuro, preto no claro.
-  (O azul claro #4CC9F0, o verde neon, a turquesa e o grafite azulado do
-  GitHub sairam.) Cartao da oferta, bolha, painel, cartao do resumo e o
-  widget seguiram a mesma regra.
-- Icones: Material Symbols Rounded (os do Android, Maps e Waze; licenca
-  Apache 2.0), copiados so os que o app usa. Na barra de abas a aberta vem
-  preenchida e as outras em contorno.
-- Fonte: so a Inter; os numeros grandes em Inter ExtraBold com algarismos
-  de largura fixa (o valor nao "pula" quando atualiza).
-- Sem emoji na interface: no Menu, no cartao (ACEITAR / ATENCAO / RECUSAR
-  sem simbolo), nas notificacoes, na manutencao e nos avisos. Onde o
-  emoji fazia papel de icone entrou o icone de verdade.
-- O tema claro continua (Ajustes > tema), com a mesma regra: destaque
-  preto e verde mais fechado para o lucro.
+Painel de instrumento (5.1), nos mockups aprovados:
+  mockups/painel-telas.html, mockups/copiloto-bolha.html, mockups/corridas-logos.html
+
+- Regra estrita de cor: so cores solidas sobre preto absoluto #000000.
+  Verde #00E676 = lucro alto, meta batida, aceitar.
+  Amarelo #FFD600 = atencao, alerta, ganho medio.
+  Vermelho #FF1744 = prejuizo, recusar, encerrar.
+  Cinza #8E8E93 = texto de apoio; #1C1C1E = fundo dos cartoes.
+  Os 5 degrades que sobravam e o brilho do anel do turno sairam.
+- Numeros em JetBrains Mono (licenca OFL), a letra do painel aprovado.
+- Copiloto (era o Checkup): cada autorizacao com o porque e a tecla
+  "Liberar" no que falta: leitor, aparecer sobre outros apps, bateria,
+  inicio automatico (so "Abrir": o Android nao deixa conferir),
+  notificacoes, leitura por imagem e localizacao. No topo, "X de Y
+  prontos" em segmentos.
+- Inicio: o "LEITOR ON" virou o selo "COPILOTO OK" (verde), "COPILOTO 5/6"
+  (amarelo) ou "LEITOR DESLIGADO" (vermelho). Toque abre o Copiloto.
+  Atalhos Semaforo / Veiculo / Copiloto.
+- Bolha: redonda, lucro do dia em reais, tempo de turno e o anel da meta
+  (amarelo ate bater, verde depois). Toque abre o painel; segurar le a
+  tela; arrastar muda de lugar.
+- Painel da bolha: lucro, meta em segmentos, leitor/turno/voz e as acoes
+  Pausar turno / Retomar turno (ou Iniciar turno), Registrar corrida,
+  Ler a tela agora, Ligar a voz, Abrir o app e Encerrar turno (pede um
+  segundo toque em ate 4 s para confirmar).
+- Corridas: logo de cada app no filtro (borda verde no escolhido) e em
+  cada corrida, com a faixa da esquerda na cor da decisao.
+- O cartao da oferta NAO mudou.
 
 Arquivos novos:
-  app/src/main/res/drawable/ic_notificacao.xml
-  mockups/icone-app.html, mockups/previa-icone-app.png
+  app/src/main/java/com/motoristapro/ui/mais/Copiloto.kt
+  app/src/main/java/com/motoristapro/ui/componentes/Painel.kt
+  app/src/main/java/com/motoristapro/service/IconeOverlay.kt
+  app/src/main/res/font/jetbrainsmono_bold.ttf
+  app/src/main/res/font/jetbrainsmono_extrabold.ttf
 
 Arquivos alterados (principais):
-  app/build.gradle.kts (5.0.0 / 101)
-  app/src/main/res/drawable/ic_launcher_foreground.xml, ic_launcher_background.xml
-  app/src/main/res/drawable/widget_*.xml, layout/widget_lucro.xml
-  app/src/main/java/com/motoristapro/ui/theme/Tema.kt
-  app/src/main/java/com/motoristapro/ui/componentes/Icones.kt (todos os icones)
-  app/src/main/java/com/motoristapro/ui/AppRaiz.kt (aba aberta preenchida)
-  e as telas onde havia cor fixa ou emoji (ver o diff do commit)
+  app/build.gradle.kts (5.1.0 / 102)
+  ui/theme/Tema.kt, ui/dashboard/DashboardScreen.kt, ui/mais/MaisScreen.kt,
+  ui/mais/SubTela.kt, ui/corridas/CorridasScreen.kt, ui/NavegacaoRapida.kt,
+  service/PainelBolha.kt, service/BolhaFlutuante.kt,
+  service/OfertaAccessibilityService.kt
+
+LEMBRETE: todo merge na main precisa subir o versionCode, senao o
+celular nao enxerga a atualizacao.

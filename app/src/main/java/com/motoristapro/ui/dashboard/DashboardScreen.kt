@@ -1,5 +1,10 @@
 package com.motoristapro.ui.dashboard
 
+import com.motoristapro.ui.componentes.SeloEstado
+import com.motoristapro.ui.mais.lerCopiloto
+import com.motoristapro.ui.mais.EstadoCopiloto
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.compose.runtime.mutableIntStateOf
 import com.motoristapro.ui.theme.VerdeLucro
 import com.motoristapro.ui.manutencao.DadosKm
 import com.motoristapro.custo.TipoVeiculo
@@ -99,9 +104,7 @@ import com.motoristapro.ui.NavegacaoRapida
 import com.motoristapro.ui.mais.AtalhoRedondo
 import com.motoristapro.ui.mais.SubTela
 import com.motoristapro.ui.componentes.Icones
-import com.motoristapro.ui.theme.AzulInfo
 import com.motoristapro.ui.theme.EstiloValor
-import com.motoristapro.ui.theme.Roxo
 import com.motoristapro.ui.theme.SuperficieAlta
 import com.motoristapro.ui.theme.TextoPrincipal
 import com.motoristapro.ui.theme.Turquesa
@@ -139,6 +142,14 @@ fun DashboardRoute(
     val manutencao by vm.manutencaoChegando.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
+    // O selo do cabeçalho (5.1): relido a cada volta ao app, porque o motorista
+    // libera as autorizações fora dele, nas Configurações do Android.
+    var releitura by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        releitura++
+        onPauseOrDispose { }
+    }
+    val copiloto = remember(releitura, leitorOk) { contexto.lerCopiloto(leitorOk) }
 
 
     // Relógio para o cronômetro do turno (1 s).
@@ -204,13 +215,15 @@ fun DashboardRoute(
     }
 
     // O cabeçalho fala com a pessoa, não com o app: "Olá, Lucas" e, do lado, o
-    // único aviso que importa estar sempre visível — se o leitor está lendo.
+    // único aviso que importa estar sempre visível — se o Copiloto está pronto.
     val primeiroNome = estado.config.nomeMotorista?.trim()?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() }
     TelaAba(
         titulo = if (primeiroNome != null) "Olá, $primeiroNome" else "Olá, motorista",
         subtitulo = estado.dia.format(FORMATO_DIA).replaceFirstChar { it.uppercase() },
         snackbar = snackbar,
-        acoes = { PastilhaLeitor(leitorOk, onTestar = vm::testarLeitor) }
+        acoes = {
+            SeloCopiloto(copiloto, Modifier.padding(end = 10.dp)) { irParaAjuste(SubTela.COPILOTO, irPara) }
+        }
     ) { padding ->
         when {
             estado.carregando -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
@@ -246,13 +259,19 @@ fun DashboardRoute(
                     BlocoAtalho(Icones.Semaforo, "Semáforo", AmareloAlerta, Modifier.weight(1f)) {
                         irParaAjuste(SubTela.SEMAFORO, irPara)
                     }
-                    BlocoAtalho(Icones.Veiculo, "Veículo", AzulInfo, Modifier.weight(1f)) {
+                    BlocoAtalho(Icones.Veiculo, "Veículo", TextoPrincipal, Modifier.weight(1f)) {
                         irParaAjuste(SubTela.VEICULO, irPara)
                     }
                     BlocoAtalho(
-                        Icones.Checkup, "Checkup", if (leitorOk) Roxo else VermelhoPrejuizo, Modifier.weight(1f)
+                        Icones.Copiloto, "Copiloto",
+                        when {
+                            !copiloto.leitor -> VermelhoPrejuizo
+                            copiloto.tudoPronto -> VerdeLucro
+                            else -> AmareloAlerta
+                        },
+                        Modifier.weight(1f)
                     ) {
-                        irParaAjuste(SubTela.CHECKUP, irPara)
+                        irParaAjuste(SubTela.COPILOTO, irPara)
                     }
                 }
 
@@ -529,28 +548,19 @@ private fun QuatroNumeros(e: DashboardUiState) {
     }
 }
 
+/**
+ * O selo do cabeçalho (5.1, no lugar do "LEITOR ON"): verde "COPILOTO OK" com
+ * tudo liberado, amarelo com quantas autorizações estão prontas, vermelho sem o
+ * leitor. Toque abre o Copiloto, onde se libera o que falta.
+ */
 @Composable
-private fun PastilhaLeitor(conectado: Boolean, onTestar: () -> Unit) {
-    val cor = if (conectado) Lima else AmareloAlerta
-    Surface(
-        shape = RoundedCornerShape(99.dp),
-        color = cor.copy(alpha = 0.16f),
-        modifier = Modifier.padding(end = 10.dp).clickable { onTestar() }
-    ) {
-        Row(
-            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Surface(shape = CircleShape, color = cor, modifier = Modifier.size(8.dp)) {}
-            Text(
-                if (conectado) "LEITOR ON" else "LEITOR OFF",
-                style = MaterialTheme.typography.labelSmall,
-                color = cor,
-                fontWeight = FontWeight.Bold
-            )
-        }
+private fun SeloCopiloto(estado: EstadoCopiloto, modifier: Modifier, onClick: () -> Unit) {
+    val (texto, cor) = when {
+        !estado.leitor -> "LEITOR DESLIGADO" to VermelhoPrejuizo
+        estado.tudoPronto -> "COPILOTO OK" to VerdeLucro
+        else -> "COPILOTO ${estado.prontos}/${estado.total}" to AmareloAlerta
     }
+    SeloEstado(texto, cor, modifier, onClick)
 }
 
 @Composable

@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -47,13 +46,12 @@ import com.motoristapro.ui.theme.TextoSecundario
  * mesma língua e uma mudança de estilo é feita num lugar só.
  */
 
-/** O cartão principal de cada tela: o número que importa, com um brilho azul em cima. */
+/** O cartão principal de cada tela: o número que importa, em cor sólida (sem degradê). */
 @Composable
 fun CartaoDestaque(modifier: Modifier = Modifier, conteudo: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
             .background(Superficie)
-            .background(Brush.linearGradient(listOf(Lima.copy(alpha = 0.10f), Color.Transparent)))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
         content = conteudo

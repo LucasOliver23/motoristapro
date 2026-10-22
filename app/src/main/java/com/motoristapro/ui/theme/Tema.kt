@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.motoristapro.R
 
 /**
- * Paleta (5.0): preto absoluto em três camadas (escuro) ou branco em três camadas
+ * Paleta (5.0, cores da regra estrita na 5.1): preto absoluto em três camadas (escuro) ou branco em três camadas
  * (claro). A COR só aparece quando significa alguma coisa: verde é lucro e
  * "aceitar", amarelo é atenção, vermelho é prejuízo e "recusar". Botões, abas,
  * seleção e ícones usam o DESTAQUE, que é branco no escuro e preto no claro.
@@ -34,9 +34,9 @@ import com.motoristapro.R
 // ninguém mexer em tela nenhuma. Estas constantes são a origem do tema escuro.
 
 val FundoApp = Color(0xFF000000)
-val FundoCard = Color(0xFF121212)
-val VermelhoDespesa = Color(0xFFFF5252)
-val FundoBotaoEscuro = Color(0xFF1C1C1E)
+val FundoCard = Color(0xFF1C1C1E)
+val VermelhoDespesa = Color(0xFFFF1744)
+val FundoBotaoEscuro = Color(0xFF2C2C2E)
 
 private class Paleta(
     /** Verde do lucro e do "aceitar". Só para dinheiro e decisão. */
@@ -63,25 +63,26 @@ private class Paleta(
 )
 
 private val ESCURA = Paleta(
-    // Padrão do Oliver: preto absoluto, cartões #121212 / #1c1c1e, verde #00d084
-    // — e o verde só no dinheiro e na decisão; o resto é branco.
-    lucro = Color(0xFF00D084),
+    // Regra estrita (5.1): cores sólidas sobre preto absoluto. Verde #00E676 só
+    // para lucro alto e meta batida, amarelo #FFD600 para atenção, vermelho
+    // #FF1744 para prejuízo e recusar; cartões #1C1C1E, texto de apoio #8E8E93.
+    lucro = Color(0xFF00E676),
     destaque = Color(0xFFFFFFFF),
     destaqueEscuro = Color(0xFFBDBDBD),
     sobreDestaque = Color(0xFF000000),
     prejuizo = VermelhoDespesa,
-    alerta = Color(0xFFFFC94D),
+    alerta = Color(0xFFFFD600),
     info = Color(0xFF7AA7E0),
     turquesa = Color(0xFFE5E5E5),
     roxo = Color(0xFFB79BE8),
     fundo = FundoApp,
     superficie = FundoCard,
     superficieAlta = FundoBotaoEscuro,
-    superficieMaisAlta = Color(0xFF2C2C2E),
+    superficieMaisAlta = Color(0xFF3A3A3C),
     textoPrincipal = Color(0xFFFFFFFF),
-    textoSecundario = Color(0xFF9A9A9A),
-    // Contorno quase do tom do cartão: separa sem desenhar moldura.
-    contorno = Color(0xFF262626),
+    textoSecundario = Color(0xFF8E8E93),
+    // Contorno um tom acima do cartão: separa sem desenhar moldura.
+    contorno = Color(0xFF2C2C2E),
     uber = Color(0xFFFFFFFF)
 )
 
@@ -302,15 +303,16 @@ val FonteTexto = FontFamily(
 )
 
 /**
- * Fonte dos números grandes (lucro do dia, valor da oferta): a mesma Inter (5.0),
- * em ExtraBold. Uma fonte só no app inteiro; a Space Grotesk saiu.
+ * Fonte dos números (lucro do dia, valor, R$/km): JetBrains Mono (5.1, licença
+ * OFL), a letra de painel aprovada. Monoespaçada de fábrica: o valor não "pula"
+ * de lado quando um dígito muda.
  */
 val FonteNumeros = FontFamily(
-    Font(R.font.inter_bold, FontWeight.Bold),
-    Font(R.font.inter_extrabold, FontWeight.ExtraBold)
+    Font(R.font.jetbrainsmono_bold, FontWeight.Bold),
+    Font(R.font.jetbrainsmono_extrabold, FontWeight.ExtraBold)
 )
 
-/** Estilo pronto para um valor de destaque: Inter ExtraBold, algarismos de largura fixa. */
+/** Estilo pronto para um valor de destaque: JetBrains Mono ExtraBold, algarismos de largura fixa. */
 val EstiloValor = TextStyle(
     fontFamily = FonteNumeros,
     fontWeight = FontWeight.ExtraBold,

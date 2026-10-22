@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -36,7 +35,6 @@ import com.motoristapro.ui.theme.Contorno
 import com.motoristapro.ui.theme.Lima
 import com.motoristapro.ui.theme.SuperficieAlta
 import com.motoristapro.ui.theme.TextoSecundario
-import com.motoristapro.ui.theme.Turquesa
 
 /**
  * O relógio do turno, em anel.
@@ -82,18 +80,8 @@ fun AnelJornada(
             )
             if (fracao <= 0f) return@Canvas
 
-            // Brilho: o mesmo arco, grosso e transparente, desenhado por baixo.
             drawArc(
-                color = cor.copy(alpha = 0.22f),
-                startAngle = -90f,
-                sweepAngle = 360f * fracao,
-                useCenter = false,
-                topLeft = canto,
-                size = tamanho,
-                style = Stroke(width = traco * 2.1f, cap = StrokeCap.Round)
-            )
-            drawArc(
-                brush = Brush.linearGradient(listOf(cor, if (passouDoNormal) cor else Turquesa)),
+                color = cor,
                 startAngle = -90f,
                 sweepAngle = 360f * fracao,
                 useCenter = false,

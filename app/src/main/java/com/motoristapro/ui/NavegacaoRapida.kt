@@ -32,6 +32,12 @@ object NavegacaoRapida {
     val iniciarJornadaPedido = MutableStateFlow(false)
 
     /**
+     * "Abra o formulário de corrida nova assim que Corridas aparecer" — vem do
+     * "Registrar corrida" do painel da bolha. Quem lê zera.
+     */
+    val novaCorridaPedida = MutableStateFlow(false)
+
+    /**
      * Imagem que chegou pelo "Compartilhar" (WhatsApp, Galeria): o Menu abre o
      * "Testar com print" já com ela. Quem lê zera.
      */

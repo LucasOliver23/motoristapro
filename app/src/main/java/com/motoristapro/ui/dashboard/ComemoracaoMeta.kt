@@ -35,7 +35,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -106,7 +105,6 @@ fun ComemoracaoMeta(
     ) {
         Box(
             Modifier.fillMaxSize().background(Fundo)
-                .background(Brush.radialGradient(listOf(VerdeLucro.copy(alpha = 0.18f), Color.Transparent)))
         ) {
             Confete(Modifier.fillMaxSize())
             Column(

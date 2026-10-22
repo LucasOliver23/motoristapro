@@ -3,7 +3,7 @@ package com.motoristapro.ui.mais
 /**
  * As telas que a lista do "Mais" abre.
  *
- * Desde a 4.18 o Menu mostra só 8 (perfil, leitor, veículos, metas, checkup,
+ * Desde a 4.18 o Menu mostra só 8 (perfil, leitor, veículos, metas, copiloto,
  * conta, assinatura e ajustes); as outras abrem de dentro delas ([pai]).
  * Melhores horários, Comparar apps e Relatório do mês moram na aba Atividade
  * (continuam aqui para os atalhos antigos funcionarem).
@@ -14,7 +14,7 @@ enum class SubTela(val titulo: String) {
     // Faixas e estilo do cartão viraram uma tela só: os dois são o semáforo —
     // um decide a cor, o outro decide o que o cartão mostra dentro dela.
     SEMAFORO("Semáforo de valores"),
-    CHECKUP("Checkup do app"),
+    COPILOTO("Copiloto"),
     RISCO("Endereços de risco"),
     LEITOR("Leitor de ofertas"),
     TESTE_PRINT("Testar com print"),
