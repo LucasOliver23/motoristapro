@@ -759,20 +759,9 @@ class OfertaAccessibilityService : AccessibilityService() {
     }
 
     private fun escolher(textos: List<String>, pacote: String): Achado? {
-        // inDrive tem leitor proprio: a tela de lista mostra uma duzia de ofertas
-        // de uma vez (o leitor comum faria um Frankenstein) e os botoes de
-        // contraproposta tem valores MAIORES que o da corrida.
-        if (pacote == OfertaInDrive.PACOTE) {
-            val oferta = OfertaInDrive.extrair(textos, listaInDriveValida()) ?: return null
-            return Achado(oferta, pacote, 1)
-        }
-
-        // Corrida de passageiro sempre mostra minutos; entrega (99 Entrega Food, iFood)
-        // muitas vezes mostra só "Distância total X km" — aí aceitamos sem o tempo.
-        val exigirTempo = pacote != PACOTE_IFOOD && !OfertaParser.pareceEntrega(textos)
-        val ofertas = OfertaParser.extrairVarias(textos, exigirTempo = exigirTempo)
-        val melhor = ofertas.maxByOrNull { it.reaisPorKm } ?: return null
-        return Achado(melhor, pacote, ofertas.size)
+        // A regra mora em EscolhaOferta: o "Testar com print" usa a mesma.
+        val e = EscolhaOferta.escolher(textos, pacote, listaInDriveValida()) ?: return null
+        return Achado(e.oferta, pacote, e.total)
     }
 
     /**
@@ -1031,6 +1020,27 @@ class OfertaAccessibilityService : AccessibilityService() {
         voz?.falar(o, classe, alerta)
     }
 
+    /**
+     * "Testar com print" ▸ "Ver no cartão": a oferta lida do print no cartão
+     * de verdade, por 8 segundos. Não entra no histórico nem fala.
+     * false = leitor desligado (o cartão mora nele).
+     */
+    fun mostrarOfertaDoPrint(o: Oferta, pacote: String?): Boolean {
+        val ov = overlay ?: return false
+        val lim = limites ?: return false
+        val classe = lim.classificar(o, tarifaMinimaCentavos, custoKmCentavos)
+        val sugestao = if (pacote == OfertaInDrive.PACOTE) {
+            lim.valorParaFicarBoa(o, tarifaMinimaCentavos, custoKmCentavos)
+        } else {
+            null
+        }
+        ov.mostrar(
+            o, classe, custoKmCentavos, duracaoMs = 8_000,
+            alertaRisco = risco?.alerta(o.enderecos), sugestao = sugestao
+        )
+        return true
+    }
+
     companion object {
         private const val TAG = "MotoristaPro"
         private const val DEBOUNCE_MS = 120L
@@ -1079,7 +1089,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         /** Loga todos os textos lidos (para calibrar as Regex). Mude para false na versão final. */
         val LOG_TEXTOS = com.motoristapro.BuildConfig.DEBUG
 
-        const val PACOTE_IFOOD = "br.com.ifood.driver.app"
+        const val PACOTE_IFOOD = EscolhaOferta.PACOTE_IFOOD
 
         /** Mantenha em sincronia com android:packageNames em accessibility_service_config.xml. */
         /**

@@ -31,6 +31,12 @@ object NavegacaoRapida {
      */
     val iniciarJornadaPedido = MutableStateFlow(false)
 
+    /**
+     * Imagem que chegou pelo "Compartilhar" (WhatsApp, Galeria): o Menu abre o
+     * "Testar com print" já com ela. Quem lê zera.
+     */
+    val printCompartilhado = MutableStateFlow<android.net.Uri?>(null)
+
     fun pedir(indice: Int) {
         abaPedida.value = indice
     }

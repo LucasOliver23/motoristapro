@@ -1,28 +1,44 @@
-NADA PARA APAGAR NESTA VERSAO (4.14.1)
+NADA PARA APAGAR NESTA VERSAO (4.15.0)
 ======================================
 
 Nenhum arquivo removido. O banco continua na versao 14 (sem migracao nova).
 
-Leitor mais leve:
-- A leitura da arvore de acessibilidade (todas as janelas, ate 1500 nos)
-  saiu da thread principal: roda numa thread propria ("leitor-varredura").
-  So o resultado volta para a principal (cartao, historico). Com o mapa
-  mexendo, a bolha e o cartao nao travam mais a cada leitura. Eventos que
-  chegam durante uma leitura viram uma leitura so, logo em seguida.
+Testar com print (Menu > Leitor de ofertas > Testar com print):
+- Escolha o print de uma oferta (galeria) e o app de onde ele veio
+  (Uber, 99, iFood, inDrive ou "Nao sei"). O print passa pela MESMA regra
+  do leitor e a tela mostra ACEITAR / ATENCAO / RECUSAR, os numeros
+  (valor, km, tempo, R$/km, R$/hora, lucro, nota, paradas) e, quando nao
+  le, o motivo em uma frase.
+- O print e lido duas vezes: so a parte de baixo (igual o leitor faz na
+  rua) e a imagem inteira. Se so a inteira achou a oferta, a tela avisa.
+- "Ver no cartao de verdade": mostra a oferta lida no cartao flutuante por
+  8 segundos (precisa do leitor ligado). Nao entra no historico.
+- "Copiar textos": copia o que o leitor leu, com os enderecos trocados por
+  "Rua Exemplo N, 100" (e CEP), para mandar e virar teste automatico.
+- Do WhatsApp ou da Galeria: abra a foto > Compartilhar > MotoristaPro.
+  O app abre direto no Testar com print com a imagem.
+- Funciona sem o leitor ligado e sem conta no app do print.
 
-Teste da migracao do banco:
-- MigracaoBancoTest (Robolectric): monta um banco v13 de verdade, abre com a
-  MIGRATION_13_14 e deixa o Room conferir tabela por tabela. Se uma migracao
-  futura esquecer coluna, DEFAULT ou chave, o "Verificar build" fica
-  vermelho antes do APK chegar no celular.
-
-Aviso "parado ha 30 min":
-- Com a jornada rodando (nao pausada) e o GPS sem sair de um raio de 100 m
-  por 30 min, chega uma notificacao com "Pausar" e "Encerrar turno". Uma vez
-  por parada; some sozinha ao andar. "Pausar" comeca a pausa de quando
-  parou, entao o tempo parado nao conta como hora rodada.
+Por dentro:
+- A escolha da oferta (qual oferta vale numa tela) saiu do
+  OfertaAccessibilityService para EscolhaOferta: o leitor e o teste usam
+  a mesma conta. O recorte da imagem e a ordem das linhas do OCR viraram
+  funcoes do LeitorOcr usadas pelos dois.
 
 Arquivos novos:
-  app/src/main/java/com/motoristapro/jornada/VigiaParado.kt
-  app/src/test/java/com/motoristapro/jornada/VigiaParadoTest.kt
-  app/src/test/java/com/motoristapro/data/MigracaoBancoTest.kt
+  app/src/main/java/com/motoristapro/service/EscolhaOferta.kt
+  app/src/main/java/com/motoristapro/service/LeituraDePrint.kt
+  app/src/main/java/com/motoristapro/service/OcrDoPrint.kt
+  app/src/main/java/com/motoristapro/ui/mais/TestarPrintScreen.kt
+  app/src/test/java/com/motoristapro/service/LeituraDePrintTest.kt
+
+Arquivos alterados:
+  app/build.gradle.kts (4.15.0 / 95)
+  app/src/main/AndroidManifest.xml (receber imagem pelo Compartilhar)
+  app/src/main/java/com/motoristapro/service/LeitorOcr.kt
+  app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
+  app/src/main/java/com/motoristapro/ui/MainActivity.kt
+  app/src/main/java/com/motoristapro/ui/NavegacaoRapida.kt
+  app/src/main/java/com/motoristapro/ui/mais/LeitorScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/SubTela.kt

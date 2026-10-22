@@ -70,7 +70,10 @@ class MainActivity : ComponentActivity() {
         PreferenciaTema.carregar(this)
         super.onCreate(savedInstanceState)
         // Só na primeira abertura: ao girar a tela o pedido do widget não repete.
-        if (savedInstanceState == null) atenderWidget(intent)
+        if (savedInstanceState == null) {
+            atenderWidget(intent)
+            atenderPrint(intent)
+        }
         setContent {
             // Os icones da status bar acompanham o tema: claros no escuro, escuros no claro.
             val escuro = temaEscuro
@@ -97,6 +100,20 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         atenderWidget(intent)
+        atenderPrint(intent)
+    }
+
+    /** Print compartilhado de outro app: abre o Menu ▸ Testar com print com ele. */
+    private fun atenderPrint(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND || intent.type?.startsWith("image/") != true) return
+        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        } ?: return
+        NavegacaoRapida.printCompartilhado.value = uri
+        NavegacaoRapida.pedirSubTela("TESTE_PRINT", Aba.MAIS.ordinal)
     }
 
     /** Botão "Iniciar jornada" do widget: vai para o Início e pede o turno. */

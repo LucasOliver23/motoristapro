@@ -2,7 +2,7 @@
 
 App Android para **motorista e entregador de aplicativo** (Uber, 99, iFood e inDrive) que lê a oferta de corrida na tela, mostra na hora se ela compensa — com o custo real do veículo — e controla o dia de trabalho: lucro, jornada, metas, km, manutenção e relatórios.
 
-Versão atual: **4.14.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
+Versão atual: **4.15.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targetSdk 35) · Kotlin + Jetpack Compose.
 
 ---
 
@@ -29,6 +29,7 @@ Versão atual: **4.14.0** (banco de dados v14) · Android 8.0+ (minSdk 26, targe
 | Área | Recursos |
 |---|---|
 | **Leitor de ofertas** | Lê a oferta na tela da Uber, 99, iFood e inDrive (texto e, quando o app esconde o texto, **imagem/OCR**). Cartão flutuante com R$/km, R$/h, lucro e a etiqueta **ACEITAR / ATENÇÃO / RECUSAR**. Também lê **foto de oferta** aberta no WhatsApp, Facebook, Instagram, Telegram e Galeria. |
+| **Testar com print** | Escolha (ou compartilhe do WhatsApp/Galeria) o print de uma oferta da Uber, 99, iFood ou inDrive: passa pela mesma regra do leitor e mostra a etiqueta, os números e, se não leu, o porquê. "Copiar textos" troca os endereços para o print virar teste automático. |
 | **Semáforo** | Faixas de R$/km, R$/hora e nota do passageiro, valor mínimo e lucro mínimo. A faixa de R$/hora pode vir da **meta por hora**. |
 | **Registro de corridas** | Botão "Registrar" no cartão e na notificação; leitura da tela **Detalhes da corrida** da 99 (valor final, já com o pacote 0%); registro manual. |
 | **Jornada** | Cronômetro do turno, km pelo GPS, pausas, tempo por estado e por app. Pergunta o **km do painel** ao iniciar e ao encerrar (pega o uso fora do app). |
