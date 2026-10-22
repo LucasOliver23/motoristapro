@@ -316,4 +316,51 @@ class OfertaParserTest {
         assertEquals(4.8, o.nota!!, 0.001)
         assertEquals("Estação Prefeito Saladino Tamanduateí 4, Santo André", o.enderecos.last())
     }
+
+    /** Print real da Uber Envios Moto (Testar com print, Xiaomi). Um trecho só e nota "* 5,00 (41)". */
+    @Test
+    fun uber_enviosMoto_printReal() {
+        val textos = listOf(
+            "Envios Moto", "X", "R$ 4,96", "* 5,00 (41)", "O 19 min (10.9 km)", "BR-",
+            "Rua Exemplo 1, 100", "- Bairro Exemplo, Cidade -", "Rua Exemplo 2, 100",
+            "Rua Exemplo 3, 100", "Bairro Exemplo, Cidade", "Aceitar", "Ab"
+        )
+        val o = OfertaParser.extrair(textos)!!
+        assertEquals(4.96, o.valor, 0.001)
+        assertEquals(10.9, o.km, 0.001)
+        assertEquals(19, o.minutos)
+        assertEquals(5.0, o.nota!!, 0.001)
+        assertTrue(OfertaParser.pareceEntrega(textos))
+    }
+
+    /** Uber Envios mostrando só o km: entrega, então não exige o tempo. */
+    @Test
+    fun uber_envios_semMinutos_lidoPelaRegraDeEntrega() {
+        val textos = listOf("Envios Moto", "R$ 9,80", "Distância 6,2 km", "Aceitar")
+        assertTrue(OfertaParser.pareceEntrega(textos))
+        val e = EscolhaOferta.escolher(textos, "com.ubercab.driver")!!
+        assertEquals(9.80, e.oferta.valor, 0.001)
+        assertEquals(6.2, e.oferta.km, 0.001)
+        assertEquals(0, e.oferta.minutos)
+    }
+
+    /** Print real do iFood com coleta no mercado (Testar com print, Xiaomi). O OCR leu "Fntrena". */
+    @Test
+    fun ifood_coletaNoMercado_printReal() {
+        val textos = listOf(
+            "COIMBRA", "2 Fntrena 2", "Coleta 1 • Mercado", "Entrega 1", "Campina",
+            "Americanas | 24 de", "Outubro", "R$ 15,75", "Rota para Moto Baú", "Distância total",
+            "8,5 km", "43 min", "Tempo aproximado de rota", "Possibilidade de devolução", "Sim",
+            "Rejeitar", "Aceitar", "70"
+        )
+        val e = EscolhaOferta.escolher(textos, EscolhaOferta.PACOTE_IFOOD)!!
+        val o = e.oferta
+        assertEquals(15.75, o.valor, 0.001)
+        assertEquals(8.5, o.km, 0.001)
+        assertEquals(43, o.minutos)
+        assertEquals(1.85, o.reaisPorKm, 0.01)
+        assertEquals(21.98, o.reaisPorHora, 0.01)
+        assertTrue(o.devolucao)
+        assertEquals(1, e.total)
+    }
 }

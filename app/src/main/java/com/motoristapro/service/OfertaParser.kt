@@ -146,10 +146,10 @@ object OfertaParser {
         return null
     }
 
-    // Telas de ENTREGA (99 Entrega Food, iFood, Uber Flash): muitas não mostram minutos,
+    // Telas de ENTREGA (99 Entrega Food, iFood, Uber Flash/Envios): muitas não mostram minutos,
     // só o valor e a distância total. Nessas o tempo deixa de ser obrigatório.
     private val RE_ENTREGA = Regex(
-        """entrega\s*food|dist[âa]ncia\s+total|tipo\s+de\s+pedido|\bcoleta\b|restaurante|\bflash\b|entrega\s*\(\d""",
+        """entrega\s*food|dist[âa]ncia\s+total|tipo\s+de\s+pedido|\bcoleta\b|restaurante|\bflash\b|\benvios?\b|entrega\s*\(\d""",
         RegexOption.IGNORE_CASE
     )
 
