@@ -21,6 +21,17 @@ enum class CampoCartao(val chave: String, val rotulo: String, val explicacao: St
     companion object {
         fun porChave(c: String): CampoCartao? = entries.firstOrNull { it.chave == c }
 
+        /**
+         * Cartão único (4.19): os números saem do TIPO da corrida, não de uma
+         * escolha do motorista. Passageiro: lucro, R$/km e R$/hora (a nota entra
+         * se faltar um). Entrega (paradas ou sem tempo no card): lucro, R$/km e
+         * paradas (a distância entra se faltar um). O que a oferta não tem
+         * (lucro sem custo, nota que a tela não mostrou) dá a vez ao seguinte.
+         */
+        fun daOferta(o: Oferta): List<CampoCartao> =
+            if (o.paradas > 0 || o.minutos <= 0) listOf(LUCRO, REAIS_KM, PARADAS, DISTANCIA)
+            else listOf(LUCRO, REAIS_KM, REAIS_HORA, NOTA)
+
         /** O que vem marcado de fábrica, na ordem em que aparece. */
         // Os 4 números do cartão branco (4.8): valor, tempo e km já vão na linha de cima.
         val PADRAO = listOf(REAIS_KM, REAIS_HORA, NOTA, LUCRO_PCT)
@@ -96,7 +107,7 @@ data class ConfigCartao(
      * os que esta oferta tem (sem minutos não há R$/hora; sem custo, não há lucro).
      */
     fun numeros(o: Oferta, custoKmCentavos: Long): List<NumeroCartao> =
-        campos.mapNotNull { campo ->
+        CampoCartao.daOferta(o).mapNotNull { campo ->
             val v: String? = when (campo) {
                 CampoCartao.REAIS_KM -> num(o.reaisPorKm, 2)
                 CampoCartao.REAIS_HORA -> if (o.minutos > 0) num(o.reaisPorHora, 0) else null
@@ -111,7 +122,7 @@ data class ConfigCartao(
                 CampoCartao.PARADAS -> if (o.paradas > 1) "${o.paradas}" else null
             }
             v?.let { NumeroCartao(campo, rotuloCurto(campo), it) }
-        }.take(4)
+        }.take(3)
 
     private fun num(v: Double, casas: Int): String? =
         if (v.isFinite()) String.format(PT, "%.${casas}f", v) else null
@@ -168,7 +179,7 @@ data class ConfigCartao(
      * campo, o cartão só consegue pintar tudo de uma cor só.
      */
     fun camposComValor(o: Oferta, custoKmCentavos: Long): List<Pair<CampoCartao, String>> =
-        campos.mapNotNull { campo ->
+        CampoCartao.daOferta(o).mapNotNull { campo ->
             val texto = when (campo) {
                 CampoCartao.REAIS_KM -> moeda(o.reaisPorKm) + "/km"
                 CampoCartao.REAIS_HORA -> if (o.minutos > 0) moeda(o.reaisPorHora) + "/h" else null
@@ -219,16 +230,20 @@ class EstiloCartao(context: Context) {
             ?.mapNotNull { CampoCartao.porChave(it.trim()) }
             ?.distinct()
             ?.takeIf { it.isNotEmpty() }
+        // 4.19: cartão único. O desenho é sempre o escuro com a borda na cor da
+        // decisão; da escolha antiga ficam tamanho, posição, tempo, botões e a
+        // paleta para daltônico (a "Azul do app" volta para a clássica).
+        val paleta = enumOu(KEY_PALETA, padrao.paleta) { PaletaCartao.valueOf(it) }
         return ConfigCartao(
             campos = salvos ?: padrao.campos,
-            tema = enumOu(KEY_TEMA, padrao.tema) { TemaCartao.valueOf(it) },
+            tema = TemaCartao.ESCURO,
             tamanho = enumOu(KEY_TAMANHO, padrao.tamanho) { TamanhoCartao.valueOf(it) },
             posicao = enumOu(KEY_POSICAO, padrao.posicao) { PosicaoCartao.valueOf(it) },
-            opacidade = prefs.getInt(KEY_OPACIDADE, padrao.opacidade).coerceIn(40, 100),
+            opacidade = 100,
             segundosNaTela = prefs.getInt(KEY_SEGUNDOS, padrao.segundosNaTela).coerceIn(5, 60),
-            mostrarApp = prefs.getBoolean(KEY_APP, padrao.mostrarApp),
-            avisoEmDestaque = prefs.getBoolean(KEY_AVISO, padrao.avisoEmDestaque),
-            paleta = enumOu(KEY_PALETA, padrao.paleta) { PaletaCartao.valueOf(it) },
+            mostrarApp = padrao.mostrarApp,
+            avisoEmDestaque = true,
+            paleta = if (paleta == PaletaCartao.DALTONICO) PaletaCartao.DALTONICO else PaletaCartao.CLASSICA,
             botoes = prefs.getBoolean(KEY_BOTOES, padrao.botoes)
         )
     }

@@ -1,44 +1,29 @@
-APAGADO NESTA VERSAO (4.18.0)
-=============================
+NADA PARA APAGAR NESTA VERSAO (4.19.0)
+======================================
 
-Radar de eventos saiu do app (dependia de cadastrar a mao os eventos de
-cada cidade; sem isso a tela ficava vazia). Volta so com fonte automatica.
-Arquivos apagados (estao no historico do Git, ate a 4.17.0):
-  app/src/main/java/com/motoristapro/radar/  (RadarEventos, Evento, AvisoEvento)
-  app/src/main/java/com/motoristapro/ui/mais/RadarScreen.kt
-  app/src/test/java/com/motoristapro/radar/CalculoRadarTest.kt
-Avisos de evento que ja estavam marcados no celular nao chegam mais (o
-WorkManager so registra que nao achou o trabalho). A regra da colecao
-"eventos" no firestore.rules ficou, sem uso.
+Nenhum arquivo removido. O banco continua na versao 14 (sem migracao).
 
-O banco continua na versao 14 (sem migracao).
-
-Menu em 8 entradas
-- Perfil, Leitor de ofertas, Meus veiculos, Suas metas, Checkup do app,
-  Conta e nuvem, Minha assinatura e Ajustes (novo).
-- Leitor de ofertas: o estado do leitor e, embaixo, Semaforo, Aparencia
-  do cartao, Notificacao da corrida e Aviso por voz (chaves), Enderecos de
-  risco, App de navegacao e o Pacote 0% (so aparece para quem rodou 99 nos
-  ultimos 60 dias ou ja tem o pacote ligado). Bolha e leitura por imagem
-  continuam como chaves no topo.
-- Meus veiculos: a lista e, do veiculo ativo, Custos e assistente e
-  Manutencao. O aviso de manutencao chegando aparece na linha do Menu.
-- Conta e nuvem: nuvem e, embaixo, Backup e planilhas (sem login, so o
-  backup).
-- Ajustes: tema, Resumo do dia as 22h e Versao do app.
-- Voltar de uma tela de dentro leva para a de cima (ex.: Semaforo volta
-  para Leitor de ofertas), nao direto para o Menu.
-
-Aba Atividade
-- Melhores horarios, Comparar apps e Relatorio do mes (PDF) abrem ali
-  mesmo, por cima da aba, sem pular para o Menu. O atalho de Financas para
-  o Relatorio do mes continua funcionando.
+Cartao unico (opinativo)
+- Um desenho so: o cartao escuro com a borda e a etiqueta na cor da
+  decisao (ACEITAR / ATENCAO / RECUSAR). Os temas Branco, Colorido e Claro
+  sairam da tela (o codigo ainda desenha, mas ninguem escolhe mais).
+- Os numeros saem do TIPO da corrida, nao de uma lista escolhida:
+    passageiro: lucro, R$/km e R$/hora (a nota entra se faltar um)
+    entrega (paradas ou sem tempo no card): lucro, R$/km e paradas
+    (a distancia entra se faltar um)
+  Embaixo continua a linha "Lucro R$ X/h · meta R$ Y/h" da regua.
+- Aparencia do cartao (Menu > Leitor de ofertas) agora tem so: tamanho da
+  letra, onde aparece, tempo na tela, cores para daltonico, botoes no
+  cartao e voltar ao padrao.
+- Quem ja usava: ficam tamanho, posicao, tempo, botoes e a paleta para
+  daltonico. A paleta "Azul do app" volta para a classica. A lista de
+  numeros escolhida, o tema, a transparencia e as faixas de destaque
+  deixam de valer.
 
 Arquivos alterados:
   README.md
-  app/build.gradle.kts (4.18.0 / 99)
-  app/src/main/java/com/motoristapro/MotoristaApp.kt
+  app/build.gradle.kts (4.19.0 / 100)
+  app/src/main/java/com/motoristapro/service/EstiloCartao.kt
+  app/src/main/java/com/motoristapro/service/OverlayOferta.kt (comentario)
+  app/src/main/java/com/motoristapro/ui/mais/EstiloCartaoScreen.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/MaisViewModel.kt
-  app/src/main/java/com/motoristapro/ui/mais/SubTela.kt
-  app/src/main/java/com/motoristapro/ui/relatorios/RelatoriosScreen.kt
