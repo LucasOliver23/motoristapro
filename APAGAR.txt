@@ -1,3 +1,23 @@
+APAGADO NESTA VERSAO (5.1.3)
+============================
+
+Nada apagado. O banco continua na versao 14 (sem migracao).
+
+Cartao da oferta: os botoes Registrar / Embarque / Destino agora vem
+LIGADOS por padrao. Quem ja tinha mexido em Aparencia do cartao estava
+com eles desligados gravados: o app liga UMA vez para todo mundo, e
+depois disso a escolha do motorista (Menu > Aparencia do cartao > Botoes)
+manda. "Restaurar padrao" tambem deixa ligado.
+
+(A proposta 5.2.0 com Aceitei / Recusei foi descartada: o Registrar ja
+resolve. O mockup continua em mockups/cartao-aceitei.html.)
+
+Arquivos alterados:
+  app/build.gradle.kts (5.1.3 / 105)
+  app/src/main/java/com/motoristapro/service/EstiloCartao.kt
+
+------------------------------------------------------------------
+
 APAGADO NESTA VERSAO (5.1.2)
 ============================
 
