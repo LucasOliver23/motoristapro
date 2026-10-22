@@ -1,3 +1,25 @@
+APAGADO NESTA VERSAO (5.1.2)
+============================
+
+Nada apagado. O banco continua na versao 14 (sem migracao).
+
+Inicio igual ao mockup aprovado (mockups/copiloto-bolha.html, 1a tela):
+- Medidor grande: o lucro de hoje no meio de um arco de 270 graus que
+  enche com a meta (amarelo ate bater, verde depois) e "75% de R$ 250".
+- RITMO (lucro por hora de turno, verde se bate a meta por hora, amarelo
+  se nao) e FALTA (quanto falta e a que horas termina no ritmo).
+- Os 4 numeros: corridas, km, tempo rodando e aceite.
+  (Faturamento e despesas do dia continuam em Financas.)
+- Turno: luz verde/amarela, "Turno rodando - 6:02", GPS e veiculo, e a
+  tecla Pausar / Retomar / Iniciar. "Encerrar turno" embaixo, em vermelho.
+- Atalhos com o nome em branco.
+
+Arquivos alterados:
+  app/build.gradle.kts (5.1.2 / 104)
+  app/src/main/java/com/motoristapro/ui/dashboard/DashboardScreen.kt
+
+------------------------------------------------------------------
+
 APAGADO NESTA VERSAO (5.1.1)
 ============================
 
