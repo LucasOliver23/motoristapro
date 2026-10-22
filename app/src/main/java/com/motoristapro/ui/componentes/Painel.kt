@@ -5,12 +5,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -50,8 +52,12 @@ fun Tecla(
     tamanhoTexto: Int = 15,
     onClick: () -> Unit
 ) {
+    // A largura vem do TEXTO (IntrinsicSize.Max), a não ser que quem chama peça
+    // fillMaxWidth. Sem isto, dentro de uma linha o botão engolia a largura toda
+    // e espremia o texto ao lado até sumir (5.1.1, a linha do Copiloto).
     Box(
-        modifier.heightIn(min = 48.dp).height(altura).clip(RoundedCornerShape(12.dp)).background(borda)
+        modifier.width(IntrinsicSize.Max).heightIn(min = 48.dp).height(altura)
+            .clip(RoundedCornerShape(12.dp)).background(borda)
             .clickable { onClick() }
     ) {
         Row(
