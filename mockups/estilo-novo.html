@@ -1,0 +1,73 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Estilo novo</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0b0b0b;color:#fff;font-family:Inter,system-ui,Arial,sans-serif;padding:24px 16px}
+main{max-width:1180px;margin:0 auto}h1{font-size:24px;margin:0 0 6px}p.int{color:#9a9a9a;margin:0 0 18px;line-height:1.45}
+.lado{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}.col h2{font-size:17px;margin:0 0 4px}.col p{color:#9a9a9a;font-size:13px;margin:0 0 12px;line-height:1.4;min-height:54px}
+.fone{width:340px;height:720px;border-radius:36px;overflow:hidden;position:relative;margin:0 auto;padding:22px 18px 0;border:8px solid #222}
+.tabs{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;padding:10px 6px 14px}.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px}
+small{font-size:10px;letter-spacing:.06em}
+/* A: painel */
+.A{background:#050505;font-variant-numeric:tabular-nums}.A .topo{display:flex;justify-content:space-between;color:#8a8a8a;font-size:12px}.A .hora{color:#fff;font-weight:700}
+.A .gauge{position:relative;display:flex;justify-content:center;margin-top:6px}.A .centro{position:absolute;top:66px;text-align:center}.A .centro small{color:#8a8a8a}
+.A .centro b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em;margin:2px 0}.A .centro span{color:#8a8a8a;font-size:12px}
+.A .faixas{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#1d1d1d;border:1px solid #1d1d1d;border-radius:14px;overflow:hidden;margin-top:4px}
+.A .faixas div{background:#0d0d0d;padding:12px}.A .faixas small{color:#8a8a8a;display:block}.A .faixas b{font-size:20px;display:block;margin:3px 0}.A .faixas span{color:#6b6b6b;font-size:11px}.A .v{color:#00D084}
+.A .grade4{display:grid;grid-template-columns:repeat(4,1fr);margin-top:12px;border-top:1px solid #1d1d1d;border-bottom:1px solid #1d1d1d}
+.A .grade4 div{padding:12px 0;text-align:center;border-right:1px solid #1d1d1d}.A .grade4 div:last-child{border:0}.A .grade4 b{display:block;font-size:17px}.A .grade4 small{color:#6b6b6b;letter-spacing:0}
+.A .turno{display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px;border:1px solid #1d1d1d;border-radius:14px}.A .ponto{width:9px;height:9px;border-radius:50%;background:#00D084;box-shadow:0 0 0 4px rgba(0,208,132,.18)}
+.A .turno div{flex:1}.A .turno b{display:block;font-size:14px}.A .turno small{color:#6b6b6b;letter-spacing:0}.A button{background:#fff;color:#000;border:0;border-radius:10px;padding:8px 12px;font-weight:700}
+.A .ta{background:#050505;border-top:1px solid #161616}
+/* B: editorial claro */
+.B{background:#F4F2EE;color:#111;font-variant-numeric:tabular-nums}.B .topo{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#6b6b6b}
+.B .av{width:32px;height:32px;border-radius:50%;background:#111;color:#fff;display:grid;place-items:center;font-weight:700}
+.B .rot{display:block;margin-top:26px;color:#6b6b6b;font-size:12px;letter-spacing:0}.B .enorme{font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1.05;margin:2px 0 14px}
+.B .barra{height:6px;background:#e2ded6;border-radius:99px;overflow:hidden}.B .barra i{display:block;height:100%;background:#111}
+.B .sub{display:flex;justify-content:space-between;font-size:12px;color:#6b6b6b;margin:6px 0 16px}
+.B .linha{display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid #e2ded6;font-size:15px}.B .linha b{font-weight:700}.B .v{color:#047857}.B .r{color:#B91C1C}
+.B .quatro{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.B .quatro div{background:#fff;border-radius:14px;padding:12px 8px}.B .quatro b{display:block;font-size:18px}.B .quatro small{color:#6b6b6b;letter-spacing:0}
+.B .turno{display:flex;align-items:center;gap:8px;margin-top:14px;background:#111;color:#fff;border-radius:18px;padding:14px}.B .turno div{flex:1}.B .turno small{color:#9a9a9a}.B .turno b{display:block;font-size:16px}
+.B button{background:#fff;color:#111;border:0;border-radius:12px;padding:9px 12px;font-weight:700}.B button.esc{background:#2a2a2a;color:#fff}
+.B .tb{background:#F4F2EE;border-top:1px solid #e2ded6}
+/* C: gradiente e vidro */
+.C{background:radial-gradient(120% 70% at 20% 0%,#0f6b4a 0%,#06301f 40%,#050807 75%);font-variant-numeric:tabular-nums}
+.C .topo{display:flex;justify-content:space-between;align-items:center}.C .ola{font-size:15px;font-weight:600}.C .av{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);display:grid;place-items:center;font-weight:700}
+.C .hero{margin-top:22px}.C .hero small{color:rgba(255,255,255,.7);font-size:12px;letter-spacing:0}.C .hero b{display:block;font-size:46px;font-weight:800;letter-spacing:-.03em;margin:4px 0 10px}
+.C .pill{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:99px;padding:6px 12px;font-size:12px}
+.C .barra{height:6px;background:rgba(255,255,255,.12);border-radius:99px;margin-top:14px;overflow:hidden}.C .barra i{display:block;height:100%;background:linear-gradient(90deg,#00D084,#7CFFCB)}
+.C .bento{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.C .bento div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:14px;backdrop-filter:blur(8px)}
+.C .b1{grid-column:span 2}.C .bento small{color:rgba(255,255,255,.65);font-size:11px;letter-spacing:0}.C .bento b{display:block;font-size:22px;font-weight:800;margin-top:4px}.C .b1 b{font-size:30px}.C .b1 b span{font-size:15px;opacity:.7}
+.C .b1 em{font-style:normal;font-size:12px;color:#7CFFCB}
+.C .turno{display:flex;align-items:center;gap:10px;margin-top:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:12px}.C .turno b{flex:1;font-size:14px}
+.C .ponto{width:9px;height:9px;border-radius:50%;background:#7CFFCB}.C button{background:#fff;color:#06301f;border:0;border-radius:12px;padding:8px 12px;font-weight:700}
+.C .tc{background:rgba(5,8,7,.85);border-top:1px solid rgba(255,255,255,.08)}
+@media (max-width:1100px){.lado{grid-template-columns:1fr}}
+</style></head><body><main>
+<h1>Tela Início em 3 estilos novos</h1><p class="int">Os mesmos números nos três (lucro, meta, ritmo por hora, os 4 números do dia e o turno). Muda o desenho, não o conteúdo. Sem a pastilha "LEITOR ON" no topo.</p>
+<div class="lado">
+<div class="col"><h2>A · Painel de instrumento</h2><p>O lucro dentro de um medidor, igual ao ícone do app. Números grandes em grade, linhas finas, cara de painel de carro. Preto, e o verde só no que bate a meta.</p><div class="fone A"><div class="topo"><span class="hora">14:32</span><span class="dia">Quarta, 22 out</span></div>
+<div class="gauge"><svg viewBox="0 0 220 170" width="260"><path d="M33.8 154.0 A88 88 0 1 1 186.2 154.0" stroke="#1f2a24" stroke-width="14" fill="none" stroke-linecap="round"/>
+<path d="M33.8 154.0 A88 88 0 0 1 186.2 66.0" stroke="#00D084" stroke-width="14" fill="none" stroke-linecap="round"/>
+<line x1="23.4" y1="160.0" x2="18.2" y2="163.0" stroke="#3a3a3a" stroke-width="2"/><line x1="10.0" y1="110.0" x2="4.0" y2="110.0" stroke="#3a3a3a" stroke-width="2"/><line x1="23.4" y1="60.0" x2="18.2" y2="57.0" stroke="#3a3a3a" stroke-width="2"/><line x1="60.0" y1="23.4" x2="57.0" y2="18.2" stroke="#3a3a3a" stroke-width="2"/><line x1="110.0" y1="10.0" x2="110.0" y2="4.0" stroke="#3a3a3a" stroke-width="2"/><line x1="160.0" y1="23.4" x2="163.0" y2="18.2" stroke="#3a3a3a" stroke-width="2"/><line x1="196.6" y1="60.0" x2="201.8" y2="57.0" stroke="#3a3a3a" stroke-width="2"/><line x1="210.0" y1="110.0" x2="216.0" y2="110.0" stroke="#3a3a3a" stroke-width="2"/><line x1="196.6" y1="160.0" x2="201.8" y2="163.0" stroke="#3a3a3a" stroke-width="2"/>
+</svg><div class="centro"><small>LUCRO HOJE</small><b>R$ 186,40</b><span>75% da meta de R$ 250</span></div></div>
+<div class="faixas"><div><small>RITMO</small><b class="v">R$ 31/h</b><span>meta R$ 25/h</span></div><div><small>FALTA</small><b>R$ 63,60</b><span>~2h no ritmo</span></div></div>
+<div class="grade4"><div><b>14</b><small>corridas</small></div><div><b>162</b><small>km</small></div><div><b>6h02</b><small>rodando</small></div><div><b>38%</b><small>aceite</small></div></div>
+<div class="turno"><span class="ponto"></span><div><b>Turno rodando · 6h02</b><small>GPS ligado · moto Fan 160</small></div><button>Pausar</button></div>
+<nav class="tabs ta"><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00D084" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span style="color:#00D084">Início</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#6b6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg><span style="color:#6b6b6b">Corridas</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#6b6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3zM3 11h18"/></svg><span style="color:#6b6b6b">Finanças</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#6b6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span style="color:#6b6b6b">Atividade</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#6b6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span style="color:#6b6b6b">Menu</span></div></nav></div></div>
+<div class="col"><h2>B · Editorial claro</h2><p>Fundo creme, número gigante, listas com linhas finas, turno num bloco preto. Parecido com o jeito que a própria Uber desenha. Lê bem no sol.</p><div class="fone B"><div class="topo"><span class="dia">Quarta, 22 de outubro</span><span class="av">L</span></div>
+<small class="rot">Lucro de hoje</small><div class="enorme">R$ 186,40</div>
+<div class="barra"><i style="width:75%"></i></div><div class="sub"><span>75% da meta</span><span>meta R$ 250</span></div>
+<div class="linha"><span>Ritmo agora</span><b class="v">R$ 31/h</b></div>
+<div class="linha"><span>Sua meta por hora</span><b>R$ 25/h</b></div>
+<div class="linha"><span>Gastos do dia</span><b class="r">− R$ 42,10</b></div>
+<div class="quatro"><div><b>14</b><small>corridas</small></div><div><b>162</b><small>km</small></div><div><b>6h02</b><small>rodando</small></div><div><b>38%</b><small>aceite</small></div></div>
+<div class="turno"><div><small>TURNO</small><b>6h02 rodando</b></div><button>Pausar</button><button class="esc">Encerrar</button></div>
+<nav class="tabs tb"><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span style="color:#111">Início</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9a9a9a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg><span style="color:#9a9a9a">Corridas</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9a9a9a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3zM3 11h18"/></svg><span style="color:#9a9a9a">Finanças</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9a9a9a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span style="color:#9a9a9a">Atividade</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9a9a9a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span style="color:#9a9a9a">Menu</span></div></nav></div></div>
+<div class="col"><h2>C · Gradiente e vidro</h2><p>Fundo verde-escuro em degradê, cartões de vidro de tamanhos diferentes (bento). Mais "app de banco moderno", chama atenção. Usa mais cor do que a regra que você aprovou.</p><div class="fone C"><div class="topo"><span class="ola">Boa tarde, Lucas</span><span class="av">L</span></div>
+<div class="hero"><small>Lucro líquido hoje</small><b>R$ 186,40</b>
+<div class="pill">75% da meta · faltam R$ 63,60</div>
+<div class="barra"><i style="width:75%"></i></div></div>
+<div class="bento"><div class="b1"><small>Ritmo agora</small><b>R$ 31<span>/h</span></b><em>acima da meta de R$ 25</em></div>
+<div class="b2"><small>Corridas</small><b>14</b></div><div class="b3"><small>Km</small><b>162</b></div>
+<div class="b4"><small>Rodando</small><b>6h02</b></div><div class="b5"><small>Aceite</small><b>38%</b></div></div>
+<div class="turno"><span class="ponto"></span><b>Turno rodando · 6h02</b><button>Pausar</button></div>
+<nav class="tabs tc"><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span style="color:#fff">Início</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg><span style="color:rgba(255,255,255,.45)">Corridas</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3zM3 11h18"/></svg><span style="color:rgba(255,255,255,.45)">Finanças</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span style="color:rgba(255,255,255,.45)">Atividade</span></div><div class="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span style="color:rgba(255,255,255,.45)">Menu</span></div></nav></div></div>
+</div></main></body></html>
