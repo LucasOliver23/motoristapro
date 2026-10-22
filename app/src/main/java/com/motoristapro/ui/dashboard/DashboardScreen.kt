@@ -101,7 +101,6 @@ import com.motoristapro.ui.componentes.BotaoProEscuro
 import com.motoristapro.ui.componentes.BotaoPro
 import com.motoristapro.ui.componentes.CardPro
 import com.motoristapro.ui.NavegacaoRapida
-import com.motoristapro.ui.mais.AtalhoRedondo
 import com.motoristapro.ui.mais.SubTela
 import com.motoristapro.ui.componentes.Icones
 import com.motoristapro.ui.theme.EstiloValor
