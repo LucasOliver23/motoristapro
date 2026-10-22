@@ -98,8 +98,11 @@ data class ConfigCartao(
     /** A faixa com ACEITAR / ATENÇÃO / RECUSAR em cima do cartão. */
     val avisoEmDestaque: Boolean = true,
     val paleta: PaletaCartao = PaletaCartao.CLASSICA,
-    /** Botões Registrar / Embarque / Destino no cartão (desligado: cartão compacto). */
-    val botoes: Boolean = false
+    /**
+     * Botões Registrar / Embarque / Destino no cartão. Ligado por padrão (5.1.3):
+     * sem o Registrar a corrida aceita não entra em Corridas.
+     */
+    val botoes: Boolean = true
 ) {
 
     /**
@@ -224,6 +227,12 @@ class EstiloCartao(context: Context) {
         if (!prefs.getBoolean(KEY_CAMPOS_48, false)) {
             prefs.edit().remove(KEY_CAMPOS).putBoolean(KEY_CAMPOS_48, true).apply()
         }
+        // 5.1.3: os botões (Registrar / Embarque / Destino) ligam uma vez para todo
+        // mundo — quem já tinha mexido na Aparência ficou com "desligado" gravado.
+        // Depois disso a escolha do motorista manda.
+        if (!prefs.getBoolean(KEY_BOTOES_513, false)) {
+            prefs.edit().putBoolean(KEY_BOTOES, true).putBoolean(KEY_BOTOES_513, true).apply()
+        }
         val padrao = ConfigCartao()
         val salvos = prefs.getString(KEY_CAMPOS, null)
             ?.split(",")
@@ -264,7 +273,8 @@ class EstiloCartao(context: Context) {
     }
 
     fun restaurarPadrao(): ConfigCartao {
-        prefs.edit().clear().putBoolean(KEY_NOVO_APLICADO, true).putBoolean(KEY_CAMPOS_48, true).apply()
+        prefs.edit().clear().putBoolean(KEY_NOVO_APLICADO, true).putBoolean(KEY_CAMPOS_48, true)
+            .putBoolean(KEY_BOTOES_513, true).apply()
         return ConfigCartao()
     }
 
@@ -284,5 +294,6 @@ class EstiloCartao(context: Context) {
         const val KEY_CAMPOS_48 = "campos_4_8"
         const val KEY_PALETA = "paleta"
         const val KEY_BOTOES = "botoes"
+        const val KEY_BOTOES_513 = "botoes_5_1_3"
     }
 }
