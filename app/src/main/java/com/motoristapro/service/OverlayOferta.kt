@@ -50,6 +50,9 @@ class OverlayOferta(private val context: Context) {
      * Entregue pelo serviço; null = cartão de uma cor só, como antes.
      */
     var limites: LimitesOferta? = null
+
+    /** Meta e medidas do motorista (régua do lucro por hora); quem mostra o cartão atualiza. */
+    var regua: ParametrosRegua? = null
     private val handler = Handler(Looper.getMainLooper())
     private val esconderRunnable = Runnable { esconder() }
     private val ptBr = Locale("pt", "BR")
@@ -133,6 +136,7 @@ class OverlayOferta(private val context: Context) {
         tvPrincipal.text = linhaPrincipal(escolhidos.take(3), o, cfg, custoKmCentavos)
 
         val partes = escolhidos.drop(3).map { it.second }.toMutableList()
+        linhaRegua(o)?.let { partes.add(0, it) }
         if (o.paradas > 1 && cfg.campos.none { it == CampoCartao.PARADAS }) {
             partes += "⏸ ${o.paradas} paradas • ${moeda(o.valor / o.paradas)} cada"
         }
@@ -193,6 +197,22 @@ class OverlayOferta(private val context: Context) {
      * Só no tema escuro/claro: no colorido o fundo já é o semáforo, e texto
      * verde sobre fundo verde não se lê.
      */
+    /**
+     * "Lucro R$ 36/h · meta R$ 42/h · estimado": a conta da régua em uma linha.
+     * "estimado" enquanto o app ainda usa o padrão (60% do turno com corrida,
+     * 15 km/h) em vez do que mediu do motorista.
+     */
+    private fun linhaRegua(o: Oferta): String? {
+        val a = regua?.let { ReguaLucroHora.avaliar(o, it) } ?: return null
+        return buildString {
+            append("Lucro ${moedaInteira(a.lucroPorHoraReais)}/h · meta ${moedaInteira(a.alvoPorHoraReais)}/h")
+            if (a.tempoPeloKm) append(" · tempo pelo km")
+            if (a.estimado) append(" · estimado")
+        }
+    }
+
+    private fun moedaInteira(v: Double): String = "R$ " + Math.round(v)
+
     private fun linhaPrincipal(
         campos: List<Pair<CampoCartao, String>>,
         o: Oferta,
@@ -208,7 +228,7 @@ class OverlayOferta(private val context: Context) {
             if (i > 0) texto.append("   ")
             val inicio = texto.length
             texto.append(valor)
-            val faixa = lim.faixaDoCampo(campo, o, custoKmCentavos) ?: return@forEachIndexed
+            val faixa = lim.faixaDoCampo(campo, o, custoKmCentavos, regua) ?: return@forEachIndexed
             texto.setSpan(
                 ForegroundColorSpan(faixa.corFundo or 0xFF000000.toInt()),
                 inicio, texto.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -388,12 +408,13 @@ class OverlayOferta(private val context: Context) {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(5), 0, dp(2))
             cfg.numeros(o, custoKmCentavos).forEach { n ->
-                val faixa = limites?.faixaDoCampo(n.campo, o, custoKmCentavos)
+                val faixa = limites?.faixaDoCampo(n.campo, o, custoKmCentavos, regua)
                 addView(metrica(n.rotulo, n.valor, faixa?.let { cfg.paleta.cor(it) } ?: CINZA, e, corNumero, escuro))
             }
         }
 
         val avisos = buildList {
+            linhaRegua(o)?.let { add(it) }
             if (o.paradas > 1) add("⏸ ${o.paradas} paradas · ${moeda(o.valor / o.paradas)} cada")
             if (o.devolucao) add("⚠ pode ter devolução")
             sugestao?.let { add("↑ Peça ${moeda(it.valorSugerido)} (+${moeda(it.aumento)}) e vira boa") }

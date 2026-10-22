@@ -7,6 +7,7 @@ import com.motoristapro.data.local.dao.ResumoOfertas
 import com.motoristapro.data.local.dao.ResumoPeriodo
 import com.motoristapro.data.local.dao.TempoConectado
 import com.motoristapro.data.local.dao.TotaisJornada
+import com.motoristapro.data.local.dao.TrechoCorrida
 import com.motoristapro.data.local.dao.TotalPorCategoria
 import com.motoristapro.data.local.entity.PerfilCusto
 import com.motoristapro.data.local.entity.CategoriaDespesa
@@ -337,6 +338,10 @@ class FinanceiroRepository(
 
     fun resumoDoPeriodo(inicio: Long, fim: Long): Flow<ResumoPeriodo> =
         corridaDao.observarResumo(inicio, fim)
+
+    /** Km e tempo das últimas corridas do veículo ativo (velocidade da régua). */
+    fun ultimosTrechos(limite: Int = 30): Flow<List<TrechoCorrida>> =
+        veiculoAtivo.flatMapLatest { corridaDao.observarUltimosTrechos(it, limite) }
 
     fun resumoDoMes(mes: YearMonth = YearMonth.now()): Flow<ResumoPeriodo> {
         val (ini, fim) = Periodo.mes(mes)

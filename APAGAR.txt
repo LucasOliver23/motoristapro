@@ -1,71 +1,58 @@
-NADA PARA APAGAR NESTA VERSAO (4.15.1)
+NADA PARA APAGAR NESTA VERSAO (4.16.0)
 ======================================
 
-4.15.1 = a 4.15.0 completa com numero novo. A 4.15.0 foi publicada duas
-vezes com o mesmo codigo (95): o celular que pegou a primeira (so o Testar
-com print) nao via a segunda (Uber Envios, contagem de entregas, copia que
-esconde bairro) como atualizacao. Regra: TODO merge na main precisa subir
-o versionCode, senao a Release sai mas o app nao atualiza.
+Nenhum arquivo removido. O banco continua na versao 14 (sem migracao nova:
+so uma consulta nova no CorridaDao).
 
-Nenhum arquivo removido. O banco continua na versao 14 (sem migracao nova).
+Regua nova: o cartao decide pelo LUCRO POR HORA
+- Com meta de lucro e horas por dia (assistente de custo + Suas metas) e
+  custo/km, a cor sai de: lucro da corrida (valor - km x custo/km) dividido
+  pelo tempo dela, contra a meta limpa por hora JA CONTANDO A ESPERA
+  (meta / fracao do turno com corrida).
+    ACEITAR  = lucro por hora >= o que precisa
+    ATENCAO  = de 70% ate o que precisa
+    RECUSAR  = abaixo de 70% ou prejuizo
+- Fracao do turno com corrida: 60% "estimado" ate ter 3 h de turno medido.
+- Entrega que so mostra km: o tempo sai da velocidade media das ultimas
+  corridas registradas do veiculo ativo (10 ou mais); antes disso 15 km/h
+  "estimado".
+- O custo/km e o do veiculo ativo: moto e carro ja tem reguas diferentes.
+- Sem meta, sem horas ou sem custo/km: continua o semaforo antigo.
 
-Testar com print (Menu > Leitor de ofertas > Testar com print):
-- Escolha o print de uma oferta (galeria) e o app de onde ele veio
-  (Uber, 99, iFood, inDrive ou "Nao sei"). O print passa pela MESMA regra
-  do leitor e a tela mostra ACEITAR / ATENCAO / RECUSAR, os numeros
-  (valor, km, tempo, R$/km, R$/hora, lucro, nota, paradas) e, quando nao
-  le, o motivo em uma frase.
-- O print e lido duas vezes: so a parte de baixo (igual o leitor faz na
-  rua) e a imagem inteira. Se so a inteira achou a oferta, a tela avisa.
-- "Ver no cartao de verdade": mostra a oferta lida no cartao flutuante por
-  8 segundos (precisa do leitor ligado). Nao entra no historico.
-- "Copiar textos": copia o que o leitor leu, com os enderecos trocados por
-  "Rua Exemplo N, 100" (e CEP), para mandar e virar teste automatico.
-- Do WhatsApp ou da Galeria: abra a foto > Compartilhar > MotoristaPro.
-  O app abre direto no Testar com print com a imagem.
-- Funciona sem o leitor ligado e sem conta no app do print.
+Cartao: nova linha "Lucro R$ 36/h · meta R$ 42/h", com "tempo pelo km"
+e "estimado" quando for o caso. O numero de lucro e pintado pela regua;
+R$/km, R$/hora e nota ficam sem cor (sao informacao) sem o Avancado.
 
-Uber Envios (entrega da Uber):
-- "Envios" passou a contar como tela de entrega: card da Uber Envios que
-  mostra so o km (sem minutos) agora e lido, igual ao iFood.
+Faixas antigas viram "Faixas avancadas" (Menu > Semaforo):
+- Trava a mais por cima da regua: vale a pior das duas cores.
+- LIGADAS para quem ja tinha mexido em alguma faixa antes da 4.16;
+  DESLIGADAS para quem nunca mexeu. Chave na tela do Semaforo.
+- O cartao "Como o cartao decide" mostra a meta, o que a corrida precisa
+  render, e o que ainda e estimado.
 
-Primeiros prints reais viraram teste (OfertaParserTest):
-- Uber Envios Moto: R$ 4,96, 10,9 km, 19 min, nota 5,00.
-- iFood com coleta no mercado: R$ 15,75, 8,5 km, 43 min, devolucao.
+Testar com print: mostra o lucro por hora, o que precisa e o "estimado".
+inDrive: o "Peca R$ X e vira boa" usa a regua.
 
-Contagem de entregas (paradas) corrigida:
-- So conta ENTREGA, nao a coleta. Antes, coleta + 1 entrega no iFood
-  virava "2 paradas" e o cartao dividia o valor por 2 ("R$ X cada").
-- Le o numero escrito: "2 Paradas" (iFood) e "Entrega Food (2)" (99).
-- "Entrega 2" sozinha ja conta 2, e aceita o erro do OCR ("Fntrena 2").
-- Print real da 99 Entrega Food (2) virou teste: R$ 16,69, 8,7 km, 2 entregas.
-
-"Copiar textos" troca mais pedacos de endereco: "R.104, 116" (sem espaco),
-quadra, lote, setor, bairro, vila, nucleo, jardim, parque.
-
-Por dentro:
-- A escolha da oferta (qual oferta vale numa tela) saiu do
-  OfertaAccessibilityService para EscolhaOferta: o leitor e o teste usam
-  a mesma conta. O recorte da imagem e a ordem das linhas do OCR viraram
-  funcoes do LeitorOcr usadas pelos dois.
+Correcao: com o valor cortado do print, o "R$0,34/km aprox." virava o
+valor da corrida. Preco por unidade (R$/km, R$/h, R$/min) nunca e o valor.
 
 Arquivos novos:
-  app/src/main/java/com/motoristapro/service/EscolhaOferta.kt
-  app/src/main/java/com/motoristapro/service/LeituraDePrint.kt
-  app/src/main/java/com/motoristapro/service/OcrDoPrint.kt
-  app/src/main/java/com/motoristapro/ui/mais/TestarPrintScreen.kt
-  app/src/test/java/com/motoristapro/service/LeituraDePrintTest.kt
+  app/src/main/java/com/motoristapro/custo/FonteRegua.kt
+  app/src/main/java/com/motoristapro/service/ReguaLucroHora.kt
+  app/src/main/java/com/motoristapro/service/Classificacao.kt (saiu do LimitesOferta.kt)
+  app/src/test/java/com/motoristapro/service/ReguaLucroHoraTest.kt
 
 Arquivos alterados:
-  app/build.gradle.kts (4.15.1 / 96)
-  app/src/main/java/com/motoristapro/service/OfertaParser.kt ("envios" = entrega, contagem de entregas)
-  app/src/main/java/com/motoristapro/service/EstiloCartao.kt (texto do campo Paradas)
-  app/src/test/java/com/motoristapro/service/OfertaParserTest.kt (3 prints reais)
-  app/src/main/AndroidManifest.xml (receber imagem pelo Compartilhar)
-  app/src/main/java/com/motoristapro/service/LeitorOcr.kt
+  app/build.gradle.kts (4.16.0 / 97)
+  app/src/main/java/com/motoristapro/MotoristaApp.kt
+  app/src/main/java/com/motoristapro/data/local/dao/CorridaDao.kt
+  app/src/main/java/com/motoristapro/data/repository/FinanceiroRepository.kt
+  app/src/main/java/com/motoristapro/service/LimitesOferta.kt
   app/src/main/java/com/motoristapro/service/OfertaAccessibilityService.kt
-  app/src/main/java/com/motoristapro/ui/MainActivity.kt
-  app/src/main/java/com/motoristapro/ui/NavegacaoRapida.kt
-  app/src/main/java/com/motoristapro/ui/mais/LeitorScreen.kt
+  app/src/main/java/com/motoristapro/service/OfertaParser.kt
+  app/src/main/java/com/motoristapro/service/OverlayOferta.kt
+  app/src/main/java/com/motoristapro/ui/mais/EstiloCartaoScreen.kt
   app/src/main/java/com/motoristapro/ui/mais/MaisScreen.kt
-  app/src/main/java/com/motoristapro/ui/mais/SubTela.kt
+  app/src/main/java/com/motoristapro/ui/mais/SemaforoScreen.kt
+  app/src/main/java/com/motoristapro/ui/mais/TestarPrintScreen.kt
+  app/src/test/java/com/motoristapro/service/OfertaParserTest.kt

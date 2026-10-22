@@ -400,4 +400,20 @@ class OfertaParserTest {
         val o = OfertaParser.extrair(listOf("Entrega 2", "R$ 20,00", "Distância total", "9,0 km"), exigirTempo = false)!!
         assertEquals(2, o.paradas)
     }
+
+    /** Print com o valor cortado: o "R$0,34/km aprox." não pode virar o valor da corrida. */
+    @Test
+    fun valorCortado_precoPorKmNaoViraValor() {
+        val textos = listOf(
+            "R$0,34/km aprox.", "4,96 (301)", "4 min (1.2 km)", "Rua Exemplo 1, 100",
+            "5 minutos (1.5 km)", "Rua Exemplo 2, 100", "Aceitar"
+        )
+        assertNull(OfertaParser.extrair(textos))
+    }
+
+    @Test
+    fun valorEPrecoPorKmNaMesmaLinha_valeOValor() {
+        val o = OfertaParser.extrair(listOf("R$ 12,00 • R$1,20/km", "10 min (10 km)"))!!
+        assertEquals(12.0, o.valor, 0.001)
+    }
 }

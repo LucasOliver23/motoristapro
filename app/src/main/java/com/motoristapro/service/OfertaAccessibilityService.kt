@@ -215,6 +215,9 @@ class OfertaAccessibilityService : AccessibilityService() {
             }
         }
 
+        // Já começa a juntar meta e medidas da régua: a primeira oferta não espera o banco.
+        (application as MotoristaApp).regua
+
         // Custo/km e tarifa mínima sempre atualizados a partir do banco.
         escopo.launch {
             try {
@@ -482,6 +485,13 @@ class OfertaAccessibilityService : AccessibilityService() {
         processarResultado(resultado?.oferta, resultado?.pacote, resultado?.total ?: 1)
     }
 
+    /**
+     * Meta e medidas do motorista para a régua do lucro por hora. O cartão
+     * recebe a mesma, para pintar os números e escrever a conta igual.
+     */
+    private fun reguaAtual(): ParametrosRegua? =
+        (application as MotoristaApp).regua.parametros.value.also { overlay?.regua = it }
+
     /** Mostra/atualiza/esconde a janela a partir do resultado (vale para leitura por texto e por imagem). */
     private fun processarResultado(oferta: Oferta?, pacote: String?, totalNaTela: Int = 1) {
         val ov = overlay ?: return
@@ -506,7 +516,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         if (oferta.assinatura == ultimaAssinatura && ov.visivel) return
         ultimaAssinatura = oferta.assinatura
 
-        val classe = lim.classificar(oferta, tarifaMinimaCentavos, custoKmCentavos)
+        val classe = lim.classificar(oferta, tarifaMinimaCentavos, custoKmCentavos, reguaAtual())
         val alertaRisco = risco?.alerta(oferta.enderecos)
         Log.d(
             TAG,
@@ -522,7 +532,7 @@ class OfertaAccessibilityService : AccessibilityService() {
         // da para seguir, e ainda empurrava os numeros que decidem a corrida
         // para baixo nos 12 segundos que ele tem para responder.
         val sugestao = if (pacote == OfertaInDrive.PACOTE) {
-            lim.valorParaFicarBoa(oferta, tarifaMinimaCentavos, custoKmCentavos)
+            lim.valorParaFicarBoa(oferta, tarifaMinimaCentavos, custoKmCentavos, reguaAtual())
         } else {
             null
         }
@@ -1011,11 +1021,11 @@ class OfertaAccessibilityService : AccessibilityService() {
             enderecos = listOf("Av. Paulista, 1578 - São Paulo"),
             nota = 4.82
         )
-        val classe = lim.classificar(o, tarifaMinimaCentavos, custoKmCentavos)
+        val classe = lim.classificar(o, tarifaMinimaCentavos, custoKmCentavos, reguaAtual())
         val alerta = risco?.alerta(o.enderecos)
         ov.mostrar(
             o, classe, custoKmCentavos, duracaoMs = 6_000, alertaRisco = alerta,
-            sugestao = lim.valorParaFicarBoa(o, tarifaMinimaCentavos, custoKmCentavos)
+            sugestao = lim.valorParaFicarBoa(o, tarifaMinimaCentavos, custoKmCentavos, reguaAtual())
         )
         voz?.falar(o, classe, alerta)
     }
@@ -1028,9 +1038,9 @@ class OfertaAccessibilityService : AccessibilityService() {
     fun mostrarOfertaDoPrint(o: Oferta, pacote: String?): Boolean {
         val ov = overlay ?: return false
         val lim = limites ?: return false
-        val classe = lim.classificar(o, tarifaMinimaCentavos, custoKmCentavos)
+        val classe = lim.classificar(o, tarifaMinimaCentavos, custoKmCentavos, reguaAtual())
         val sugestao = if (pacote == OfertaInDrive.PACOTE) {
-            lim.valorParaFicarBoa(o, tarifaMinimaCentavos, custoKmCentavos)
+            lim.valorParaFicarBoa(o, tarifaMinimaCentavos, custoKmCentavos, reguaAtual())
         } else {
             null
         }

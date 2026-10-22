@@ -34,6 +34,8 @@ import com.motoristapro.service.AppDoPrint
 import com.motoristapro.service.Classificacao
 import com.motoristapro.service.LeituraDePrint
 import com.motoristapro.service.LimitesOferta
+import com.motoristapro.service.ReguaLucroHora
+import com.motoristapro.MotoristaApp
 import com.motoristapro.service.OcrDoPrint
 import com.motoristapro.service.OfertaAccessibilityService
 import com.motoristapro.ui.NavegacaoRapida
@@ -67,6 +69,7 @@ internal fun TestarPrintScreen(
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val limites = remember { LimitesOferta(context) }
+    val regua by remember { (context.applicationContext as MotoristaApp).regua.parametros }.collectAsState()
 
     var app by rememberSaveable { mutableStateOf(AppDoPrint.UBER) }
     var print by remember { mutableStateOf<Uri?>(null) }
@@ -145,7 +148,8 @@ internal fun TestarPrintScreen(
             r.motivo?.let { TextoAjuda("Por quê: $it") }
             return@CardSecao
         }
-        val classe = limites.classificar(o, tarifaMinimaCentavos, custoKmCentavos)
+        val classe = limites.classificar(o, tarifaMinimaCentavos, custoKmCentavos, regua)
+        val avaliacao = regua?.let { ReguaLucroHora.avaliar(o, it) }
         Text(
             classe.rotulo,
             color = when (classe) {
@@ -166,6 +170,29 @@ internal fun TestarPrintScreen(
             LinhaValor("Lucro estimado", lucro.emReaisDouble(), cor = if (lucro > 0) Lima else VermelhoPrejuizo)
         } else {
             LinhaValor("Lucro estimado", "faça o assistente de custo", cor = TextoSecundario)
+        }
+        if (avaliacao != null) {
+            LinhaValor(
+                "Lucro por hora de corrida",
+                avaliacao.lucroPorHoraReais.emReaisDouble(),
+                cor = if (avaliacao.lucroPorHoraReais >= avaliacao.alvoPorHoraReais) Lima else AmareloAlerta,
+                negrito = true
+            )
+            LinhaValor("Precisa (sua meta)", avaliacao.alvoPorHoraReais.emReaisDouble())
+            if (avaliacao.tempoPeloKm) {
+                TextoAjuda("O card não mostra o tempo: ${avaliacao.minutos} min calculados pelo km.")
+            }
+            if (avaliacao.estimado) {
+                TextoAjuda(
+                    "Estimado: o app ainda não mediu " +
+                        (if (avaliacao.fracaoEstimada) "quanto do seu turno é com corrida (usa 60%)" else "") +
+                        (if (avaliacao.fracaoEstimada && avaliacao.tempoPeloKm && avaliacao.velocidadeEstimada) " nem " else "") +
+                        (if (avaliacao.tempoPeloKm && avaliacao.velocidadeEstimada) "a sua velocidade nas corridas (usa 15 km/h)" else "") +
+                        ". Vira o seu número com o uso."
+                )
+            }
+        } else if (custoKmCentavos > 0) {
+            TextoAjuda("Sem meta de lucro e horas por dia (Menu ▸ Suas metas): a cor vem das faixas do semáforo.")
         }
         o.nota?.let { LinhaValor("Nota do passageiro", String.format(PT_BR, "%.2f", it)) }
         if (o.paradas > 0) LinhaValor("Paradas", o.paradas.toString())
