@@ -1,3 +1,20 @@
+APAGADO NESTA VERSAO (5.1.1)
+============================
+
+Nada apagado. O banco continua na versao 14 (sem migracao).
+
+Correcao: no Copiloto, a linha "Inicio automatico" (e qualquer uma com o
+botao "Liberar") virava um cartao enorme e vazio, com o botao esticado na
+largura toda. O botao tatil (Tecla, ui/componentes/Painel.kt) ocupava a
+linha inteira e espremia o texto ao lado ate sumir. Agora ele tem a
+largura do proprio texto.
+
+Arquivos alterados:
+  app/build.gradle.kts (5.1.1 / 103)
+  app/src/main/java/com/motoristapro/ui/componentes/Painel.kt
+
+------------------------------------------------------------------
+
 APAGADO NESTA VERSAO (5.1.0)
 ============================
 
