@@ -106,6 +106,38 @@ class OfertaParserTest {
         assertEquals(2.70, o.reaisPorKm, 0.01)
     }
 
+    /**
+     * Encaixe da 99 Moto (print do usuário, 5.1.4): a corrida paga R$ 4,90 e a
+     * tela mostra também "R$34,32/hora". O por-hora virava o valor da corrida.
+     */
+    @Test
+    fun noventaENove_encaixe_valorPorHoraNaoViraValor() {
+        val textos = listOf(
+            "Moto", "R$4,90", "R$34,32/hora", "0% de Taxa99 semanal", "R$1,00 Tarifa base dinâmica incl.",
+            "4,93", "253 corridas", "Perfil Essencial",
+            "4 min (382 m)", "Rua Antônio Lopes Trindade, 79, Vila Maria",
+            "5 min (3 km)", "Santa Ceia Massas Alimentícias, Avenida Alexandre de Morais, Qd. k10", "Aceitar"
+        )
+        val o = OfertaParser.extrair(textos)!!
+        assertEquals(4.90, o.valor, 0.001)
+        assertEquals(3.382, o.km, 0.001)
+        assertEquals(9, o.minutos)
+    }
+
+    /** O mesmo, com o "/hora" num pedaço separado da tela. */
+    @Test
+    fun noventaENove_encaixe_horaSeparada() {
+        val textos = listOf("Moto", "R$4,90", "R$34,32", "/hora", "4 min (382 m)", "5 min (3 km)")
+        assertEquals(4.90, OfertaParser.extrair(textos)!!.valor, 0.001)
+    }
+
+    /** E escrito por extenso: "R$ 34,32 por hora". */
+    @Test
+    fun valorPorHoraPorExtenso_naoViraValor() {
+        val textos = listOf("R$ 4,90", "R$ 34,32 por hora", "4 min (382 m)", "5 min (3 km)")
+        assertEquals(4.90, OfertaParser.extrair(textos)!!.valor, 0.001)
+    }
+
     /** Mesmo card repetido na descrição do container: trechos iguais contam uma vez. */
     @Test
     fun noventaENove_descricaoDuplicada_naoSomaEmDobro() {

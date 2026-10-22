@@ -1,3 +1,24 @@
+APAGADO NESTA VERSAO (5.1.4)
+============================
+
+Nada apagado. O banco continua na versao 14 (sem migracao).
+
+Correcao do leitor (99 Moto, encaixe): a tela mostra o valor da corrida
+(R$ 4,90) e tambem quanto ela paga por hora (R$34,32/hora). O leitor
+descartava "/km", "/h" e "/min", mas nao "/hora" escrito por extenso:
+o R$ 34,32 virava o valor da corrida (lucro R$ 32,80, R$/km 10,15).
+Agora "/hora", "por hora" e o "/hora" num pedaco separado da tela sao
+tratados como preco por unidade, nunca como o valor.
+
+Testes novos em OfertaParserTest (o print real do encaixe e duas variacoes).
+
+Arquivos alterados:
+  app/build.gradle.kts (5.1.4 / 106)
+  app/src/main/java/com/motoristapro/service/OfertaParser.kt
+  app/src/test/java/com/motoristapro/service/OfertaParserTest.kt
+
+------------------------------------------------------------------
+
 APAGADO NESTA VERSAO (5.1.3)
 ============================
 

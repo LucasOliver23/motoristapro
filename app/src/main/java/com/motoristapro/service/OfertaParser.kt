@@ -85,7 +85,7 @@ object OfertaParser {
 
     // Linhas cujo R$ NÃO é o valor da oferta (ganhos do dia, tarifa base, taxa, bônus...).
     private val RE_IGNORAR_VALOR = Regex(
-        """ganho|saldo|carteira|hoje|seman|meta|tarifa base|incl\.|inclu[íi]d|taxa|promo|b[oô]nus|gorjeta|/\s*km|/\s*h\b|/\s*min|aprox""",
+        """ganho|saldo|carteira|hoje|seman|meta|tarifa base|incl\.|inclu[íi]d|taxa|promo|b[oô]nus|gorjeta|/\s*km|/\s*h(?:oras?)?\b|por\s+hora|/\s*min|aprox""",
         RegexOption.IGNORE_CASE
     )
 
@@ -264,14 +264,30 @@ object OfertaParser {
     private fun extrairValor(textos: List<String>, tudo: String): Double? {
         fun valores(s: String) = RE_VALOR.findAll(s).mapNotNull { paraDouble(it.groupValues[1]) }
         val principais = textos.asSequence()
-            .filter { !RE_IGNORAR_VALOR.containsMatchIn(it) }
+            .filterIndexed { i, linha ->
+                !RE_IGNORAR_VALOR.containsMatchIn(linha) &&
+                    // "R$34,32" e "/hora" em pedaços separados da tela (99 Moto, 5.1.4):
+                    // o R$ seguido de "/hora", "/km"... é preço por unidade.
+                    !(VALOR_SEM_UNIDADE_FIM.containsMatchIn(linha.trim()) &&
+                        textos.getOrNull(i + 1)?.let { RE_SO_UNIDADE.matches(it.trim()) } == true)
+            }
             .flatMap { valores(it) }
             .maxOrNull()
         return principais ?: valores(RE_POR_UNIDADE.replace(tudo, " ")).maxOrNull()
     }
 
-    // "R$0,34/km", "R$ 0,52 / min", "R$ 30/h": preço por unidade, nunca o valor da corrida.
-    private val RE_POR_UNIDADE = Regex("""(?:R\$|RS)\s*[\d.,]+\s*/\s*(?:km|h|min)\b""", RegexOption.IGNORE_CASE)
+    // "R$0,34/km", "R$ 0,52 / min", "R$ 30/h", "R$34,32/hora" (99 Moto, encaixe):
+    // preço por unidade, nunca o valor da corrida.
+    private val RE_POR_UNIDADE = Regex(
+        """(?:R\$|RS)\s*[\d.,]+\s*(?:/\s*(?:km|h(?:oras?)?|min(?:utos?)?)\b|por\s+hora\b)""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /** Um pedaço de tela que é SÓ a unidade: "/hora", "/ km", "por hora". */
+    private val RE_SO_UNIDADE = Regex("""(?:/\s*(?:km|h(?:oras?)?|min(?:utos?)?)|por\s+hora)\.?""", RegexOption.IGNORE_CASE)
+
+    /** A linha termina num número (o R$ que a unidade da linha seguinte completa). */
+    private val VALOR_SEM_UNIDADE_FIM = Regex("""\d$""")
 
     /**
      * Número de entregas da rota. "Entrega 1" aparece no mapa e no card: conta uma vez.
